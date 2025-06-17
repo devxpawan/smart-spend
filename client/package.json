@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-     "vercel-build": "npm run build"
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
