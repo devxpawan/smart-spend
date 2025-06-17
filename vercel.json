@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "client/package.json",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "client/dist"
@@ -31,7 +31,7 @@
   },
   "build": {
     "env": {
-      "VITE_API_URL": "https://smart-spend-delta.vercel.app/api",
+      "VITE_API_URL": "https://smart-spend-eta.vercel.app/api",
       "VITE_GOOGLE_CLIENT_ID": "769330653342-td86rlm5q29uhj43615n2j0mm42tb7jq.apps.googleusercontent.com"
     }
   }

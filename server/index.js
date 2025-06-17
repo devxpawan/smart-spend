@@ -73,12 +73,12 @@
 //   console.log(`Server running on port ${PORT}`);
 // });
 
-import express from 'express';
-import cors from 'cors';
-import mongoose from 'mongoose';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -89,48 +89,52 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.vercel.app'] 
-    : ['http://localhost:5173'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["https://smart-spend-eta.vercel.app"]
+        : ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // Import routes (ensure these files also use ES modules)
-import authRoutes from './routes/auth.js';
-import billsRoutes from './routes/bills.js';
-import expensesRoutes from './routes/expenses.js';
-import warrantiesRoutes from './routes/warranties.js';
+import authRoutes from "./routes/auth.js";
+import billsRoutes from "./routes/bills.js";
+import expensesRoutes from "./routes/expenses.js";
+import warrantiesRoutes from "./routes/warranties.js";
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/bills', billsRoutes);
-app.use('/api/expenses', expensesRoutes);
-app.use('/api/warranties', warrantiesRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/bills", billsRoutes);
+app.use("/api/expenses", expensesRoutes);
+app.use("/api/warranties", warrantiesRoutes);
 
 // Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../client/dist")));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../client/dist/index.html"));
   });
 }
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
 const PORT = process.env.PORT || 5000;
