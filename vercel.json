@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "server/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/dist/$1"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "mongodb+srv://hexcore05:hexcore05@cluster.kl2fbhj.mongodb.net/database?retryWrites=true&w=majority&appName=Cluster",
+    "JWT_SECRET": "4588aa9834be8fc7e0fb0c4aa6d3c0c570973dd631dae6359c4ec4751a008479",
+    "GOOGLE_CLIENT_ID": "769330653342-td86rlm5q29uhj43615n2j0mm42tb7jq.apps.googleusercontent.com",
+    "GOOGLE_CLIENT_SECRET": "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"
+  },
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://your-app-name.vercel.app/api",
+      "VITE_GOOGLE_CLIENT_ID": "769330653342-td86rlm5q29uhj43615n2j0mm42tb7jq.apps.googleusercontent.com"
+    }
+  }
+}
