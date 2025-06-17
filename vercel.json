@@ -31,7 +31,7 @@
   },
   "build": {
     "env": {
-      "VITE_API_URL": "https://your-app-name.vercel.app/api",
+      "VITE_API_URL": "smart-spend-delta.vercel.app/api",
       "VITE_GOOGLE_CLIENT_ID": "769330653342-td86rlm5q29uhj43615n2j0mm42tb7jq.apps.googleusercontent.com"
     }
   }
