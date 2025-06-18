@@ -15,7 +15,7 @@ import { authenticateToken } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 // Load environment variables
-dotenv.config({ path: "./../.env" });
+dotenv.config({ path: "./.env" });
 
 const app = express();
 
