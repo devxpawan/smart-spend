@@ -5,6 +5,12 @@ import {
 } from "@react-oauth/google";
 import axios from "axios";
 
+/**
+ * Google OAuth Configuration:
+ * - Authorized JavaScript origins: http://localhost:5173
+ * - Authorized redirect URIs: http://localhost:5000/api/google/callback
+ */
+
 interface GoogleLoginButtonProps {
   onLogin?: (sessionToken: string) => void;
 }

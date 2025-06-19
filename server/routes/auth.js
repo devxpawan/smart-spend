@@ -8,6 +8,12 @@ import path from "path";
 import fs from "fs";
 import { OAuth2Client } from "google-auth-library";
 
+/**
+ * Google OAuth Configuration:
+ * - Authorized JavaScript origins: http://localhost:5173
+ * - Authorized redirect URIs: http://localhost:5000/api/google/callback
+ */
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const router = express.Router();
 
