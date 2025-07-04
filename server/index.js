@@ -15,29 +15,61 @@ import { authenticateToken } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 // Load environment variables
-dotenv.config({ path: "./.env" });
+dotenv.config();
 
 const app = express();
 
 // Basic configuration
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
+// CORS configuration
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
+  : [
+      "https://smart-spend-frontend-rosy.vercel.app",
+      "http://localhost:5173",
+      "http://localhost:3000",
+    ];
 
 // Check required environment variables
-if (!MONGODB_URI) {
-  console.error("MONGODB_URI is required");
-  process.exit(1);
-}
+const requiredEnvVars = [
+  { name: "MONGODB_URI", value: MONGODB_URI },
+  { name: "JWT_SECRET", value: process.env.JWT_SECRET },
+  {
+    name: "CLOUDINARY_CLOUD_NAME",
+    value: process.env.CLOUDINARY_CLOUD_NAME,
+  },
+  { name: "CLOUDINARY_API_KEY", value: process.env.CLOUDINARY_API_KEY },
+  {
+    name: "CLOUDINARY_API_SECRET",
+    value: process.env.CLOUDINARY_API_SECRET,
+  },
+  { name: "GOOGLE_CLIENT_ID", value: process.env.GOOGLE_CLIENT_ID },
+];
 
-if (!process.env.JWT_SECRET) {
-  console.error("JWT_SECRET is required");
+const missingEnvVars = requiredEnvVars.filter((envVar) => !envVar.value);
+
+if (missingEnvVars.length > 0) {
+  console.error("Missing required environment variables:");
+  missingEnvVars.forEach((envVar) => {
+    console.error(`- ${envVar.name}`);
+  });
+  console.error(
+    "Please check your .env file and ensure all required variables are set."
+  );
   process.exit(1);
 }
 
 // Middleware
 app.use(morgan("combined"));
-app.use(cors({ origin: CORS_ORIGIN }));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 

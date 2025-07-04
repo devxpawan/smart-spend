@@ -17,7 +17,16 @@ import {
   Search,
   RefreshCw,
 } from "lucide-react";
-import { format, parseISO, isPast, addDays, isValid } from "date-fns";
+import {
+  format,
+  parseISO,
+  isPast,
+  addDays,
+  isValid,
+  startOfMonth,
+  endOfMonth,
+  isWithinInterval,
+} from "date-fns";
 import ConfirmModal from "../components/ConfirmModal";
 import BillInterface from "../types/BillInterface";
 import { useAuth } from "../contexts/AuthContext";
@@ -33,6 +42,9 @@ interface SortConfig {
 interface FilterConfig {
   status: "all" | "paid" | "unpaid" | "overdue" | "upcoming";
   searchTerm: string;
+  dateRange: "all" | "thisMonth" | "lastMonth" | "custom";
+  customMonth?: number;
+  customYear?: number;
 }
 
 const Bills: React.FC = () => {
@@ -48,7 +60,9 @@ const Bills: React.FC = () => {
     id: null,
   });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editBillData, setEditBillData] = useState<BillInterface | null>(null);
+  const [editBillData, setEditBillData] = useState<BillInterface | null>(
+    null
+  );
 
   // Enhanced filtering and sorting
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -58,6 +72,9 @@ const Bills: React.FC = () => {
   const [filters, setFilters] = useState<FilterConfig>({
     status: "all",
     searchTerm: "",
+    dateRange: "all",
+    customMonth: new Date().getMonth() + 1,
+    customYear: new Date().getFullYear(),
   });
 
   const { user } = useAuth();
@@ -153,7 +170,7 @@ const Bills: React.FC = () => {
     try {
       const parsedDate = parseISO(dueDate);
       if (!isValid(parsedDate)) throw new Error("Invalid date");
-      
+
       if (isPast(parsedDate)) {
         return {
           text: "Overdue",
@@ -193,8 +210,10 @@ const Bills: React.FC = () => {
       // Search filter
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
-        if (!bill.name.toLowerCase().includes(searchLower) &&
-            !bill.category.toLowerCase().includes(searchLower)) {
+        if (
+          !bill.name.toLowerCase().includes(searchLower) &&
+          !bill.category.toLowerCase().includes(searchLower)
+        ) {
           return false;
         }
       }
@@ -213,8 +232,62 @@ const Bills: React.FC = () => {
             if (bill.isPaid || status.text !== "Overdue") return false;
             break;
           case "upcoming":
-            if (bill.isPaid || (status.text !== "Upcoming" && status.text !== "Due Soon")) return false;
+            if (
+              bill.isPaid ||
+              (status.text !== "Upcoming" && status.text !== "Due Soon")
+            )
+              return false;
             break;
+        }
+      }
+
+      // Date range filter
+      if (filters.dateRange !== "all") {
+        const billDate = parseISO(bill.dueDate);
+        if (!isValid(billDate)) return false;
+
+        const now = new Date();
+        let dateRange: { start: Date; end: Date };
+
+        switch (filters.dateRange) {
+          case "thisMonth":
+            dateRange = {
+              start: startOfMonth(now),
+              end: endOfMonth(now),
+            };
+            break;
+          case "lastMonth":
+            const lastMonth = new Date(
+              now.getFullYear(),
+              now.getMonth() - 1,
+              1
+            );
+            dateRange = {
+              start: startOfMonth(lastMonth),
+              end: endOfMonth(lastMonth),
+            };
+            break;
+          case "custom":
+            if (filters.customMonth && filters.customYear) {
+              const customDate = new Date(
+                filters.customYear,
+                filters.customMonth - 1,
+                1
+              );
+              dateRange = {
+                start: startOfMonth(customDate),
+                end: endOfMonth(customDate),
+              };
+            } else {
+              return true;
+            }
+            break;
+          default:
+            return true;
+        }
+
+        if (!isWithinInterval(billDate, dateRange)) {
+          return false;
         }
       }
 
@@ -253,15 +326,20 @@ const Bills: React.FC = () => {
       return 0;
     });
 
-    const total = filtered.reduce((sum, bill) => sum + (bill.amount || 0), 0);
-    const overdue = filtered.filter(bill => 
-      !bill.isPaid && getBillStatus(bill.dueDate, bill.isPaid).text === "Overdue"
+    const total = filtered.reduce(
+      (sum, bill) => sum + (bill.amount || 0),
+      0
+    );
+    const overdue = filtered.filter(
+      (bill) =>
+        !bill.isPaid &&
+        getBillStatus(bill.dueDate, bill.isPaid).text === "Overdue"
     ).length;
 
-    return { 
-      filteredBills: filtered, 
-      totalAmount: total, 
-      overdueCount: overdue 
+    return {
+      filteredBills: filtered,
+      totalAmount: total,
+      overdueCount: overdue,
     };
   }, [bills, filters, sortConfig, getBillStatus]);
 
@@ -271,31 +349,36 @@ const Bills: React.FC = () => {
     action();
   };
 
-  const handleSubmit = useCallback(async (data: BillFormData) => {
-    try {
-      setLoading(true);
-      if (editBillData) {
-        await axios.put(`/api/bills/${editBillData._id}`, data);
-      } else {
-        await axios.post("/api/bills", data);
+  const handleSubmit = useCallback(
+    async (data: BillFormData) => {
+      try {
+        setLoading(true);
+        if (editBillData) {
+          await axios.put(`/api/bills/${editBillData._id}`, data);
+        } else {
+          await axios.post("/api/bills", data);
+        }
+        await fetchBills();
+      } catch (err) {
+        console.error("Error submitting bill:", err);
+        setError("Failed to submit bill");
+      } finally {
+        setLoading(false);
+        setIsAddModalOpen(false);
+        setEditBillData(null);
       }
-      await fetchBills();
-    } catch (err) {
-      console.error("Error submitting bill:", err);
-      setError("Failed to submit bill");
-    } finally {
-      setLoading(false);
-      setIsAddModalOpen(false);
-      setEditBillData(null);
-    }
-  }, [editBillData, fetchBills]);
+    },
+    [editBillData, fetchBills]
+  );
 
   if (loading && bills.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600"></div>
-          <p className="text-slate-600 font-medium">Loading your bills...</p>
+          <p className="text-slate-600 font-medium">
+            Loading your bills...
+          </p>
         </div>
       </div>
     );
@@ -317,15 +400,20 @@ const Bills: React.FC = () => {
               Track and manage your upcoming bills and payments
             </p>
             <div className="flex items-center gap-4 mt-2 text-sm">
-              <span className="text-slate-500">{filteredBills.length} bills</span>
+              <span className="text-slate-500">
+                {filteredBills.length} bills
+              </span>
               <span className="text-slate-500">•</span>
               <span className="text-slate-500">
-                Total: {user?.preferences?.currency || "USD"} {totalAmount.toFixed(2)}
+                Total: {user?.preferences?.currency || "USD"}{" "}
+                {totalAmount.toFixed(2)}
               </span>
               {overdueCount > 0 && (
                 <>
                   <span className="text-slate-500">•</span>
-                  <span className="text-red-600 font-medium">{overdueCount} overdue</span>
+                  <span className="text-red-600 font-medium">
+                    {overdueCount} overdue
+                  </span>
                 </>
               )}
             </div>
@@ -350,7 +438,12 @@ const Bills: React.FC = () => {
             type="text"
             placeholder="Search bills..."
             value={filters.searchTerm}
-            onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
+            onChange={(e) =>
+              setFilters((prev) => ({
+                ...prev,
+                searchTerm: e.target.value,
+              }))
+            }
             className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 backdrop-blur-sm"
           />
         </div>
@@ -359,13 +452,17 @@ const Bills: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">Status:</label>
+            <label className="text-sm font-medium text-slate-700">
+              Status:
+            </label>
             <select
               value={filters.status}
-              onChange={(e) => setFilters(prev => ({ 
-                ...prev, 
-                status: e.target.value as FilterConfig['status'] 
-              }))}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  status: e.target.value as FilterConfig["status"],
+                }))
+              }
               className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
               <option value="all">All Bills</option>
@@ -376,16 +473,85 @@ const Bills: React.FC = () => {
             </select>
           </div>
 
+          {/* Date Range Filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-slate-700">
+              Period:
+            </label>
+            <select
+              value={filters.dateRange}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  dateRange: e.target.value as FilterConfig["dateRange"],
+                }))
+              }
+              className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            >
+              <option value="all">All Time</option>
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="custom">Custom Month</option>
+            </select>
+          </div>
+
+          {/* Custom Month/Year Selection */}
+          {filters.dateRange === "custom" && (
+            <div className="flex items-center gap-2">
+              <select
+                value={filters.customMonth}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    customMonth: parseInt(e.target.value),
+                  }))
+                }
+                className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {new Date(2024, i, 1).toLocaleString("default", {
+                      month: "long",
+                    })}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filters.customYear}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    customYear: parseInt(e.target.value),
+                  }))
+                }
+                className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - 2 + i;
+                  return (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
           {/* Sort Controls */}
           <div className="flex items-center gap-2 ml-auto">
             <Filter className="w-4 h-4 text-slate-500" />
-            <label className="text-sm font-medium text-slate-700">Sort by:</label>
+            <label className="text-sm font-medium text-slate-700">
+              Sort by:
+            </label>
             <select
               value={sortConfig.key}
-              onChange={(e) => setSortConfig(prev => ({ 
-                ...prev, 
-                key: e.target.value as SortConfig['key'] 
-              }))}
+              onChange={(e) =>
+                setSortConfig((prev) => ({
+                  ...prev,
+                  key: e.target.value as SortConfig["key"],
+                }))
+              }
               className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
               <option value="dueDate">Due Date</option>
@@ -393,12 +559,14 @@ const Bills: React.FC = () => {
               <option value="status">Status</option>
               <option value="name">Name</option>
             </select>
-            
+
             <button
-              onClick={() => setSortConfig(prev => ({ 
-                ...prev, 
-                direction: prev.direction === "asc" ? "desc" : "asc" 
-              }))}
+              onClick={() =>
+                setSortConfig((prev) => ({
+                  ...prev,
+                  direction: prev.direction === "asc" ? "desc" : "asc",
+                }))
+              }
               className="flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
               title="Toggle sort order"
             >
@@ -416,7 +584,9 @@ const Bills: React.FC = () => {
               title="Refresh bills"
               disabled={loading}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
             </button>
           </div>
         </div>
@@ -431,7 +601,9 @@ const Bills: React.FC = () => {
                 <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-red-800">Error Occurred</h3>
+                <h3 className="text-sm font-bold text-red-800">
+                  Error Occurred
+                </h3>
                 <p className="text-sm text-red-700 mt-1">{error}</p>
               </div>
             </div>
@@ -456,10 +628,9 @@ const Bills: React.FC = () => {
               {bills.length === 0 ? "No Bills Yet" : "No Bills Found"}
             </h3>
             <p className="text-slate-600 mb-6 leading-relaxed">
-              {bills.length === 0 
+              {bills.length === 0
                 ? "Start managing your finances by adding your first bill. Keep track of due dates and never miss a payment again."
-                : "Try adjusting your search or filter criteria to find the bills you're looking for."
-              }
+                : "Try adjusting your search or filter criteria to find the bills you're looking for."}
             </p>
             {bills.length === 0 && (
               <button
@@ -473,44 +644,66 @@ const Bills: React.FC = () => {
           </div>
         </div>
       ) : (
-        !loading && !error && (
+        !loading &&
+        !error && (
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
                   <tr>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
                       <div className="flex items-center space-x-2">
                         <Receipt className="w-4 h-4" />
                         <span>Bill Name</span>
                       </div>
                     </th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
                       Category
                     </th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4" />
                         <span>Due Date</span>
                       </div>
                     </th>
-                    <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
                       <div className="flex items-center justify-end space-x-2">
                         <DollarSign className="w-4 h-4" />
                         <span>Amount</span>
                       </div>
                     </th>
-                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
                       Status
                     </th>
-                    <th scope="col" className="px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th
+                      scope="col"
+                      className="px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white/50 divide-y divide-slate-200">
                   {filteredBills.map((bill) => {
-                    const status = getBillStatus(bill.dueDate, bill.isPaid);
+                    const status = getBillStatus(
+                      bill.dueDate,
+                      bill.isPaid
+                    );
                     return (
                       <tr
                         key={bill._id}
@@ -535,7 +728,8 @@ const Bills: React.FC = () => {
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap text-right">
                           <span className="text-sm font-bold text-slate-800">
-                            {user?.preferences?.currency || "USD"} {bill?.amount?.toFixed(2)}
+                            {user?.preferences?.currency || "USD"}{" "}
+                            {bill?.amount?.toFixed(2)}
                           </span>
                         </td>
                         <td className="px-6 py-5 whitespace-nowrap">
@@ -564,7 +758,11 @@ const Bills: React.FC = () => {
                                   : "transform hover:scale-105"
                               }`}
                               disabled={togglingId === bill._id}
-                              title={bill.isPaid ? "Mark as Unpaid" : "Mark as Paid"}
+                              title={
+                                bill.isPaid
+                                  ? "Mark as Unpaid"
+                                  : "Mark as Paid"
+                              }
                             >
                               {togglingId === bill._id ? (
                                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -606,7 +804,7 @@ const Bills: React.FC = () => {
         onConfirm={handleDeleteConfirmed}
         message="This action cannot be undone. Do you really want to delete this bill?"
       />
-      
+
       {(isAddModalOpen || editBillData) && (
         <BillModal
           isOpen={isAddModalOpen || !!editBillData}

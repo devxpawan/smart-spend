@@ -76,25 +76,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// @route   GET /api/bills/:id
-router.get("/:id", async (req, res) => {
-  try {
-    const bill = await Bill.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
-
-    if (!bill) {
-      return res.status(404).json({ message: "Bill not found" });
-    }
-
-    res.json(bill);
-  } catch (error) {
-    console.error("Get bill error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
 // @route   PUT /api/bills/:id
 router.put("/:id", async (req, res) => {
   try {
@@ -253,6 +234,67 @@ router.put("/:id/pay", async (req, res) => {
     }
   } catch (error) {
     console.error("Pay bill error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   GET /api/bills/monthly/:year/:month
+// @desc    Get bills for a specific month
+// @access  Private
+router.get("/monthly/:year/:month", async (req, res) => {
+  try {
+    const { year, month } = req.params;
+    const { limit = 50, page = 1 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const endDate = new Date(
+      parseInt(year),
+      parseInt(month),
+      0,
+      23,
+      59,
+      59
+    );
+
+    const filter = {
+      user: req.user.id,
+      dueDate: { $gte: startDate, $lte: endDate },
+    };
+
+    const total = await Bill.countDocuments(filter);
+    const bills = await Bill.find(filter)
+      .sort({ dueDate: 1 })
+      .limit(parseInt(limit))
+      .skip(skip);
+
+    // Calculate summary for the month
+    const paidBills = bills.filter((bill) => bill.isPaid);
+    const unpaidBills = bills.filter((bill) => !bill.isPaid);
+
+    const summary = {
+      totalAmount: bills.reduce((sum, bill) => sum + bill.amount, 0),
+      paidAmount: paidBills.reduce((sum, bill) => sum + bill.amount, 0),
+      unpaidAmount: unpaidBills.reduce(
+        (sum, bill) => sum + bill.amount,
+        0
+      ),
+      totalCount: bills.length,
+      paidCount: paidBills.length,
+      unpaidCount: unpaidBills.length,
+    };
+
+    res.json({
+      bills,
+      summary,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get monthly bills error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

@@ -40,15 +40,7 @@ const billSchema = new mongoose.Schema({
       "Other Utilities",
     ],
   },
-  isRecurring: {
-    type: Boolean,
-    default: false,
-  },
-  recurringPeriod: {
-    type: String,
-    enum: ["Weekly", "Monthly", "Quarterly", "Annually"],
-    default: "Monthly",
-  },
+
   isPaid: {
     type: Boolean,
     default: false,

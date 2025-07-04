@@ -13,8 +13,11 @@ import {
   RefreshCw,
   Info,
   CheckCircle,
+  BarChart3,
+  Settings,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ProfileStatsSimple from "../components/ProfileStats";
 
 // Types
 interface Message {
@@ -167,9 +170,7 @@ const AvatarUpload: React.FC<{
   return (
     <div className="flex flex-col items-center space-y-4">
       <div
-        className={`relative group cursor-pointer ${
-          dragOver ? "scale-105" : ""
-        } transition-transform duration-200`}
+        className="relative group cursor-pointer"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -184,13 +185,7 @@ const AvatarUpload: React.FC<{
           }
         }}
       >
-        <div
-          className={`relative overflow-hidden rounded-full ring-4 transition-all duration-300 ${
-            dragOver
-              ? "ring-indigo-500 ring-offset-4"
-              : "ring-slate-200 group-hover:ring-indigo-400"
-          }`}
-        >
+        <div className="relative overflow-hidden rounded-full border-4 border-slate-200 shadow-lg">
           <img
             src={avatarUrl}
             alt={`${name}'s avatar`}
@@ -199,19 +194,19 @@ const AvatarUpload: React.FC<{
             onError={(e) => {
               e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
                 name || "User"
-              )}&background=EEE&color=888&size=256`;
+              )}&background=6366f1&color=ffffff&size=256`;
             }}
-            className="w-32 h-32 object-cover shadow-lg"
+            className="w-24 h-24 object-cover"
           />
 
           {/* Overlay */}
           <div
-            className={`absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
+            className={`absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${
               dragOver ? "opacity-100" : ""
             }`}
           >
             <div className="text-white text-center">
-              <Upload className="w-6 h-6 mx-auto mb-1" />
+              <Upload className="w-5 h-5 mx-auto mb-1" />
               <p className="text-xs font-medium">
                 {dragOver ? "Drop image" : "Change photo"}
               </p>
@@ -220,18 +215,18 @@ const AvatarUpload: React.FC<{
         </div>
 
         {/* Action buttons */}
-        <div className="absolute -bottom-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute -bottom-1 -right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               fileInputRef.current?.click();
             }}
-            className="bg-white hover:bg-slate-100 p-2 rounded-full shadow-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-150"
+            className="bg-white hover:bg-slate-50 p-2 rounded-full shadow-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
             title="Upload new image"
             aria-label="Upload new avatar image"
           >
-            <Camera className="w-4 h-4 text-slate-600" />
+            <Camera className="w-3 h-3 text-indigo-600" />
           </button>
 
           {hasAvatar && (
@@ -241,11 +236,11 @@ const AvatarUpload: React.FC<{
                 e.stopPropagation();
                 onRemoveAvatar();
               }}
-              className="bg-white hover:bg-slate-100 p-2 rounded-full shadow-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-rose-500 transition-colors duration-150"
+              className="bg-white hover:bg-slate-50 p-2 rounded-full shadow-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
               title="Remove image"
               aria-label="Remove avatar image"
             >
-              <Trash2 className="w-4 h-4 text-rose-600" />
+              <Trash2 className="w-3 h-3 text-red-600" />
             </button>
           )}
         </div>
@@ -271,9 +266,11 @@ const AvatarUpload: React.FC<{
         </div>
       )}
 
-      <p className="text-xs text-slate-500 text-center max-w-xs">
-        Click or drag to upload a new photo. Max 5MB. Supports JPEG, PNG,
-        WebP.
+      <p className="text-sm text-slate-600 text-center max-w-xs font-medium">
+        Click or drag to upload
+      </p>
+      <p className="text-xs text-slate-400 text-center">
+        Max 5MB • JPEG, PNG, WebP
       </p>
     </div>
   );
@@ -412,7 +409,7 @@ const DeleteConfirmationModal: React.FC<{
             {deleting ? (
               <>
                 <LoadingSpinner size="sm" />
-                Deleting...
+                Deleting....
               </>
             ) : (
               <>
@@ -478,6 +475,9 @@ const Profile: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "statistics">(
+    "details"
+  );
 
   // Auto-clear messages
   useEffect(() => {
@@ -642,205 +642,279 @@ const Profile: React.FC = () => {
 
   return (
     <>
-      <div className="max-w-2xl mx-auto py-1 px-2 sm:px-6 lg:px-8">
-        <header className="mb-5 text-center">
-          <h1 className="text-3xl font-bold text-slate-800">
-            Profile Settings
-          </h1>
-          <p className="text-md text-slate-600 mt-0">
-            Manage your personal information and preferences.
-          </p>
-        </header>
+      <div className="min-h-screen bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-slate-900">
+              Profile Settings
+            </h1>
+            <p className="text-slate-600 mt-1">
+              Customize your account and preferences
+            </p>
+          </div>
 
-        <motion.div
-          className={`bg-white rounded-xl shadow-xl border border-slate-200 p-6 sm:p-8 space-y-8 relative transition-all duration-300 ${
-            saveSuccess ? "ring-2 ring-emerald-500 ring-opacity-50" : ""
-          }`}
-          layout
-        >
-          {/* Success Overlay */}
-          <SuccessOverlay show={saveSuccess} />
-
-          {/* Avatar Section */}
-          <AvatarUpload
-            avatarUrl={avatarUrl}
-            name={name}
-            loading={loading}
-            onImageChange={handleImageChange}
-            onRemoveAvatar={handleRemoveAvatar}
-            hasAvatar={!!(user?.avatar || avatar)}
-          />
-
-          {/* Form */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSaveAllChanges();
-            }}
-            className="space-y-6"
-            noValidate
-          >
-            {/* Name Field */}
-            <div>
-              <label
-                htmlFor="name"
-                className="block mb-1.5 text-sm font-medium text-slate-700"
-              >
-                Full Name *
-              </label>
-              <div className="relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User
-                    className="h-5 w-5 text-slate-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="form-input block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-150 ease-in-out"
-                  placeholder="e.g. Jane Doe"
-                  aria-describedby="name-help"
-                />
-              </div>
-              <p id="name-help" className="text-xs text-slate-500 mt-1">
-                This name will be displayed throughout the application
-              </p>
-            </div>
-
-            {/* Email Field */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block mb-1.5 text-sm font-medium text-slate-700"
-              >
-                Email Address
-              </label>
-              <div className="relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail
-                    className="h-5 w-5 text-slate-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  readOnly
-                  className="form-input block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg bg-slate-100 cursor-not-allowed text-slate-500 sm:text-sm focus:ring-0 focus:border-slate-300"
-                  placeholder="you@example.com"
-                  aria-describedby="email-help"
-                />
-              </div>
-              <p id="email-help" className="text-xs text-slate-500 mt-1">
-                Email cannot be changed for security reasons
-              </p>
-            </div>
-
-            {/* Currency Field */}
-            <div>
-              <label
-                htmlFor="currency"
-                className="block mb-1.5 text-sm font-medium text-slate-700"
-              >
-                Preferred Currency
-              </label>
-              <div className="relative rounded-md shadow-sm">
-                <select
-                  id="currency"
-                  value={pendingCurrency || selectedCurrency}
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                  className="form-select block w-full pl-3 pr-10 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-150 ease-in-out"
-                  aria-describedby="currency-help"
+          {/* Tab Navigation */}
+          <div className="flex justify-center mb-6">
+            <div className="bg-white rounded-lg p-1 shadow-sm border border-slate-200">
+              <nav className="flex space-x-1">
+                <button
+                  onClick={() => setActiveTab("details")}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    activeTab === "details"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                  }`}
                 >
-                  {CURRENCY_OPTIONS.map((currency) => (
-                    <option key={currency.code} value={currency.code}>
-                      {currency.symbol} {currency.name} ({currency.code})
-                    </option>
-                  ))}
-                </select>
+                  <div className="flex items-center space-x-2">
+                    <Settings className="w-4 h-4" />
+                    <span>Profile Details</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setActiveTab("statistics")}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    activeTab === "statistics"
+                      ? "bg-white text-slate-900 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                  }`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <BarChart3 className="w-4 h-4" />
+                    <span>Statistics</span>
+                  </div>
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === "details" ? (
+            <div className="max-w-6xl mx-auto">
+              <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 relative">
+                {/* Success Overlay */}
+                <SuccessOverlay show={saveSuccess} />
+                {/* Success Overlay */}
+                <SuccessOverlay show={saveSuccess} />
+
+                {/* Modern Profile Layout */}
+                <div className="space-y-8">
+                  {/* Avatar Section - Centered */}
+                  <div className="flex justify-center">
+                    <AvatarUpload
+                      avatarUrl={avatarUrl}
+                      name={name}
+                      loading={loading}
+                      onImageChange={handleImageChange}
+                      onRemoveAvatar={handleRemoveAvatar}
+                      hasAvatar={!!(user?.avatar || avatar)}
+                    />
+                  </div>
+
+                  {/* Form Section */}
+                  <div className="max-w-2xl mx-auto">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSaveAllChanges();
+                      }}
+                      className="space-y-6"
+                      noValidate
+                    >
+                      {/* Name Field */}
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="name"
+                          className="block text-sm font-semibold text-slate-800"
+                        >
+                          Full Name *
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <User
+                              className="h-5 w-5 text-slate-400"
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <input
+                            id="name"
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                            className="block w-full pl-12 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
+                            placeholder="e.g. Jane Doe"
+                            aria-describedby="name-help"
+                          />
+                        </div>
+                        <p
+                          id="name-help"
+                          className="text-xs text-slate-500"
+                        >
+                          This name will be displayed throughout the
+                          application
+                        </p>
+                      </div>
+
+                      {/* Email Field */}
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="email"
+                          className="block text-sm font-semibold text-slate-800"
+                        >
+                          Email Address
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <Mail
+                              className="h-5 w-5 text-slate-400"
+                              aria-hidden="true"
+                            />
+                          </div>
+                          <input
+                            id="email"
+                            type="email"
+                            value={email}
+                            readOnly
+                            className="block w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg cursor-not-allowed text-slate-500 sm:text-sm"
+                            placeholder="you@example.com"
+                            aria-describedby="email-help"
+                          />
+                        </div>
+                        <p
+                          id="email-help"
+                          className="text-xs text-slate-500"
+                        >
+                          Email cannot be changed for security reasons
+                        </p>
+                      </div>
+
+                      {/* Currency Field */}
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="currency"
+                          className="block text-sm font-semibold text-slate-800"
+                        >
+                          Preferred Currency
+                        </label>
+                        <div className="relative">
+                          <select
+                            id="currency"
+                            value={pendingCurrency || selectedCurrency}
+                            onChange={(e) =>
+                              handleCurrencyChange(e.target.value)
+                            }
+                            className="block w-full pl-4 pr-10 py-2.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors appearance-none"
+                            aria-describedby="currency-help"
+                          >
+                            {CURRENCY_OPTIONS.map((currency) => (
+                              <option
+                                key={currency.code}
+                                value={currency.code}
+                              >
+                                {currency.symbol} {currency.name} (
+                                {currency.code})
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                            <svg
+                              className="h-4 w-4 text-slate-400"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                        <p
+                          id="currency-help"
+                          className="text-xs text-slate-500"
+                        >
+                          This will be used for displaying amounts
+                          throughout the app
+                        </p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="pt-6 flex flex-wrap gap-3 justify-end border-t border-slate-200/50">
+                        {hasChanges && (
+                          <button
+                            type="button"
+                            onClick={handleRevertChanges}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 font-medium rounded-lg hover:bg-slate-50 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-colors text-sm"
+                          >
+                            <X className="w-4 h-4" />
+                            Revert
+                          </button>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={loading || !hasChanges}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        >
+                          {loading ? (
+                            <>
+                              <LoadingSpinner size="sm" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-4 h-4" />
+                              Save Changes
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteModal(true)}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-sm"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete Account
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
               </div>
-              <p
-                id="currency-help"
-                className="text-xs text-slate-500 mt-1"
-              >
-                This will be used for displaying amounts throughout the app
-              </p>
             </div>
-
-            {/* Action Buttons */}
-            <div className="pt-4 flex flex-wrap gap-3 justify-end border-t border-slate-200">
-              <AnimatePresence>
-                {hasChanges && (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    type="button"
-                    onClick={handleRevertChanges}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors duration-150 ease-in-out shadow-md hover:shadow-lg text-sm"
-                  >
-                    <X className="w-4 h-4" />
-                    Revert
-                  </motion.button>
-                )}
-              </AnimatePresence>
-
-              <button
-                type="submit"
-                disabled={loading || !hasChanges}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-150 ease-in-out shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed text-sm"
-              >
-                {loading ? (
-                  <>
-                    <LoadingSpinner size="sm" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Save Changes
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-150 ease-in-out shadow-md hover:shadow-lg text-sm"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Account
-              </button>
+          ) : (
+            <div className="max-w-6xl mx-auto">
+              <ProfileStatsSimple />
             </div>
-          </form>
-        </motion.div>
-      </div>
+          )}
 
-      {/* Toast Notifications */}
-      <Toast
-        message={message}
-        onClose={() => setMessage({ type: "", text: "" })}
-      />
-
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {showDeleteModal && (
-          <DeleteConfirmationModal
-            isOpen={showDeleteModal}
-            onClose={handleCloseDeleteModal}
-            onConfirm={handleDeleteProfile}
-            userName={user?.name || "User"}
-            deleteInput={deleteInput}
-            setDeleteInput={setDeleteInput}
-            deleting={deleting}
+          {/* Toast Notifications */}
+          <Toast
+            message={message}
+            onClose={() => setMessage({ type: "", text: "" })}
           />
-        )}
-      </AnimatePresence>
+
+          {/* Delete Confirmation Modal */}
+          <AnimatePresence>
+            {showDeleteModal && (
+              <DeleteConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={handleCloseDeleteModal}
+                onConfirm={handleDeleteProfile}
+                userName={user?.name || "User"}
+                deleteInput={deleteInput}
+                setDeleteInput={setDeleteInput}
+                deleting={deleting}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </>
   );
 };

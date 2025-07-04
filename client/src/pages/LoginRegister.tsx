@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import logo from "/logo.png";
-import { useNavigate, Navigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import {
   Lock,
   Mail,
@@ -22,17 +22,26 @@ const LoginRegister: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   const { login, register, googleLogin, loading, error, user } = useAuth();
-  const navigate = useNavigate();
 
   if (user) return <Navigate to="/" replace />;
+
+  // Clear form fields when switching tabs
+  const handleTabChange = (newTab: "login" | "register") => {
+    setTab(newTab);
+    setName("");
+    setEmail("");
+    setPassword("");
+    setShowPassword(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (tab === "login") {
       await login(email, password);
-      navigate("/", { replace: true });
+      // Navigation is handled in the login function
     } else {
       await register(name, email, password);
+      // Navigation is handled in the register function
     }
   };
 
@@ -157,7 +166,9 @@ const LoginRegister: React.FC = () => {
                     {["login", "register"].map((t) => (
                       <button
                         key={t}
-                        onClick={() => setTab(t as "login" | "register")}
+                        onClick={() =>
+                          handleTabChange(t as "login" | "register")
+                        }
                         className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${
                           tab === t
                             ? "bg-white text-indigo-600 shadow-md transform scale-[0.98]"
@@ -274,13 +285,13 @@ const LoginRegister: React.FC = () => {
                             Email Address
                           </label>
                           <div className="relative">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
                               type="email"
                               required
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
+                              className="w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
                               placeholder="Enter your email"
                             />
                           </div>
@@ -291,14 +302,14 @@ const LoginRegister: React.FC = () => {
                             Password
                           </label>
                           <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
                               type={showPassword ? "text" : "password"}
                               required
                               minLength={6}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
-                              className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500"
+                              className="w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
                               placeholder="Enter your password"
                             />
                             <button
@@ -335,7 +346,7 @@ const LoginRegister: React.FC = () => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-3.5 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 group"
+                      className="w-full pl-9 pr-10 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 group text-sm"
                     >
                       <span>
                         {loading
@@ -364,7 +375,7 @@ const LoginRegister: React.FC = () => {
                     </div>
 
                     {/* Google login - more compact */}
-                    <div className="w-full">
+                    <div className="w-full flex justify-center">
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
@@ -385,7 +396,7 @@ const LoginRegister: React.FC = () => {
                           Don't have an account?{" "}
                           <button
                             type="button"
-                            onClick={() => setTab("register")}
+                            onClick={() => handleTabChange("register")}
                             className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
                           >
                             Sign up for free
@@ -396,7 +407,7 @@ const LoginRegister: React.FC = () => {
                           Already have an account?{" "}
                           <button
                             type="button"
-                            onClick={() => setTab("login")}
+                            onClick={() => handleTabChange("login")}
                             className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
                           >
                             Sign in

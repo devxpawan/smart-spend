@@ -91,12 +91,13 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       setError("");
 
-      const [monthlyRes, categoryRes, billsRes, warrantiesRes] = await Promise.all([
-        axios.get("/api/expenses/summary/monthly"),
-        axios.get("/api/expenses/summary/category"),
-        axios.get("/api/bills/upcoming/reminders"),
-        axios.get("/api/warranties/expiring/soon"),
-      ]);
+      const [monthlyRes, categoryRes, billsRes, warrantiesRes] =
+        await Promise.all([
+          axios.get("/api/expenses/summary/monthly"),
+          axios.get("/api/expenses/summary/category"),
+          axios.get("/api/bills/upcoming/reminders"),
+          axios.get("/api/warranties/expiring/soon"),
+        ]);
 
       const currentYearTotal = monthlyRes.data.reduce(
         (sum: number, month: any) => sum + month.total,
@@ -113,8 +114,8 @@ const Dashboard: React.FC = () => {
     } catch (error: any) {
       console.error("Dashboard fetch error:", error);
       setError(
-        error.response?.data?.message || 
-        "Failed to load dashboard data. Please try again."
+        error.response?.data?.message ||
+          "Failed to load dashboard data. Please try again."
       );
     } finally {
       setLoading(false);
@@ -125,93 +126,123 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
 
-  const categoryChartData = useMemo(() => ({
-    labels: dashboardData.categoryData.map((cat) => cat._id),
-    datasets: [
-      {
-        data: dashboardData.categoryData.map((cat) => cat.total),
-        backgroundColor: [
-          "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6",
-          "#EF4444", "#6366F1", "#14B8A6", "#F97316",
-          "#EC4899", "#84CC16", "#06B6D4", "#8B5A2B",
-        ],
-        borderColor: "#FFFFFF",
-        borderWidth: 3,
-        hoverBorderWidth: 4,
-        hoverOffset: 8,
-      },
-    ],
-  }), [dashboardData.categoryData]);
+  const categoryChartData = useMemo(
+    () => ({
+      labels: dashboardData.categoryData.map((cat) => cat._id),
+      datasets: [
+        {
+          data: dashboardData.categoryData.map((cat) => cat.total),
+          backgroundColor: [
+            "#3B82F6",
+            "#10B981",
+            "#F59E0B",
+            "#8B5CF6",
+            "#EF4444",
+            "#6366F1",
+            "#14B8A6",
+            "#F97316",
+            "#EC4899",
+            "#84CC16",
+            "#06B6D4",
+            "#8B5A2B",
+          ],
+          borderColor: "#FFFFFF",
+          borderWidth: 3,
+          hoverBorderWidth: 4,
+          hoverOffset: 8,
+        },
+      ],
+    }),
+    [dashboardData.categoryData]
+  );
 
-  const monthlyChartData = useMemo(() => ({
-    labels: [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ],
-    datasets: [
-      {
-        label: "Monthly Expenses",
-        data: dashboardData.monthlyData.map((month) => month.total),
-        borderColor: "#3B82F6",
-        backgroundColor: "rgba(59, 130, 246, 0.1)",
-        pointBackgroundColor: "#3B82F6",
-        pointBorderColor: "#FFFFFF",
-        pointBorderWidth: 2,
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        tension: 0.4,
-        fill: true,
-        borderWidth: 3,
-      },
-    ],
-  }), [dashboardData.monthlyData]);
+  const monthlyChartData = useMemo(
+    () => ({
+      labels: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ],
+      datasets: [
+        {
+          label: "Monthly Expenses",
+          data: dashboardData.monthlyData.map((month) => month.total),
+          borderColor: "#3B82F6",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          pointBackgroundColor: "#3B82F6",
+          pointBorderColor: "#FFFFFF",
+          pointBorderWidth: 2,
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          tension: 0.4,
+          fill: true,
+          borderWidth: 3,
+        },
+      ],
+    }),
+    [dashboardData.monthlyData]
+  );
 
   const formatCurrency = (amount: number) => {
-    return `${user?.preferences?.currency || "USD"} ${amount.toLocaleString()}`;
+    return `${
+      user?.preferences?.currency || "USD"
+    } ${amount.toLocaleString()}`;
   };
 
-  const statsCards = useMemo(() => [
-    {
-      icon: <DollarSign className="w-7 h-7" />,
-      title: "Total Expenses",
-      subtitle: "This Year",
-      value: formatCurrency(dashboardData.totalExpenses),
-      rawValue: dashboardData.totalExpenses,
-      link: "/expenses",
-      gradient: "from-blue-500 to-indigo-600",
-      bgGradient: "from-blue-50 to-indigo-50",
-      borderColor: "border-blue-200",
-    },
-    {
-      icon: <Receipt className="w-7 h-7" />,
-      title: "Upcoming Bills",
-      subtitle: "Due Soon",
-      value: dashboardData.upcomingBills.length,
-      rawValue: dashboardData.upcomingBills.length,
-      link: "/bills",
-      gradient: "from-amber-500 to-orange-600",
-      bgGradient: "from-amber-50 to-orange-50",
-      borderColor: "border-amber-200",
-      urgent: dashboardData.upcomingBills.some(bill => {
-        const dueDate = new Date(bill.dueDate);
-        const today = new Date();
-        const diffTime = dueDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays <= 3 && diffDays >= 0;
-      }),
-    },
-    {
-      icon: <ShieldCheck className="w-7 h-7" />,
-      title: "Warranties",
-      subtitle: "Expiring Soon",
-      value: dashboardData.expiringWarranties.length,
-      rawValue: dashboardData.expiringWarranties.length,
-      link: "/warranties",
-      gradient: "from-emerald-500 to-teal-600",
-      bgGradient: "from-emerald-50 to-teal-50",
-      borderColor: "border-emerald-200",
-    },
-  ], [dashboardData, user?.preferences?.currency]);
+  const statsCards = useMemo(
+    () => [
+      {
+        icon: <DollarSign className="w-7 h-7" />,
+        title: "Total Expenses",
+        subtitle: "This Year",
+        value: formatCurrency(dashboardData.totalExpenses),
+        rawValue: dashboardData.totalExpenses,
+        link: "/expenses",
+        gradient: "from-blue-500 to-indigo-600",
+        bgGradient: "from-blue-50 to-indigo-50",
+        borderColor: "border-blue-200",
+      },
+      {
+        icon: <Receipt className="w-7 h-7" />,
+        title: "Upcoming Bills",
+        subtitle: "Due Soon",
+        value: dashboardData.upcomingBills.length,
+        rawValue: dashboardData.upcomingBills.length,
+        link: "/bills",
+        gradient: "from-amber-500 to-orange-600",
+        bgGradient: "from-amber-50 to-orange-50",
+        borderColor: "border-amber-200",
+        urgent: dashboardData.upcomingBills.some((bill) => {
+          const dueDate = new Date(bill.dueDate);
+          const today = new Date();
+          const diffTime = dueDate.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          return diffDays <= 3 && diffDays >= 0;
+        }),
+      },
+      {
+        icon: <ShieldCheck className="w-7 h-7" />,
+        title: "Warranties",
+        subtitle: "Expiring Soon",
+        value: dashboardData.expiringWarranties.length,
+        rawValue: dashboardData.expiringWarranties.length,
+        link: "/warranties",
+        gradient: "from-emerald-500 to-teal-600",
+        bgGradient: "from-emerald-50 to-teal-50",
+        borderColor: "border-emerald-200",
+      },
+    ],
+    [dashboardData, user?.preferences?.currency]
+  );
 
   if (loading) {
     return (
@@ -222,7 +253,9 @@ const Dashboard: React.FC = () => {
           className="flex flex-col items-center space-y-4"
         >
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600"></div>
-          <p className="text-slate-600 font-medium">Loading your dashboard...</p>
+          <p className="text-slate-600 font-medium">
+            Loading your dashboard...
+          </p>
         </motion.div>
       </div>
     );
@@ -274,7 +307,9 @@ const Dashboard: React.FC = () => {
               <div className="flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-semibold text-red-800">Error Loading Dashboard</h3>
+                  <h3 className="text-sm font-semibold text-red-800">
+                    Error Loading Dashboard
+                  </h3>
                   <p className="text-sm text-red-700 mt-1">{error}</p>
                   <button
                     onClick={() => fetchDashboardData()}
@@ -299,13 +334,19 @@ const Dashboard: React.FC = () => {
             <Link
               to={item.link}
               key={idx}
-              className={`group relative p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br ${item.bgGradient} border ${item.borderColor} hover:scale-[1.02] overflow-hidden ${
-                item.urgent ? 'ring-2 ring-red-400 ring-opacity-50' : ''
+              className={`group relative p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br ${
+                item.bgGradient
+              } border ${
+                item.borderColor
+              } hover:scale-[1.02] overflow-hidden ${
+                item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
               }`}
             >
               {/* Background Pattern */}
               <div className="absolute inset-0 opacity-5">
-                <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient}`}></div>
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${item.gradient}`}
+                ></div>
               </div>
 
               {/* Urgent indicator */}
@@ -330,7 +371,9 @@ const Dashboard: React.FC = () => {
                       {item.value}
                     </p>
                   </div>
-                  <div className={`p-3 rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg`}>
+                  <div
+                    className={`p-3 rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg`}
+                  >
                     <span className="text-white">{item.icon}</span>
                   </div>
                 </div>
@@ -341,7 +384,9 @@ const Dashboard: React.FC = () => {
                     <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
                   </span>
                   {item.urgent && (
-                    <span className="text-xs text-red-600 font-semibold">URGENT</span>
+                    <span className="text-xs text-red-600 font-semibold">
+                      URGENT
+                    </span>
                   )}
                 </div>
               </div>
@@ -363,7 +408,9 @@ const Dashboard: React.FC = () => {
                 <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
                   <TrendingUp className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800">Monthly Expenses Trend</h3>
+                <h3 className="text-xl font-bold text-slate-800">
+                  Monthly Expenses Trend
+                </h3>
               </div>
               <div className="text-sm text-slate-500">
                 {new Date().getFullYear()}
@@ -386,7 +433,10 @@ const Dashboard: React.FC = () => {
                         grid: { color: "#e2e8f0" },
                         border: { display: false },
                         ticks: {
-                          callback: (value) => `${user?.preferences?.currency || 'USD'}${value}`,
+                          callback: (value) =>
+                            `${
+                              user?.preferences?.currency || "USD"
+                            }${value}`,
                           font: { size: 12, family: "Inter, sans-serif" },
                           color: "#64748b",
                           padding: 10,
@@ -406,13 +456,23 @@ const Dashboard: React.FC = () => {
                       legend: { display: false },
                       tooltip: {
                         backgroundColor: "rgba(15, 23, 42, 0.9)",
-                        titleFont: { size: 14, family: "Inter, sans-serif", weight: "bold" as const },
-                        bodyFont: { size: 13, family: "Inter, sans-serif" },
+                        titleFont: {
+                          size: 14,
+                          family: "Inter, sans-serif",
+                          weight: "bold" as const,
+                        },
+                        bodyFont: {
+                          size: 13,
+                          family: "Inter, sans-serif",
+                        },
                         padding: 12,
                         cornerRadius: 12,
                         displayColors: false,
                         callbacks: {
-                          label: (context) => `${user?.preferences?.currency || 'USD'}${context.parsed.y.toLocaleString()}`,
+                          label: (context) =>
+                            `${
+                              user?.preferences?.currency || "USD"
+                            }${context.parsed.y.toLocaleString()}`,
                         },
                       },
                     },
@@ -422,7 +482,9 @@ const Dashboard: React.FC = () => {
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
                     <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 font-medium">No expense data available</p>
+                    <p className="text-slate-500 font-medium">
+                      No expense data available
+                    </p>
                   </div>
                 </div>
               )}
@@ -435,7 +497,9 @@ const Dashboard: React.FC = () => {
               <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
                 <Target className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800">Category Breakdown</h3>
+              <h3 className="text-xl font-bold text-slate-800">
+                Category Breakdown
+              </h3>
             </div>
             <div className="h-80 flex items-center justify-center">
               {dashboardData.categoryData.length > 0 ? (
@@ -449,7 +513,11 @@ const Dashboard: React.FC = () => {
                       legend: {
                         position: "bottom" as const,
                         labels: {
-                          font: { size: 11, family: "Inter, sans-serif", weight: "normal" as const },
+                          font: {
+                            size: 11,
+                            family: "Inter, sans-serif",
+                            weight: "normal" as const,
+                          },
                           color: "#475569",
                           boxWidth: 12,
                           padding: 15,
@@ -459,13 +527,23 @@ const Dashboard: React.FC = () => {
                       },
                       tooltip: {
                         backgroundColor: "rgba(15, 23, 42, 0.9)",
-                        titleFont: { size: 14, family: "Inter, sans-serif", weight: "bold" as const },
-                        bodyFont: { size: 13, family: "Inter, sans-serif" },
+                        titleFont: {
+                          size: 14,
+                          family: "Inter, sans-serif",
+                          weight: "bold" as const,
+                        },
+                        bodyFont: {
+                          size: 13,
+                          family: "Inter, sans-serif",
+                        },
                         padding: 12,
                         cornerRadius: 12,
                         displayColors: true,
                         callbacks: {
-                          label: (context) => `${user?.preferences?.currency || 'USD'}${context.parsed.toLocaleString()}`,
+                          label: (context) =>
+                            `${
+                              user?.preferences?.currency || "USD"
+                            }${context.parsed.toLocaleString()}`,
                         },
                       },
                     },
@@ -476,7 +554,9 @@ const Dashboard: React.FC = () => {
                   <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 mx-auto">
                     <Target className="w-8 h-8 text-slate-400" />
                   </div>
-                  <p className="text-slate-500 font-medium">No category data available</p>
+                  <p className="text-slate-500 font-medium">
+                    No category data available
+                  </p>
                 </div>
               )}
             </div>
@@ -495,8 +575,12 @@ const Dashboard: React.FC = () => {
               <Lightbulb className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-slate-800">Smart Savings Tips</h3>
-              <p className="text-slate-600 mt-1">Actionable insights to optimize your finances</p>
+              <h3 className="text-2xl font-bold text-slate-800">
+                Smart Savings Tips
+              </h3>
+              <p className="text-slate-600 mt-1">
+                Actionable insights to optimize your finances
+              </p>
             </div>
           </div>
 
@@ -519,7 +603,11 @@ const Dashboard: React.FC = () => {
                 className="flex items-start space-x-3 p-4 bg-white/60 rounded-xl border border-emerald-100 hover:bg-white/80 transition-colors duration-200"
               >
                 <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mt-0.5">
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
                     <path
                       fillRule="evenodd"
                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"

@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Bills from "./pages/Bills";
+import MonthlyBreakdown from "./pages/MonthlyBreakdown";
 
 import NotFound from "./pages/NotFound";
 import PrivateRoute from "./components/PrivateRoute";
@@ -28,36 +29,37 @@ function App() {
     <ErrorBoundary>
       <Routes>
         {/* Auth Routes */}
-        <Route path="/login" element={<LoginRegister />} />
-      <Route path="/register" element={<LoginRegister />} />
-      {/* Dashboard Routes */}
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <DashboardLayout />
-          </PrivateRoute>
-        }
-      >
-        <Route index element={<Dashboard />} />
-        {/* Expense Routes */}
-        <Route path="expenses" element={<Expenses />} />
+        <Route path="/auth" element={<LoginRegister />} />
+        {/* Dashboard Routes */}
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <DashboardLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          {/* Expense Routes */}
+          <Route path="expenses" element={<Expenses />} />
 
-        {/* Bill Routes */}
-        <Route path="bills" element={<Bills />} />
+          {/* Bill Routes */}
+          <Route path="bills" element={<Bills />} />
 
-        {/* Warranty Routes */}
-         <Route path="/warranties" element={<Warranties />} />
-        {/* Profile */}
-        <Route path="profile" element={<Profile />} />
-        <Route path="about" element={<About />} />
-      </Route>
-      {/* 404 */}
+          {/* Monthly Breakdown */}
+          <Route path="monthly" element={<MonthlyBreakdown />} />
+
+          {/* Warranty Routes */}
+          <Route path="warranties" element={<Warranties />} />
+          {/* Profile */}
+          <Route path="profile" element={<Profile />} />
+          <Route path="about" element={<About />} />
+        </Route>
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </ErrorBoundary>
   );
 }
-
 
 export default App;

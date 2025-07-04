@@ -16,6 +16,9 @@ import {
   RefreshCw,
   Clock,
   DollarSign,
+  Image,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import WarrantyModal from "../components/WarrantyModal";
 import ConfirmModal from "../components/ConfirmModal";
@@ -23,22 +26,14 @@ import { useAuth } from "../contexts/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { format, parseISO, isValid, differenceInDays } from "date-fns";
+import {
+  WarrantyImage,
+} from "../types/WarrantyFormData";
+import WarrantyInterface from "../types/WarrantyInterface";
 
-interface Warranty {
-  _id: string;
-  productName: string;
-  expirationDate: string;
-  category: string;
-  purchaseDate?: string;
-  retailer?: string;
-  notes?: string;
-  purchasePrice?: number;
-  user: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Using WarrantyInterface from types
 
-interface WarrantyFormData {
+interface LocalWarrantyFormData {
   productName: string;
   expirationDate: string;
   category: string;
@@ -46,6 +41,7 @@ interface WarrantyFormData {
   retailer: string;
   notes: string;
   purchasePrice?: number;
+  warrantyCardImages?: WarrantyImage[];
 }
 
 interface PaginationData {
@@ -62,16 +58,18 @@ interface FilterConfig {
 
 const Warranties: React.FC = () => {
   const { user } = useAuth();
-  
+
   // State management
-  const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [warranties, setWarranties] = useState<WarrantyInterface[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedWarrantyToEdit, setSelectedWarrantyToEdit] = useState<Warranty | null>(null);
-  const [selectedWarrantyForDetail, setSelectedWarrantyForDetail] = useState<Warranty | null>(null);
+  const [selectedWarrantyToEdit, setSelectedWarrantyToEdit] =
+    useState<WarrantyInterface | null>(null);
+  const [selectedWarrantyForDetail, setSelectedWarrantyForDetail] =
+    useState<WarrantyInterface | null>(null);
   const [pagination, setPagination] = useState<PaginationData>({
     total: 0,
     page: 1,
@@ -83,6 +81,11 @@ const Warranties: React.FC = () => {
     id: "",
   });
 
+  // Image viewer state
+  const [showImageViewer, setShowImageViewer] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<any[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   // Enhanced filtering
   const [filters, setFilters] = useState<FilterConfig>({
     category: "",
@@ -90,7 +93,7 @@ const Warranties: React.FC = () => {
     searchTerm: "",
   });
 
-  const [formData, setFormData] = useState<WarrantyFormData>({
+  const [formData, setFormData] = useState<LocalWarrantyFormData>({
     productName: "",
     expirationDate: "",
     category: "Electronics (Phones, Laptops, TVs)",
@@ -124,51 +127,56 @@ const Warranties: React.FC = () => {
   }, [error]);
 
   // Fetch warranties function
-  const fetchWarranties = useCallback(async (page: number = 1) => {
-    try {
-      setLoading(true);
-      setError("");
+  const fetchWarranties = useCallback(
+    async (page: number = 1) => {
+      try {
+        setLoading(true);
+        setError("");
 
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: "10",
-      });
-
-      if (filters.category) {
-        params.append("category", filters.category);
-      }
-
-      if (filters.status) {
-        params.append("expired", filters.status);
-      }
-
-      const response = await axios.get(`/api/warranties?${params.toString()}`);
-
-      if (response.data.warranties) {
-        setWarranties(response.data.warranties);
-        setPagination(response.data.pagination);
-      } else {
-        setWarranties(response.data);
-        setPagination({
-          total: response.data.length,
-          page: 1,
-          pages: 1,
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: "10",
         });
-      }
 
-      return response.data.warranties || response.data;
-    } catch (err: any) {
-      console.error("Error fetching warranties:", err);
-      if (err.response?.status === 401) {
-        setError("You are not authorized. Please log in again.");
-      } else {
-        setError("Failed to load warranties. Please try again.");
+        if (filters.category) {
+          params.append("category", filters.category);
+        }
+
+        if (filters.status) {
+          params.append("expired", filters.status);
+        }
+
+        const response = await axios.get(
+          `/api/warranties?${params.toString()}`
+        );
+
+        if (response.data.warranties) {
+          setWarranties(response.data.warranties);
+          setPagination(response.data.pagination);
+        } else {
+          setWarranties(response.data);
+          setPagination({
+            total: response.data.length,
+            page: 1,
+            pages: 1,
+          });
+        }
+
+        return response.data.warranties || response.data;
+      } catch (err: any) {
+        console.error("Error fetching warranties:", err);
+        if (err.response?.status === 401) {
+          setError("You are not authorized. Please log in again.");
+        } else {
+          setError("Failed to load warranties. Please try again.");
+        }
+        return [];
+      } finally {
+        setLoading(false);
       }
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [filters.category, filters.status]);
+    },
+    [filters.category, filters.status]
+  );
 
   // Load warranties on component mount and when filters change
   useEffect(() => {
@@ -177,14 +185,15 @@ const Warranties: React.FC = () => {
 
   // Memoized filtered warranties and stats
   const { filteredWarranties, stats } = useMemo(() => {
-    let filtered = warranties.filter((warranty: Warranty) => {
+    let filtered = warranties.filter((warranty: WarrantyInterface) => {
       // Search filter
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
         return (
           warranty.productName.toLowerCase().includes(searchLower) ||
           warranty.category.toLowerCase().includes(searchLower) ||
-          (warranty.retailer && warranty.retailer.toLowerCase().includes(searchLower))
+          (warranty.retailer &&
+            warranty.retailer.toLowerCase().includes(searchLower))
         );
       }
       return true;
@@ -192,18 +201,31 @@ const Warranties: React.FC = () => {
 
     // Calculate stats
     const now = new Date();
-    const active = filtered.filter(w => new Date(w.expirationDate) > now).length;
-    const expired = filtered.filter(w => new Date(w.expirationDate) <= now).length;
-    const expiringSoon = filtered.filter(w => {
+    const active = filtered.filter(
+      (w) => new Date(w.expirationDate) > now
+    ).length;
+    const expired = filtered.filter(
+      (w) => new Date(w.expirationDate) <= now
+    ).length;
+    const expiringSoon = filtered.filter((w) => {
       const expDate = new Date(w.expirationDate);
       const daysUntilExpiry = differenceInDays(expDate, now);
       return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
     }).length;
-    const totalValue = filtered.reduce((sum, w) => sum + (w.purchasePrice || 0), 0);
+    const totalValue = filtered.reduce(
+      (sum, w) => sum + (w.purchasePrice || 0),
+      0
+    );
 
     return {
       filteredWarranties: filtered,
-      stats: { active, expired, expiringSoon, totalValue, total: filtered.length }
+      stats: {
+        active,
+        expired,
+        expiringSoon,
+        totalValue,
+        total: filtered.length,
+      },
     };
   }, [warranties, filters.searchTerm]);
 
@@ -232,11 +254,11 @@ const Warranties: React.FC = () => {
   }, []);
 
   // Event handlers
-  const handleSubmit = async (data: WarrantyFormData) => {
+  const handleSubmit = async (data: LocalWarrantyFormData) => {
     try {
       setLoading(true);
       setError("");
-      
+
       const warrantyData = {
         productName: data.productName?.trim(),
         expirationDate: data.expirationDate,
@@ -246,6 +268,7 @@ const Warranties: React.FC = () => {
         notes: data.notes?.trim() || undefined,
         purchasePrice: data.purchasePrice || undefined,
         currency: user?.preferences?.currency || "USD",
+        warrantyCardImages: data.warrantyCardImages || [],
       };
 
       const cleanedData = Object.fromEntries(
@@ -255,7 +278,10 @@ const Warranties: React.FC = () => {
       );
 
       if (selectedWarrantyToEdit) {
-        await axios.put(`/api/warranties/${selectedWarrantyToEdit._id}`, cleanedData);
+        await axios.put(
+          `/api/warranties/${selectedWarrantyToEdit._id}`,
+          cleanedData
+        );
       } else {
         await axios.post("/api/warranties", cleanedData);
       }
@@ -267,16 +293,18 @@ const Warranties: React.FC = () => {
       setSelectedWarrantyToEdit(null);
 
       if (selectedWarrantyForDetail) {
-        const updatedDetail = updatedWarranties.find(
-          (w: Warranty) => w._id === selectedWarrantyForDetail._id
-        ) || null;
+        const updatedDetail =
+          updatedWarranties.find(
+            (w: WarrantyInterface) =>
+              w._id === selectedWarrantyForDetail._id
+          ) || null;
         setSelectedWarrantyForDetail(updatedDetail);
       }
 
       resetFormData();
     } catch (err: any) {
       console.error("Error creating/updating warranty:", err);
-      
+
       if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else if (err.response?.data?.errors) {
@@ -302,25 +330,40 @@ const Warranties: React.FC = () => {
       retailer: "",
       notes: "",
       purchasePrice: undefined,
+      warrantyCardImages: [],
     });
   };
 
-  const handleEdit = (warranty: Warranty) => {
+  const handleEdit = (warranty: WarrantyInterface) => {
     setSelectedWarrantyToEdit(warranty);
     setFormData({
       productName: warranty.productName,
       expirationDate: warranty.expirationDate.split("T")[0],
       category: warranty.category,
-      purchaseDate: warranty.purchaseDate ? warranty.purchaseDate.split("T")[0] : "",
+      purchaseDate: warranty.purchaseDate
+        ? warranty.purchaseDate.split("T")[0]
+        : "",
       retailer: warranty.retailer || "",
       notes: warranty.notes || "",
       purchasePrice: warranty.purchasePrice || undefined,
+      warrantyCardImages: warranty.warrantyCardImages || [],
     });
     setIsEditModalOpen(true);
   };
 
   const handleDelete = (id: string) => {
     setConfirmModal({ open: true, id: id });
+  };
+
+  const handleViewImages = (images: any[], startIndex: number = 0) => {
+    setSelectedImages(images);
+    setCurrentImageIndex(startIndex);
+    setShowImageViewer(true);
+  };
+
+  const handleViewDetails = (warranty: WarrantyInterface) => {
+    setSelectedWarrantyForDetail(warranty);
+    setIsDetailModalOpen(true);
   };
 
   const confirmDelete = async (id: string) => {
@@ -342,17 +385,12 @@ const Warranties: React.FC = () => {
     }
   };
 
-  const handleViewDetails = (warranty: Warranty) => {
-    setSelectedWarrantyForDetail(warranty);
-    setIsDetailModalOpen(true);
-  };
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
   const handleFilterChange = (key: keyof FilterConfig, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
 
@@ -361,7 +399,9 @@ const Warranties: React.FC = () => {
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600"></div>
-          <p className="text-slate-600 font-medium">Loading your warranties...</p>
+          <p className="text-slate-600 font-medium">
+            Loading your warranties...
+          </p>
         </div>
       </div>
     );
@@ -383,16 +423,23 @@ const Warranties: React.FC = () => {
               Track and manage your product warranties and coverage
             </p>
             <div className="flex items-center gap-4 mt-2 text-sm">
-              <span className="text-slate-500">{stats.total} warranties</span>
+              <span className="text-slate-500">
+                {stats.total} warranties
+              </span>
               <span className="text-slate-500">•</span>
-              <span className="text-green-600 font-medium">{stats.active} active</span>
+              <span className="text-green-600 font-medium">
+                {stats.active} active
+              </span>
               <span className="text-slate-500">•</span>
-              <span className="text-amber-600 font-medium">{stats.expiringSoon} expiring soon</span>
+              <span className="text-amber-600 font-medium">
+                {stats.expiringSoon} expiring soon
+              </span>
               {stats.totalValue > 0 && (
                 <>
                   <span className="text-slate-500">•</span>
                   <span className="text-slate-500">
-                    Value: {user?.preferences?.currency || "USD"} {stats.totalValue.toFixed(2)}
+                    Value: {user?.preferences?.currency || "USD"}{" "}
+                    {stats.totalValue.toFixed(2)}
                   </span>
                 </>
               )}
@@ -421,7 +468,9 @@ const Warranties: React.FC = () => {
             type="text"
             placeholder="Search warranties..."
             value={filters.searchTerm}
-            onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+            onChange={(e) =>
+              handleFilterChange("searchTerm", e.target.value)
+            }
             className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/80 backdrop-blur-sm"
           />
         </div>
@@ -430,10 +479,14 @@ const Warranties: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           {/* Category Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">Category:</label>
+            <label className="text-sm font-medium text-slate-700">
+              Category:
+            </label>
             <select
               value={filters.category}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
+              onChange={(e) =>
+                handleFilterChange("category", e.target.value)
+              }
               className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
             >
               <option value="">All Categories</option>
@@ -447,10 +500,14 @@ const Warranties: React.FC = () => {
 
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">Status:</label>
+            <label className="text-sm font-medium text-slate-700">
+              Status:
+            </label>
             <select
               value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
+              onChange={(e) =>
+                handleFilterChange("status", e.target.value)
+              }
               className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
             >
               <option value="">All Warranties</option>
@@ -477,7 +534,9 @@ const Warranties: React.FC = () => {
             title="Refresh warranties"
             disabled={loading}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+            />
           </button>
         </div>
       </div>
@@ -491,7 +550,9 @@ const Warranties: React.FC = () => {
                 <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-red-800">Error Occurred</h3>
+                <h3 className="text-sm font-bold text-red-800">
+                  Error Occurred
+                </h3>
                 <p className="text-sm text-red-700 mt-1">{error}</p>
               </div>
             </div>
@@ -511,7 +572,9 @@ const Warranties: React.FC = () => {
           <div className="flex items-center justify-center py-16">
             <div className="flex flex-col items-center space-y-4">
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600"></div>
-              <span className="text-slate-600 font-medium">Loading warranties...</span>
+              <span className="text-slate-600 font-medium">
+                Loading warranties...
+              </span>
             </div>
           </div>
         ) : filteredWarranties.length === 0 ? (
@@ -521,13 +584,14 @@ const Warranties: React.FC = () => {
                 <Package className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-slate-800 mb-3">
-                {warranties.length === 0 ? "No Warranties Yet" : "No Warranties Found"}
+                {warranties.length === 0
+                  ? "No Warranties Yet"
+                  : "No Warranties Found"}
               </h3>
               <p className="text-slate-600 mb-6 leading-relaxed">
-                {warranties.length === 0 
+                {warranties.length === 0
                   ? "Start protecting your investments by adding your first warranty. Keep track of coverage periods and never miss important warranty claims."
-                  : "Try adjusting your search or filter criteria to find the warranties you're looking for."
-                }
+                  : "Try adjusting your search or filter criteria to find the warranties you're looking for."}
               </p>
               {warranties.length === 0 && (
                 <button
@@ -548,25 +612,49 @@ const Warranties: React.FC = () => {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
                 <tr>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                  >
                     <div className="flex items-center space-x-2">
                       <Package className="w-4 h-4" />
                       <span>Product</span>
                     </div>
                   </th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Image className="w-4 h-4" />
+                      <span>Images</span>
+                    </div>
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                  >
                     Category
                   </th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                  >
                     <div className="flex items-center space-x-2">
                       <Calendar className="w-4 h-4" />
                       <span>Expiration</span>
                     </div>
                   </th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                  >
                     Status
                   </th>
-                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                  >
                     <div className="flex items-center space-x-2">
                       <Store className="w-4 h-4" />
                       <span>Retailer</span>
@@ -576,9 +664,13 @@ const Warranties: React.FC = () => {
               </thead>
               <tbody className="bg-white/50 divide-y divide-slate-200">
                 {filteredWarranties.map((warranty) => {
-                  const daysUntilExpiry = getDaysUntilExpiry(warranty.expirationDate);
+                  const daysUntilExpiry = getDaysUntilExpiry(
+                    warranty.expirationDate
+                  );
                   const expired = isExpired(warranty.expirationDate);
-                  const expiringSoon = isExpiringSoon(warranty.expirationDate);
+                  const expiringSoon = isExpiringSoon(
+                    warranty.expirationDate
+                  );
 
                   return (
                     <tr
@@ -599,10 +691,52 @@ const Warranties: React.FC = () => {
                             {warranty.purchasePrice && (
                               <div className="text-sm text-slate-600 font-medium mt-1 flex items-center">
                                 <DollarSign className="w-3 h-3 mr-1" />
-                                {user?.preferences?.currency || "USD"} {warranty.purchasePrice.toFixed(2)}
+                                {user?.preferences?.currency || "USD"}{" "}
+                                {warranty.purchasePrice.toFixed(2)}
                               </div>
                             )}
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          {warranty.warrantyCardImages &&
+                          warranty.warrantyCardImages.length > 0 ? (
+                            <div className="flex items-center space-x-2">
+                              <div
+                                className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewImages(
+                                    warranty.warrantyCardImages || [],
+                                    0
+                                  );
+                                }}
+                              >
+                                {warranty.warrantyCardImages
+                                  .slice(0, 3)
+                                  .map((image, index) => (
+                                    <img
+                                      key={image.publicId}
+                                      src={image.url}
+                                      alt={`Warranty card ${index + 1}`}
+                                      className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm hover:border-purple-300"
+                                    />
+                                  ))}
+                              </div>
+                              {warranty.warrantyCardImages.length > 3 && (
+                                <span className="text-xs text-slate-500 font-medium">
+                                  +{warranty.warrantyCardImages.length - 3}{" "}
+                                  more
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-slate-400">
+                              <Image className="w-4 h-4 mr-1" />
+                              <span className="text-xs">No images</span>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-5 whitespace-nowrap">
@@ -619,7 +753,9 @@ const Warranties: React.FC = () => {
                             </div>
                             {!expired && (
                               <div className="text-xs text-slate-500">
-                                {daysUntilExpiry > 0 ? `${daysUntilExpiry} days left` : 'Expires today'}
+                                {daysUntilExpiry > 0
+                                  ? `${daysUntilExpiry} days left`
+                                  : "Expires today"}
                               </div>
                             )}
                           </div>
@@ -676,7 +812,10 @@ const Warranties: React.FC = () => {
                 >
                   Previous
                 </button>
-                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((page) => (
+                {Array.from(
+                  { length: pagination.pages },
+                  (_, i) => i + 1
+                ).map((page) => (
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
@@ -723,6 +862,7 @@ const Warranties: React.FC = () => {
         initialData={formData}
         title="Edit Warranty"
         currency={user?.preferences?.currency || "USD"}
+        warrantyId={selectedWarrantyToEdit?._id}
       />
 
       {/* Enhanced Detail Modal */}
@@ -753,7 +893,9 @@ const Warranties: React.FC = () => {
                     <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center shadow-lg">
                       <ShieldCheck className="w-5 h-5 text-white" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900">Warranty Details</h2>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Warranty Details
+                    </h2>
                   </div>
                   <button
                     onClick={() => {
@@ -793,7 +935,9 @@ const Warranties: React.FC = () => {
                             Purchase Date
                           </label>
                           <p className="text-slate-900 text-base bg-slate-50 p-3 rounded-lg">
-                            {formatDate(selectedWarrantyForDetail.purchaseDate)}
+                            {formatDate(
+                              selectedWarrantyForDetail.purchaseDate
+                            )}
                           </p>
                         </div>
                       )}
@@ -803,7 +947,9 @@ const Warranties: React.FC = () => {
                           Expiration Date
                         </label>
                         <p className="text-slate-900 text-base bg-slate-50 p-3 rounded-lg">
-                          {formatDate(selectedWarrantyForDetail.expirationDate)}
+                          {formatDate(
+                            selectedWarrantyForDetail.expirationDate
+                          )}
                         </p>
                       </div>
                     </div>
@@ -813,26 +959,39 @@ const Warranties: React.FC = () => {
                         Status
                       </label>
                       <div className="bg-slate-50 p-3 rounded-lg">
-                        {isExpired(selectedWarrantyForDetail.expirationDate) ? (
+                        {isExpired(
+                          selectedWarrantyForDetail.expirationDate
+                        ) ? (
                           <span className="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold bg-red-100 text-red-800 border border-red-200">
                             <AlertCircle className="h-4 w-4 mr-2" />
                             Expired
                           </span>
-                        ) : isExpiringSoon(selectedWarrantyForDetail.expirationDate) ? (
+                        ) : isExpiringSoon(
+                            selectedWarrantyForDetail.expirationDate
+                          ) ? (
                           <span className="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                             <Clock className="h-4 w-4 mr-2" />
-                            Expiring Soon ({getDaysUntilExpiry(selectedWarrantyForDetail.expirationDate)} days left)
+                            Expiring Soon (
+                            {getDaysUntilExpiry(
+                              selectedWarrantyForDetail.expirationDate
+                            )}{" "}
+                            days left)
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Active ({getDaysUntilExpiry(selectedWarrantyForDetail.expirationDate)} days left)
+                            Active (
+                            {getDaysUntilExpiry(
+                              selectedWarrantyForDetail.expirationDate
+                            )}{" "}
+                            days left)
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {(selectedWarrantyForDetail.retailer || selectedWarrantyForDetail.purchasePrice) && (
+                    {(selectedWarrantyForDetail.retailer ||
+                      selectedWarrantyForDetail.purchasePrice) && (
                       <div className="grid grid-cols-2 gap-4">
                         {selectedWarrantyForDetail.retailer && (
                           <div>
@@ -851,7 +1010,10 @@ const Warranties: React.FC = () => {
                               Purchase Price
                             </label>
                             <p className="text-slate-900 text-base bg-slate-50 p-3 rounded-lg font-semibold">
-                              {user?.preferences?.currency || "USD"} {selectedWarrantyForDetail.purchasePrice?.toFixed(2)}
+                              {user?.preferences?.currency || "USD"}{" "}
+                              {selectedWarrantyForDetail.purchasePrice?.toFixed(
+                                2
+                              )}
                             </p>
                           </div>
                         )}
@@ -868,6 +1030,52 @@ const Warranties: React.FC = () => {
                         </p>
                       </div>
                     )}
+
+                    {/* Warranty Card Images */}
+                    {selectedWarrantyForDetail.warrantyCardImages &&
+                      selectedWarrantyForDetail.warrantyCardImages.length >
+                        0 && (
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-3">
+                            Warranty Card Images (
+                            {
+                              selectedWarrantyForDetail.warrantyCardImages
+                                .length
+                            }
+                            )
+                          </label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {selectedWarrantyForDetail.warrantyCardImages.map(
+                              (image, index) => (
+                                <div
+                                  key={image.publicId}
+                                  className="relative group cursor-pointer"
+                                  onClick={() =>
+                                    handleViewImages(
+                                      selectedWarrantyForDetail.warrantyCardImages ||
+                                        [],
+                                      index
+                                    )
+                                  }
+                                >
+                                  <img
+                                    src={image.url}
+                                    alt={`Warranty card ${index + 1}`}
+                                    className="w-full h-24 object-cover rounded-lg border border-slate-200 group-hover:border-purple-300 transition-colors"
+                                  />
+                                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="bg-white bg-opacity-90 rounded-full p-2">
+                                        <Image className="w-4 h-4 text-slate-700" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
                   </div>
 
                   <div className="flex gap-3 pt-4 border-t border-slate-200">
@@ -879,7 +1087,9 @@ const Warranties: React.FC = () => {
                       Edit Warranty
                     </button>
                     <button
-                      onClick={() => handleDelete(selectedWarrantyForDetail._id)}
+                      onClick={() =>
+                        handleDelete(selectedWarrantyForDetail._id)
+                      }
                       className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl hover:from-red-600 hover:to-rose-700 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold shadow-lg hover:shadow-xl"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -892,6 +1102,61 @@ const Warranties: React.FC = () => {
           )}
         </AnimatePresence>,
         document.body
+      )}
+
+      {/* Image Viewer Modal */}
+      {showImageViewer && selectedImages.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90">
+          <div className="relative max-w-4xl max-h-full p-4">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowImageViewer(false)}
+              className="absolute top-4 right-4 z-10 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-all"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Navigation Buttons */}
+            {selectedImages.length > 1 && (
+              <>
+                <button
+                  onClick={() =>
+                    setCurrentImageIndex((prev) =>
+                      prev === 0 ? selectedImages.length - 1 : prev - 1
+                    )
+                  }
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-all"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={() =>
+                    setCurrentImageIndex((prev) =>
+                      prev === selectedImages.length - 1 ? 0 : prev + 1
+                    )
+                  }
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-all"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
+            {/* Image */}
+            <img
+              src={selectedImages[currentImageIndex]?.url}
+              alt={`Warranty card ${currentImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+
+            {/* Image Counter */}
+            {selectedImages.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm">
+                {currentImageIndex + 1} / {selectedImages.length}
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       <ConfirmModal

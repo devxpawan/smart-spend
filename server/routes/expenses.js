@@ -1,20 +1,27 @@
-import express from 'express';
-import Expense from '../models/Expense.js';
-import mongoose from 'mongoose';
+import express from "express";
+import Expense from "../models/Expense.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
 // @route   GET /api/expenses
 // @desc    Get all expenses for a user
 // @access  Private
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { startDate, endDate, category, search, limit = 50, page = 1 } = req.query;
+    const {
+      startDate,
+      endDate,
+      category,
+      search,
+      limit = 50,
+      page = 1,
+    } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     // Build filter object
     const filter = { user: req.user.id };
-    
+
     if (startDate && endDate) {
       filter.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
     } else if (startDate) {
@@ -22,45 +29,46 @@ router.get('/', async (req, res) => {
     } else if (endDate) {
       filter.date = { $lte: new Date(endDate) };
     }
-    
+
     if (category) {
       filter.category = category;
     }
-    
+
     if (search) {
-      filter.description = { $regex: search, $options: 'i' };
+      filter.description = { $regex: search, $options: "i" };
     }
 
     // Get total count for pagination
     const total = await Expense.countDocuments(filter);
-    
+
     // Get expenses
     const expenses = await Expense.find(filter)
       .sort({ date: -1 })
       .limit(parseInt(limit))
       .skip(skip);
-    
+
     res.json({
       expenses,
       pagination: {
         total,
         page: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit))
-      }
+        pages: Math.ceil(total / parseInt(limit)),
+      },
     });
   } catch (error) {
-    console.error('Get expenses error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Get expenses error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // @route   POST /api/expenses
 // @desc    Create a new expense
 // @access  Private
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const { amount, description, category, date, paymentMethod, notes } = req.body;
-    
+    const { amount, description, category, date, paymentMethod, notes } =
+      req.body;
+
     const newExpense = new Expense({
       user: req.user.id,
       amount,
@@ -68,54 +76,36 @@ router.post('/', async (req, res) => {
       category,
       date: date || Date.now(),
       paymentMethod,
-      notes
+      notes,
     });
-    
+
     const expense = await newExpense.save();
     res.status(201).json(expense);
   } catch (error) {
-    console.error('Create expense error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// @route   GET /api/expenses/:id
-// @desc    Get expense by ID
-// @access  Private
-router.get('/:id', async (req, res) => {
-  try {
-    const expense = await Expense.findOne({
-      _id: req.params.id,
-      user: req.user.id
-    });
-    
-    if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
-    }
-    
-    res.json(expense);
-  } catch (error) {
-    console.error('Get expense error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Create expense error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 });
 
 // @route   PUT /api/expenses/:id
 // @desc    Update expense
 // @access  Private
-router.put('/:id', async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
-    const { amount, description, category, date, paymentMethod, notes } = req.body;
-    
+    const { amount, description, category, date, paymentMethod, notes } =
+      req.body;
+
     const expense = await Expense.findOne({
       _id: req.params.id,
-      user: req.user.id
+      user: req.user.id,
     });
-    
+
     if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
+      return res.status(404).json({ message: "Expense not found" });
     }
-    
+
     // Update fields
     expense.amount = amount || expense.amount;
     expense.description = description || expense.description;
@@ -123,44 +113,48 @@ router.put('/:id', async (req, res) => {
     expense.date = date || expense.date;
     expense.paymentMethod = paymentMethod || expense.paymentMethod;
     expense.notes = notes !== undefined ? notes : expense.notes;
-    
+
     const updatedExpense = await expense.save();
     res.json(updatedExpense);
   } catch (error) {
-    console.error('Update expense error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Update expense error:", error);
+    res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 });
 
 // @route   DELETE /api/expenses/:id
 // @desc    Delete expense
 // @access  Private
-router.delete('/:id', async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     const expense = await Expense.findOne({
       _id: req.params.id,
-      user: req.user.id
+      user: req.user.id,
     });
-    
+
     if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
+      return res.status(404).json({ message: "Expense not found" });
     }
-    
+
     await expense.deleteOne();
-    res.json({ message: 'Expense removed' });
+    res.json({ message: "Expense removed" });
   } catch (error) {
-    console.error('Delete expense error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Delete expense error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // @route   GET /api/expenses/summary/monthly
 // @desc    Get monthly expense summary
 // @access  Private
-router.get('/summary/monthly', async (req, res) => {
+router.get("/summary/monthly", async (req, res) => {
   try {
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: "Unauthorized: User not found" });
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: User not found" });
     }
 
     const { year = new Date().getFullYear() } = req.query;
@@ -205,26 +199,27 @@ router.get('/summary/monthly', async (req, res) => {
     res.json(fullYearSummary);
   } catch (err) {
     console.error("Monthly summary error:", err);
-    res.status(500).json({ error: "Internal Server Error", details: err.message });
+    res
+      .status(500)
+      .json({ error: "Internal Server Error", details: err.message });
   }
 });
-
 
 // @route   GET /api/expenses/summary/category
 // @desc    Get expense summary by category
 // @access  Private
-router.get('/summary/category', async (req, res) => {
+router.get("/summary/category", async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
     const filter = {
-      user: new mongoose.Types.ObjectId(req.user.id) // <-- Important
+      user: new mongoose.Types.ObjectId(req.user.id), // <-- Important
     };
 
     if (startDate && endDate) {
       filter.date = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate),
       };
     }
 
@@ -232,18 +227,105 @@ router.get('/summary/category', async (req, res) => {
       { $match: filter },
       {
         $group: {
-          _id: '$category',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 }
-        }
+          _id: "$category",
+          total: { $sum: "$amount" },
+          count: { $sum: 1 },
+        },
       },
-      { $sort: { total: -1 } }
+      { $sort: { total: -1 } },
     ]);
 
     res.json(summary);
   } catch (error) {
-    console.error('Category summary error:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Category summary error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   GET /api/expenses/monthly/:year/:month
+// @desc    Get expenses for a specific month
+// @access  Private
+router.get("/monthly/:year/:month", async (req, res) => {
+  try {
+    const { year, month } = req.params;
+    const { limit = 50, page = 1, category, search } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const endDate = new Date(
+      parseInt(year),
+      parseInt(month),
+      0,
+      23,
+      59,
+      59
+    );
+
+    // Build filter object
+    const filter = {
+      user: req.user.id,
+      date: { $gte: startDate, $lte: endDate },
+    };
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (search) {
+      filter.description = { $regex: search, $options: "i" };
+    }
+
+    const total = await Expense.countDocuments(filter);
+    const expenses = await Expense.find(filter)
+      .sort({ date: -1 })
+      .limit(parseInt(limit))
+      .skip(skip);
+
+    // Calculate summary for the month
+    const totalAmount = expenses.reduce(
+      (sum, expense) => sum + expense.amount,
+      0
+    );
+    const categories = [
+      ...new Set(expenses.map((expense) => expense.category)),
+    ];
+
+    const categoryBreakdown = categories
+      .map((cat) => {
+        const categoryExpenses = expenses.filter(
+          (expense) => expense.category === cat
+        );
+        return {
+          category: cat,
+          total: categoryExpenses.reduce(
+            (sum, expense) => sum + expense.amount,
+            0
+          ),
+          count: categoryExpenses.length,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    const summary = {
+      totalAmount,
+      totalCount: expenses.length,
+      categoryBreakdown,
+      averageAmount:
+        expenses.length > 0 ? totalAmount / expenses.length : 0,
+    };
+
+    res.json({
+      expenses,
+      summary,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get monthly expenses error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

@@ -1,13 +1,12 @@
-
 export const errorHandler = (err, req, res, next) => {
   console.error(err.stack);
 
-  // Handle validation errors
-  if (err instanceof ValidationError) {
+  // Handle express-validator errors
+  if (err.errors && Array.isArray(err.errors)) {
     return res.status(400).json({
       status: "error",
       message: "Validation failed",
-      errors: err.array(),
+      errors: err.errors,
     });
   }
 

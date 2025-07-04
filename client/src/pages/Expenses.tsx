@@ -39,7 +39,9 @@ interface SortConfig {
 interface FilterConfig {
   category: string;
   searchTerm: string;
-  dateRange: "all" | "thisMonth" | "lastMonth";
+  dateRange: "all" | "thisMonth" | "lastMonth" | "custom";
+  customMonth?: number;
+  customYear?: number;
 }
 
 const Expenses: React.FC = () => {
@@ -61,6 +63,8 @@ const Expenses: React.FC = () => {
     category: "",
     searchTerm: "",
     dateRange: "all",
+    customMonth: new Date().getMonth() + 1,
+    customYear: new Date().getFullYear(),
   });
 
   const { user } = useAuth();
@@ -165,6 +169,21 @@ const Expenses: React.FC = () => {
                 start: startOfMonth(lastMonth),
                 end: endOfMonth(lastMonth),
               };
+              break;
+            case "custom":
+              if (filters.customMonth && filters.customYear) {
+                const customDate = new Date(
+                  filters.customYear,
+                  filters.customMonth - 1,
+                  1
+                );
+                dateRange = {
+                  start: startOfMonth(customDate),
+                  end: endOfMonth(customDate),
+                };
+              } else {
+                return true;
+              }
               break;
             default:
               return true;
@@ -394,8 +413,52 @@ const Expenses: React.FC = () => {
               <option value="all">All Time</option>
               <option value="thisMonth">This Month</option>
               <option value="lastMonth">Last Month</option>
+              <option value="custom">Custom Month</option>
             </select>
           </div>
+
+          {/* Custom Month/Year Selection */}
+          {filters.dateRange === "custom" && (
+            <div className="flex items-center gap-2">
+              <select
+                value={filters.customMonth}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    customMonth: parseInt(e.target.value),
+                  }))
+                }
+                className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {new Date(2024, i, 1).toLocaleString("default", {
+                      month: "long",
+                    })}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filters.customYear}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    customYear: parseInt(e.target.value),
+                  }))
+                }
+                className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+              >
+                {Array.from({ length: 5 }, (_, i) => {
+                  const year = new Date().getFullYear() - 2 + i;
+                  return (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
 
           {/* Sort Controls */}
           <div className="flex items-center gap-2 ml-auto">

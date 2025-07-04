@@ -13,6 +13,7 @@ interface User {
   name: string;
   email: string;
   avatar?: string;
+  createdAt: string;
   preferences: {
     currency: string;
     reminderDaysBefore: number;
@@ -187,7 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);
-    navigate("/login");
+    navigate("/auth");
     toast.success("Logged out successfully");
   };
 
@@ -288,8 +289,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setToken(null);
       setUser(null);
 
-      // Navigate to login page
-      navigate("/login");
+      // Navigate to auth page
+      navigate("/auth");
       toast.success("Profile deleted successfully");
     } catch (err: any) {
       console.error("Delete profile error:", err);

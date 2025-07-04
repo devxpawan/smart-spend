@@ -1,7 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
-import { X, AlertCircle, Package, Calendar, Store, DollarSign, Tag, FileText, ShieldCheck } from "lucide-react";
+import {
+  X,
+  AlertCircle,
+  Package,
+  Calendar,
+  Store,
+  DollarSign,
+  Tag,
+  FileText,
+  ShieldCheck,
+  Upload,
+  Image,
+  Trash2,
+} from "lucide-react";
+import { WarrantyImage } from "../types/WarrantyFormData";
 
 interface WarrantyFormData {
   productName: string;
@@ -11,6 +25,7 @@ interface WarrantyFormData {
   retailer: string;
   notes: string;
   purchasePrice?: number;
+  warrantyCardImages?: WarrantyImage[];
 }
 
 interface WarrantyModalProps {
@@ -20,6 +35,7 @@ interface WarrantyModalProps {
   initialData?: WarrantyFormData;
   title: string;
   currency: string;
+  warrantyId?: string; // Add warranty ID for editing mode
 }
 
 interface FormErrors {
@@ -30,6 +46,7 @@ interface FormErrors {
   retailer?: string;
   notes?: string;
   purchasePrice?: string;
+  warrantyCardImages?: string;
 }
 
 const WarrantyModal: React.FC<WarrantyModalProps> = ({
@@ -39,6 +56,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
   initialData,
   title,
   currency,
+  warrantyId,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -51,9 +69,17 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
     retailer: "",
     notes: "",
     purchasePrice: undefined,
+    warrantyCardImages: [],
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(
+    null
+  );
+  const [dragActive, setDragActive] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categories = [
     "Electronics (Phones, Laptops, TVs)",
@@ -83,6 +109,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
         retailer: "",
         notes: "",
         purchasePrice: undefined,
+        warrantyCardImages: [],
       });
     }
     setErrors({});
@@ -120,7 +147,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
     }
 
     // Validate purchase price if provided
-    if (formData.purchasePrice !== undefined && formData.purchasePrice < 0) {
+    if (
+      formData.purchasePrice !== undefined &&
+      formData.purchasePrice < 0
+    ) {
       newErrors.purchasePrice = "Purchase price cannot be negative";
     }
 
@@ -135,14 +165,19 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
 
   // Handle input changes
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "purchasePrice" 
-        ? value ? parseFloat(value) : undefined 
-        : value,
+      [name]:
+        name === "purchasePrice"
+          ? value
+            ? parseFloat(value)
+            : undefined
+          : value,
     }));
 
     // Clear field-specific error when user starts typing
@@ -151,6 +186,167 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
         ...prev,
         [name]: undefined,
       }));
+    }
+  };
+
+  // Image upload functions
+  const handleImageUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+
+    for (const file of fileArray) {
+      if (!file.type.match(/^image\/(jpeg|jpg|png|gif)$/)) {
+        setErrors((prev) => ({
+          ...prev,
+          warrantyCardImages:
+            "Only image files (JPEG, PNG, GIF) are allowed",
+        }));
+        continue;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        // 10MB limit
+        setErrors((prev) => ({
+          ...prev,
+          warrantyCardImages: "File size must be less than 10MB",
+        }));
+        continue;
+      }
+
+      try {
+        setUploadingImage(true);
+        setErrors((prev) => ({ ...prev, warrantyCardImages: undefined }));
+
+        const formData = new FormData();
+        formData.append("warrantyImage", file);
+
+        const response = await fetch("/api/warranties/upload-image", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to upload image");
+        }
+
+        const imageData = await response.json();
+
+        setFormData((prev) => ({
+          ...prev,
+          warrantyCardImages: [
+            ...(prev.warrantyCardImages || []),
+            {
+              url: imageData.url,
+              publicId: imageData.publicId,
+              format: imageData.format,
+              bytes: imageData.bytes,
+              width: imageData.width,
+              height: imageData.height,
+            },
+          ],
+        }));
+      } catch (error) {
+        console.error("Image upload error:", error);
+        setErrors((prev) => ({
+          ...prev,
+          warrantyCardImages: "Failed to upload image. Please try again.",
+        }));
+      } finally {
+        setUploadingImage(false);
+      }
+    }
+  };
+
+  const handleImageDelete = async (publicId: string) => {
+    try {
+      setDeletingImageId(publicId);
+      setErrors((prev) => ({ ...prev, warrantyCardImages: undefined }));
+
+      let response;
+      let endpoint;
+
+      // If we have a warranty ID (editing mode), use the proper endpoint
+      if (warrantyId) {
+        endpoint = `/api/warranties/${warrantyId}/delete-image?publicId=${encodeURIComponent(
+          publicId
+        )}`;
+        response = await fetch(endpoint, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+      } else {
+        // For new warranties, just remove from local state and use legacy endpoint
+        // URL encode the publicId to handle forward slashes
+        const encodedPublicId = encodeURIComponent(publicId);
+        endpoint = `/api/warranties/delete-image/${encodedPublicId}`;
+        response = await fetch(endpoint, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+      }
+
+      if (response.ok) {
+        setFormData((prev) => ({
+          ...prev,
+          warrantyCardImages:
+            prev.warrantyCardImages?.filter(
+              (img) => img.publicId !== publicId
+            ) || [],
+        }));
+      } else {
+        const errorData = await response.json();
+        console.error("Image deletion failed:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        });
+        setErrors((prev) => ({
+          ...prev,
+          warrantyCardImages:
+            errorData.message || "Failed to delete image",
+        }));
+      }
+    } catch (error) {
+      console.error("Image deletion error:", error);
+      setErrors((prev) => ({
+        ...prev,
+        warrantyCardImages: "Failed to delete image. Please try again.",
+      }));
+    } finally {
+      setDeletingImageId(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleImageUpload(e.dataTransfer.files);
+    }
+  };
+
+  const handleFileInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleImageUpload(e.target.files);
     }
   };
 
@@ -190,7 +386,9 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
     const firstFocusableElement = focusableElements[0] as HTMLElement;
-    const lastFocusableElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+    const lastFocusableElement = focusableElements[
+      focusableElements.length - 1
+    ] as HTMLElement;
 
     if (e.key === "Tab") {
       if (e.shiftKey) {
@@ -208,11 +406,14 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
   }, []);
 
   // Handle escape key
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      onClose();
-    }
-  }, [onClose]);
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    },
+    [onClose]
+  );
 
   // Setup event listeners
   useEffect(() => {
@@ -266,8 +467,12 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
               <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center shadow-lg">
                 <ShieldCheck className="w-5 h-5 text-white" />
               </div>
-              <h2 id="modal-title" className="text-xl font-bold text-slate-800">
-                {title || (initialData ? "Edit Warranty" : "Add New Warranty")}
+              <h2
+                id="modal-title"
+                className="text-xl font-bold text-slate-800"
+              >
+                {title ||
+                  (initialData ? "Edit Warranty" : "Add New Warranty")}
               </h2>
             </div>
             <button
@@ -310,11 +515,18 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       required
                       ref={firstInputRef}
                       aria-invalid={errors.productName ? "true" : "false"}
-                      aria-describedby={errors.productName ? "productName-error" : undefined}
+                      aria-describedby={
+                        errors.productName
+                          ? "productName-error"
+                          : undefined
+                      }
                     />
                   </div>
                   {errors.productName && (
-                    <div id="productName-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="productName-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.productName}</span>
                     </div>
@@ -345,7 +557,9 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       }`}
                       required
                       aria-invalid={errors.category ? "true" : "false"}
-                      aria-describedby={errors.category ? "category-error" : undefined}
+                      aria-describedby={
+                        errors.category ? "category-error" : undefined
+                      }
                     >
                       {categories.map((category) => (
                         <option key={category} value={category}>
@@ -355,7 +569,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                     </select>
                   </div>
                   {errors.category && (
-                    <div id="category-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="category-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.category}</span>
                     </div>
@@ -387,13 +604,22 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                           : "border-slate-300 focus:ring-purple-500"
                       }`}
                       aria-invalid={errors.purchaseDate ? "true" : "false"}
-                      aria-describedby={errors.purchaseDate ? "purchaseDate-error" : undefined}
+                      aria-describedby={
+                        errors.purchaseDate
+                          ? "purchaseDate-error"
+                          : undefined
+                      }
                     />
                   </div>
                   {errors.purchaseDate && (
-                    <div id="purchaseDate-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="purchaseDate-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">{errors.purchaseDate}</span>
+                      <span className="text-sm">
+                        {errors.purchaseDate}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -422,14 +648,25 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                           : "border-slate-300 focus:ring-purple-500"
                       }`}
                       required
-                      aria-invalid={errors.expirationDate ? "true" : "false"}
-                      aria-describedby={errors.expirationDate ? "expirationDate-error" : undefined}
+                      aria-invalid={
+                        errors.expirationDate ? "true" : "false"
+                      }
+                      aria-describedby={
+                        errors.expirationDate
+                          ? "expirationDate-error"
+                          : undefined
+                      }
                     />
                   </div>
                   {errors.expirationDate && (
-                    <div id="expirationDate-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="expirationDate-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">{errors.expirationDate}</span>
+                      <span className="text-sm">
+                        {errors.expirationDate}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -459,11 +696,16 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                           : "border-slate-300 focus:ring-purple-500"
                       }`}
                       aria-invalid={errors.retailer ? "true" : "false"}
-                      aria-describedby={errors.retailer ? "retailer-error" : undefined}
+                      aria-describedby={
+                        errors.retailer ? "retailer-error" : undefined
+                      }
                     />
                   </div>
                   {errors.retailer && (
-                    <div id="retailer-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="retailer-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.retailer}</span>
                     </div>
@@ -496,17 +738,31 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 focus:ring-purple-500"
                       }`}
-                      aria-invalid={errors.purchasePrice ? "true" : "false"}
-                      aria-describedby={errors.purchasePrice ? "purchasePrice-error" : "purchasePrice-help"}
+                      aria-invalid={
+                        errors.purchasePrice ? "true" : "false"
+                      }
+                      aria-describedby={
+                        errors.purchasePrice
+                          ? "purchasePrice-error"
+                          : "purchasePrice-help"
+                      }
                     />
                   </div>
                   {errors.purchasePrice && (
-                    <div id="purchasePrice-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="purchasePrice-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">{errors.purchasePrice}</span>
+                      <span className="text-sm">
+                        {errors.purchasePrice}
+                      </span>
                     </div>
                   )}
-                  <p id="purchasePrice-help" className="mt-1 text-xs text-slate-500">
+                  <p
+                    id="purchasePrice-help"
+                    className="mt-1 text-xs text-slate-500"
+                  >
                     Currency: {currency}
                   </p>
                 </div>
@@ -537,18 +793,145 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       }`}
                       placeholder="Additional warranty details, serial numbers, or important notes..."
                       aria-invalid={errors.notes ? "true" : "false"}
-                      aria-describedby={errors.notes ? "notes-error" : "notes-help"}
+                      aria-describedby={
+                        errors.notes ? "notes-error" : "notes-help"
+                      }
                     />
                   </div>
                   {errors.notes && (
-                    <div id="notes-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="notes-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.notes}</span>
                     </div>
                   )}
-                  <p id="notes-help" className="mt-1 text-xs text-slate-500">
+                  <p
+                    id="notes-help"
+                    className="mt-1 text-xs text-slate-500"
+                  >
                     {formData.notes.length}/1000 characters
                   </p>
+                </div>
+
+                {/* Warranty Card Images */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Warranty Card Images (Optional)
+                  </label>
+
+                  {/* Upload Area */}
+                  <div
+                    className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
+                      dragActive
+                        ? "border-purple-400 bg-purple-50"
+                        : "border-slate-300 hover:border-purple-400"
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <div className="text-center">
+                      <Upload className="mx-auto h-12 w-12 text-slate-400" />
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                          disabled={uploadingImage}
+                        >
+                          {uploadingImage ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-purple-700 border-t-transparent mr-2"></div>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Image className="w-4 h-4 mr-2" />
+                              Choose Images
+                            </>
+                          )}
+                        </button>
+                        <p className="mt-2 text-sm text-slate-500">
+                          or drag and drop images here
+                        </p>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">
+                        PNG, JPG, GIF up to 10MB each
+                      </p>
+                    </div>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {errors.warrantyCardImages && (
+                    <div className="mt-2 flex items-center space-x-1 text-red-600">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">
+                        {errors.warrantyCardImages}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Image Preview */}
+                  {formData.warrantyCardImages &&
+                    formData.warrantyCardImages.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-slate-700 mb-2">
+                          Uploaded Images (
+                          {formData.warrantyCardImages.length})
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {formData.warrantyCardImages.map(
+                            (image, index) => (
+                              <div
+                                key={image.publicId}
+                                className="relative group"
+                              >
+                                <img
+                                  src={image.url}
+                                  alt={`Warranty card ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded-lg border border-slate-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleImageDelete(image.publicId)
+                                  }
+                                  disabled={
+                                    deletingImageId === image.publicId
+                                  }
+                                  className={`absolute top-1 right-1 p-1 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-red-500 ${
+                                    deletingImageId === image.publicId
+                                      ? "bg-red-400 cursor-not-allowed"
+                                      : "bg-red-500 hover:bg-red-600"
+                                  }`}
+                                  title={
+                                    deletingImageId === image.publicId
+                                      ? "Deleting..."
+                                      : "Delete image"
+                                  }
+                                >
+                                  {deletingImageId === image.publicId ? (
+                                    <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-3 h-3" />
+                                  )}
+                                </button>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
                 </div>
               </div>
 

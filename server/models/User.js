@@ -34,14 +34,6 @@ const userSchema = new mongoose.Schema({
       type: String,
       default: "Rs",
     },
-    reminderDaysBefore: {
-      type: Number,
-      default: 3,
-    },
-    theme: {
-      type: String,
-      default: "light",
-    },
   },
   createdAt: {
     type: Date,
