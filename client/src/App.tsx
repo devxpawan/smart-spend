@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import LoginRegister from "./pages/LoginRegister";
 import About from "./pages/About";
 import Warranties from "./pages/Warranties";
+import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 
 function App() {
   const { loading } = useAuth();
@@ -28,6 +29,9 @@ function App() {
   return (
     <ErrorBoundary>
       <Routes>
+        {/* Public Routes */}
+        <Route path="/warranty/:id" element={<PublicWarrantyDetails />} />
+
         {/* Auth Routes */}
         <Route path="/auth" element={<LoginRegister />} />
         {/* Dashboard Routes */}

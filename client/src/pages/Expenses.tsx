@@ -350,11 +350,11 @@ const Expenses: React.FC = () => {
         </button>
       </header>
 
-      {/* Enhanced Filters */}
-      <div className="bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-lg space-y-4">
+      {/* Simplified Filters */}
+      <div className="bg-white p-4 rounded-lg border shadow-sm space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
           <input
             type="text"
             placeholder="Search expenses..."
@@ -365,7 +365,7 @@ const Expenses: React.FC = () => {
                 searchTerm: e.target.value,
               }))
             }
-            className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80 backdrop-blur-sm"
+            className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -373,7 +373,7 @@ const Expenses: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           {/* Category Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-gray-700">
               Category:
             </label>
             <select
@@ -384,7 +384,7 @@ const Expenses: React.FC = () => {
                   category: e.target.value,
                 }))
               }
-              className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Categories</option>
               {categories.map((category) => (
@@ -397,7 +397,7 @@ const Expenses: React.FC = () => {
 
           {/* Date Range Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-gray-700">
               Period:
             </label>
             <select
@@ -408,7 +408,7 @@ const Expenses: React.FC = () => {
                   dateRange: e.target.value as FilterConfig["dateRange"],
                 }))
               }
-              className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Time</option>
               <option value="thisMonth">This Month</option>
@@ -428,7 +428,7 @@ const Expenses: React.FC = () => {
                     customMonth: parseInt(e.target.value),
                   }))
                 }
-                className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
               >
                 {Array.from({ length: 12 }, (_, i) => (
                   <option key={i + 1} value={i + 1}>
@@ -446,7 +446,7 @@ const Expenses: React.FC = () => {
                     customYear: parseInt(e.target.value),
                   }))
                 }
-                className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+                className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
               >
                 {Array.from({ length: 5 }, (_, i) => {
                   const year = new Date().getFullYear() - 2 + i;
@@ -462,8 +462,8 @@ const Expenses: React.FC = () => {
 
           {/* Sort Controls */}
           <div className="flex items-center gap-2 ml-auto">
-            <Filter className="w-4 h-4 text-slate-500" />
-            <label className="text-sm font-medium text-slate-700">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <label className="text-sm font-medium text-gray-700">
               Sort by:
             </label>
             <select
@@ -474,7 +474,7 @@ const Expenses: React.FC = () => {
                   key: e.target.value as SortConfig["key"],
                 }))
               }
-              className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
             >
               <option value="date">Date</option>
               <option value="amount">Amount</option>
@@ -489,20 +489,20 @@ const Expenses: React.FC = () => {
                   direction: prev.direction === "asc" ? "desc" : "asc",
                 }))
               }
-              className="flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+              className="flex items-center px-3 py-2 border rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50"
               title="Toggle sort order"
             >
               {sortConfig.direction === "asc" ? (
-                <ArrowDownAZ className="w-4 h-4 mr-1.5" />
+                <ArrowDownAZ className="w-4 h-4 mr-1" />
               ) : (
-                <ArrowUpZA className="w-4 h-4 mr-1.5" />
+                <ArrowUpZA className="w-4 h-4 mr-1" />
               )}
               {sortConfig.direction === "asc" ? "Asc" : "Desc"}
             </button>
 
             <button
               onClick={fetchExpenses}
-              className="flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+              className="flex items-center px-3 py-2 border rounded-md text-sm text-gray-700 bg-white hover:bg-gray-50"
               title="Refresh expenses"
               disabled={loading}
             >
@@ -516,14 +516,12 @@ const Expenses: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-400 p-6 rounded-xl shadow-lg">
+        <div className="bg-red-50 border border-red-200 p-4 rounded-md">
           <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0" />
-              </div>
+            <div className="flex items-start space-x-2">
+              <AlertCircle className="text-red-500 w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-bold text-red-800">
+                <h3 className="text-sm font-medium text-red-800">
                   Error Occurred
                 </h3>
                 <p className="text-sm text-red-700 mt-1">{error}</p>
@@ -531,7 +529,7 @@ const Expenses: React.FC = () => {
             </div>
             <button
               onClick={() => setError("")}
-              className="text-red-400 hover:text-red-600 focus:outline-none"
+              className="text-red-400 hover:text-red-600"
             >
               <XCircle className="w-5 h-5" />
             </button>
@@ -541,27 +539,27 @@ const Expenses: React.FC = () => {
 
       {/* Expenses Table or Empty State */}
       {filteredExpenses.length === 0 && !loading && !error ? (
-        <div className="text-center py-16 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl shadow-xl border border-slate-200">
+        <div className="text-center py-12 bg-gray-50 rounded-lg border">
           <div className="max-w-md mx-auto">
-            <div className="h-20 w-20 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <DollarSign className="w-10 h-10 text-white" />
+            <div className="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <DollarSign className="w-8 h-8 text-white " />
             </div>
-            <h3 className="text-2xl font-bold text-slate-800 mb-3">
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">
               {expenses.length === 0
                 ? "No Expenses Yet"
                 : "No Expenses Found"}
             </h3>
-            <p className="text-slate-600 mb-6 leading-relaxed">
+            <p className="text-gray-600 mb-4">
               {expenses.length === 0
-                ? "Start tracking your spending by adding your first expense. Keep control of your finances and identify spending patterns."
-                : "Try adjusting your search or filter criteria to find the expenses you're looking for."}
+                ? "Start tracking your spending by adding your first expense."
+                : "Try adjusting your search or filter criteria."}
             </p>
             {expenses.length === 0 && (
               <button
                 onClick={() => setIsAddModalOpen(true)}
                 className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm font-semibold transform hover:scale-[1.02]"
               >
-                <Plus className="mr-2 w-5 h-5" />
+                <Plus className="mr-2 w-4 h-4" />
                 Add Your First Expense
               </button>
             )}
@@ -570,69 +568,66 @@ const Expenses: React.FC = () => {
       ) : (
         !loading &&
         !error && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
+          <div className="bg-white rounded-lg shadow border overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <div className="flex items-center space-x-2">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center space-x-1">
                         <Receipt className="w-4 h-4" />
                         <span>Description</span>
                       </div>
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Category
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <div className="flex items-center space-x-2">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center space-x-1">
                         <Calendar className="w-4 h-4" />
                         <span>Date</span>
                       </div>
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      <div className="flex items-center justify-end space-x-2">
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      <div className="flex items-center justify-end space-x-1">
                         <DollarSign className="w-4 h-4" />
                         <span>Amount</span>
                       </div>
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white/50 divide-y divide-slate-200">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {filteredExpenses.map((expense) => (
-                    <tr
-                      key={expense._id}
-                      className="hover:bg-white/80 transition-all duration-200 group"
-                    >
-                      <td className="px-6 py-5 whitespace-nowrap">
+                    <tr key={expense._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => setEditExpenseData(expense)}
-                          className="text-sm font-semibold text-slate-900 hover:text-green-600 transition-colors duration-200 flex items-center space-x-2 group focus:outline-none focus:ring-2 focus:ring-green-500 rounded p-1"
+                          className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
                         >
                           <span>{expense.description}</span>
                           <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <span className="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
                           {expense.category}
                         </span>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap text-sm text-slate-600 font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                         {format(parseISO(expense.date), "MMM d, yyyy")}
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap text-right">
-                        <span className="text-sm font-bold text-slate-800">
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-sm font-semibold text-gray-900">
                           {user?.preferences?.currency || "USD"}{" "}
                           {typeof expense.amount === "number"
                             ? expense.amount.toFixed(2)
                             : "0.00"}
                         </span>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={(e) =>
                             handleActionClick(e, () =>

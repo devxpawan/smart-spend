@@ -1,4 +1,4 @@
-import { WarrantyImage } from './WarrantyFormData';
+import { WarrantyImage } from "./WarrantyFormData";
 
 interface WarrantyInterface {
   _id: string;

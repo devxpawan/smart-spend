@@ -73,6 +73,15 @@ app.use(
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
+// CSP middleware
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://res.cloudinary.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://accounts.google.com;"
+  );
+  next();
+});
+
 // Database Connection
 const connectDB = async () => {
   try {
@@ -88,6 +97,8 @@ connectDB();
 
 // Routes
 app.use("/api/auth", authRoutes);
+// Public warranty route (for QR code access) - must come before authenticated routes
+app.use("/api/warranties/public", warrantyRoutes);
 app.use("/api/expenses", authenticateToken, expenseRoutes);
 app.use("/api/bills", authenticateToken, billRoutes);
 app.use("/api/warranties", authenticateToken, warrantyRoutes);

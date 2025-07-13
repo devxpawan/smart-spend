@@ -3,6 +3,11 @@ import { check, validationResult } from "express-validator";
 import Warranty from "../models/Warranty.js";
 import multer from "multer";
 import cloudinary from "../cloudinary.js";
+import {
+  generateAndUploadQRCode,
+  generateWarrantyQRCodeURL,
+  deleteQRCodeFromCloudinary,
+} from "../utils/qrCodeGenerator.js";
 
 const router = express.Router();
 
@@ -45,6 +50,47 @@ const getCloudinaryPublicId = (url) => {
   const filename = parts[parts.length - 1];
   return filename.split(".")[0];
 };
+
+// @route   GET /api/warranties/public/:id
+// @desc    Get warranty details publicly (for QR code access)
+// @access  Public (no auth required)
+router.get("/public/:id", async (req, res) => {
+  try {
+    const warranty = await Warranty.findById(req.params.id).select(
+      "productName purchaseDate expirationDate retailer category notes createdAt qrCode"
+    );
+
+    if (!warranty) {
+      return res.status(404).json({ message: "Warranty not found" });
+    }
+
+    // Return only essential warranty information for public access
+    const publicWarrantyData = {
+      id: warranty._id,
+      productName: warranty.productName,
+      purchaseDate: warranty.purchaseDate,
+      expirationDate: warranty.expirationDate,
+      retailer: warranty.retailer,
+      category: warranty.category,
+      notes: warranty.notes,
+      createdAt: warranty.createdAt,
+      // Calculate warranty status
+      isExpired: new Date() > new Date(warranty.expirationDate),
+      daysUntilExpiry: Math.ceil(
+        (new Date(warranty.expirationDate) - new Date()) /
+          (1000 * 60 * 60 * 24)
+      ),
+    };
+
+    res.json(publicWarrantyData);
+  } catch (error) {
+    console.error("Get public warranty error:", error);
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid warranty ID" });
+    }
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // @route   GET /api/warranties/expiring/soon
 // @desc    Get warranties expiring soon
@@ -180,6 +226,32 @@ router.post(
       });
 
       const warranty = await newWarranty.save();
+
+      // Generate QR code after warranty is saved
+      try {
+        const baseUrl = process.env.CLIENT_URL || "http://localhost:5173";
+        const qrCodeURL = generateWarrantyQRCodeURL(warranty._id, baseUrl);
+
+        const qrCodeResult = await generateAndUploadQRCode(
+          qrCodeURL,
+          warranty._id.toString()
+        );
+
+        // Update warranty with QR code information
+        warranty.qrCode = {
+          url: qrCodeResult.url,
+          publicId: qrCodeResult.publicId,
+          generatedAt: new Date(),
+        };
+
+        await warranty.save();
+
+        console.log(`QR code generated for warranty ${warranty._id}`);
+      } catch (qrError) {
+        console.error("QR code generation failed:", qrError);
+        // Don't fail the warranty creation if QR code generation fails
+      }
+
       res.status(201).json(warranty);
     } catch (error) {
       console.error("Create warranty error:", error);
@@ -379,6 +451,16 @@ router.delete("/:id", async (req, res) => {
 
     // Delete all associated images from Cloudinary before deleting warranty
     await deleteCloudinaryImages(warranty.warrantyCardImages);
+
+    // Delete QR code from Cloudinary if it exists
+    if (warranty.qrCode && warranty.qrCode.publicId) {
+      try {
+        await deleteQRCodeFromCloudinary(warranty.qrCode.publicId);
+      } catch (qrError) {
+        console.error("Failed to delete QR code:", qrError);
+        // Don't fail the warranty deletion if QR code deletion fails
+      }
+    }
 
     await warranty.deleteOne();
     res.json({ message: "Warranty removed" });

@@ -389,28 +389,28 @@ const Bills: React.FC = () => {
       {/* Enhanced Header with Stats */}
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="flex items-center space-x-4">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+          <div className="h-12 w-12 rounded-lg bg-orange-500 flex items-center justify-center">
             <Receipt className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-gray-900">
               Bills Management
             </h1>
-            <p className="text-slate-600 mt-1">
+            <p className="text-gray-600 mt-1">
               Track and manage your upcoming bills and payments
             </p>
             <div className="flex items-center gap-4 mt-2 text-sm">
-              <span className="text-slate-500">
+              <span className="text-gray-500">
                 {filteredBills.length} bills
               </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-slate-500">
+              <span className="text-gray-500">•</span>
+              <span className="text-gray-500">
                 Total: {user?.preferences?.currency || "USD"}{" "}
                 {totalAmount.toFixed(2)}
               </span>
               {overdueCount > 0 && (
                 <>
-                  <span className="text-slate-500">•</span>
+                  <span className="text-gray-500">•</span>
                   <span className="text-red-600 font-medium">
                     {overdueCount} overdue
                   </span>
@@ -422,18 +422,18 @@ const Bills: React.FC = () => {
 
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm font-semibold transform hover:scale-[1.02]"
+          className="inline-flex items-center px-6 py-3 rounded-xl bg-orange-500 text-white  hover:bg-orange-600 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-sm font-semibold transform hover:scale-[1.02]"
         >
           <Plus className="mr-2 w-5 h-5" />
           Add New Bill
         </button>
       </header>
 
-      {/* Enhanced Filters */}
-      <div className="bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-white/50 shadow-lg space-y-4">
+      {/* Simplified Filters */}
+      <div className="bg-white p-4 rounded-lg border shadow-sm space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
           <input
             type="text"
             placeholder="Search bills..."
@@ -444,7 +444,7 @@ const Bills: React.FC = () => {
                 searchTerm: e.target.value,
               }))
             }
-            className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white/80 backdrop-blur-sm"
+            className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -452,7 +452,7 @@ const Bills: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-gray-700">
               Status:
             </label>
             <select
@@ -463,7 +463,7 @@ const Bills: React.FC = () => {
                   status: e.target.value as FilterConfig["status"],
                 }))
               }
-              className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Bills</option>
               <option value="unpaid">Unpaid</option>
@@ -475,7 +475,7 @@ const Bills: React.FC = () => {
 
           {/* Date Range Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-gray-700">
               Period:
             </label>
             <select
@@ -486,7 +486,7 @@ const Bills: React.FC = () => {
                   dateRange: e.target.value as FilterConfig["dateRange"],
                 }))
               }
-              className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Time</option>
               <option value="thisMonth">This Month</option>
@@ -594,14 +594,12 @@ const Bills: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-400 p-6 rounded-xl shadow-lg">
+        <div className="bg-red-50 border border-red-200 p-4 rounded-md">
           <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0" />
-              </div>
+            <div className="flex items-start space-x-2">
+              <AlertCircle className="text-red-500 w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-bold text-red-800">
+                <h3 className="text-sm font-medium text-red-800">
                   Error Occurred
                 </h3>
                 <p className="text-sm text-red-700 mt-1">{error}</p>
@@ -609,7 +607,7 @@ const Bills: React.FC = () => {
             </div>
             <button
               onClick={() => setError("")}
-              className="text-red-400 hover:text-red-600 focus:outline-none"
+              className="text-red-400 hover:text-red-600"
             >
               <XCircle className="w-5 h-5" />
             </button>
@@ -619,23 +617,23 @@ const Bills: React.FC = () => {
 
       {/* Bills Table or Empty State */}
       {filteredBills.length === 0 && !loading && !error ? (
-        <div className="text-center py-16 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl shadow-xl border border-slate-200">
+        <div className="text-center py-12 bg-gray-50 rounded-lg border">
           <div className="max-w-md mx-auto">
-            <div className="h-20 w-20 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <Receipt className="w-10 h-10 text-white" />
+            <div className="w-16 h-16 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Receipt className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-slate-800 mb-3">
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">
               {bills.length === 0 ? "No Bills Yet" : "No Bills Found"}
             </h3>
-            <p className="text-slate-600 mb-6 leading-relaxed">
+            <p className="text-gray-600 mb-4">
               {bills.length === 0
-                ? "Start managing your finances by adding your first bill. Keep track of due dates and never miss a payment again."
-                : "Try adjusting your search or filter criteria to find the bills you're looking for."}
+                ? "Start managing your finances by adding your first bill."
+                : "Try adjusting your search or filter criteria."}
             </p>
             {bills.length === 0 && (
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-sm font-semibold transform hover:scale-[1.02]"
+                className="inline-flex items-center px-6 py-3 rounded-xl bg-orange-500 text-white  hover:bg-orange-600 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-sm font-semibold transform hover:scale-[1.02]"
               >
                 <Plus className="mr-2 w-5 h-5" />
                 Add Your First Bill
@@ -646,31 +644,31 @@ const Bills: React.FC = () => {
       ) : (
         !loading &&
         !error && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
+          <div className="bg-white rounded-lg shadow border overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
                     <th
                       scope="col"
-                      className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
                         <Receipt className="w-4 h-4" />
                         <span>Bill Name</span>
                       </div>
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                     >
                       Category
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                     >
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1">
                         <Calendar className="w-4 h-4" />
                         <span>Due Date</span>
                       </div>
@@ -705,34 +703,31 @@ const Bills: React.FC = () => {
                       bill.isPaid
                     );
                     return (
-                      <tr
-                        key={bill._id}
-                        className="hover:bg-white/80 transition-all duration-200 group"
-                      >
-                        <td className="px-6 py-5 whitespace-nowrap">
+                      <tr key={bill._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={() => setEditBillData(bill)}
-                            className="text-sm font-semibold text-slate-900 hover:text-indigo-600 transition-colors duration-200 flex items-center space-x-2 group focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded p-1"
+                            className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
                           >
                             <span>{bill.name}</span>
                             <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
-                          <span className="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
                             {bill.category}
                           </span>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap text-sm text-slate-600 font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {format(parseISO(bill.dueDate), "MMM d, yyyy")}
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap text-right">
-                          <span className="text-sm font-bold text-slate-800">
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="text-sm font-semibold text-gray-900">
                             {user?.preferences?.currency || "USD"}{" "}
                             {bill?.amount?.toFixed(2)}
                           </span>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full font-semibold border ${status.color} shadow-sm`}
                           >
@@ -740,7 +735,7 @@ const Bills: React.FC = () => {
                             {status.text}
                           </span>
                         </td>
-                        <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2">
                             <button
                               onClick={(e) =>

@@ -86,7 +86,18 @@ const warrantySchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
-
+  qrCode: {
+    url: {
+      type: String,
+    },
+    publicId: {
+      type: String,
+    },
+    generatedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
   createdAt: {
     type: Date,
     default: Date.now,

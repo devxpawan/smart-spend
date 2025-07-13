@@ -8,10 +8,11 @@ import {
   ArrowRight,
   TrendingUp,
   Target,
-  Lightbulb,
   AlertCircle,
+  User,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import FinancialHealthScore from "../components/FinancialHealthScore";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -133,7 +134,7 @@ const Dashboard: React.FC = () => {
         {
           data: dashboardData.categoryData.map((cat) => cat.total),
           backgroundColor: [
-            "#3B82F6",
+            "#3B82F6", // Keep original colors
             "#10B981",
             "#F59E0B",
             "#8B5CF6",
@@ -147,9 +148,9 @@ const Dashboard: React.FC = () => {
             "#8B5A2B",
           ],
           borderColor: "#FFFFFF",
-          borderWidth: 3,
-          hoverBorderWidth: 4,
-          hoverOffset: 8,
+          borderWidth: 2, // Thinner borders for professional look
+          hoverBorderWidth: 3,
+          hoverOffset: 4, // Reduced hover effect
         },
       ],
     }),
@@ -176,16 +177,19 @@ const Dashboard: React.FC = () => {
         {
           label: "Monthly Expenses",
           data: dashboardData.monthlyData.map((month) => month.total),
-          borderColor: "#3B82F6",
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          borderColor: "#3B82F6", // Keep original blue color
+          backgroundColor: "rgba(59, 130, 246, 0.1)", // Keep original blue fill
           pointBackgroundColor: "#3B82F6",
-          pointBorderColor: "#FFFFFF",
+          pointBorderColor: "#ffffff",
           pointBorderWidth: 2,
-          pointRadius: 6,
-          pointHoverRadius: 8,
-          tension: 0.4,
+          pointRadius: 4, // Smaller, more professional points
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: "#3B82F6",
+          pointHoverBorderColor: "#ffffff",
+          pointHoverBorderWidth: 2,
+          tension: 0.1, // Less curved, more business-like
           fill: true,
-          borderWidth: 3,
+          borderWidth: 2, // Thinner line for professional look
         },
       ],
     }),
@@ -272,7 +276,7 @@ const Dashboard: React.FC = () => {
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <TrendingUp className="w-6 h-6 text-white" />
+              <User className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
@@ -402,18 +406,28 @@ const Dashboard: React.FC = () => {
           className="grid grid-cols-1 lg:grid-cols-5 gap-6"
         >
           {/* Monthly Expenses Chart */}
-          <div className="lg:col-span-3 bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/50">
-            <div className="flex items-center justify-between mb-6">
+          <div className="lg:col-span-3 bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-8">
               <div className="flex items-center space-x-3">
-                <div className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+                <div className="p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
                   <TrendingUp className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-800">
-                  Monthly Expenses Trend
-                </h3>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Monthly Expenses
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Expense trends over time
+                  </p>
+                </div>
               </div>
-              <div className="text-sm text-slate-500">
-                {new Date().getFullYear()}
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-900">
+                  {new Date().getFullYear()}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  Year to date
+                </div>
               </div>
             </div>
             <div className="h-80">
@@ -427,53 +441,120 @@ const Dashboard: React.FC = () => {
                       intersect: false,
                       mode: "index" as const,
                     },
+                    layout: {
+                      padding: {
+                        top: 20,
+                        right: 20,
+                        bottom: 10,
+                        left: 10,
+                      },
+                    },
                     scales: {
                       y: {
                         beginAtZero: true,
-                        grid: { color: "#e2e8f0" },
-                        border: { display: false },
+                        grid: {
+                          color: "#f1f5f9",
+                          lineWidth: 1,
+                          drawTicks: false,
+                        },
+                        border: {
+                          display: true,
+                          color: "#e2e8f0",
+                          width: 1,
+                        },
                         ticks: {
-                          callback: (value) =>
-                            `${
+                          callback: (value) => {
+                            const numValue = Number(value);
+                            if (numValue >= 1000000) {
+                              return `${
+                                user?.preferences?.currency || "USD"
+                              }${(numValue / 1000000).toFixed(1)}M`;
+                            } else if (numValue >= 1000) {
+                              return `${
+                                user?.preferences?.currency || "USD"
+                              }${(numValue / 1000).toFixed(0)}K`;
+                            }
+                            return `${
                               user?.preferences?.currency || "USD"
-                            }${value}`,
-                          font: { size: 12, family: "Inter, sans-serif" },
-                          color: "#64748b",
-                          padding: 10,
+                            }${numValue.toLocaleString()}`;
+                          },
+                          font: {
+                            size: 11,
+                            family: "Inter, sans-serif",
+                            weight: 500,
+                          },
+                          color: "#6b7280",
+                          padding: 12,
+                          maxTicksLimit: 6,
                         },
                       },
                       x: {
-                        grid: { display: false },
-                        border: { display: false },
+                        grid: {
+                          display: false,
+                        },
+                        border: {
+                          display: true,
+                          color: "#e2e8f0",
+                          width: 1,
+                        },
                         ticks: {
-                          font: { size: 12, family: "Inter, sans-serif" },
-                          color: "#64748b",
-                          padding: 10,
+                          font: {
+                            size: 11,
+                            family: "Inter, sans-serif",
+                            weight: 500,
+                          },
+                          color: "#6b7280",
+                          padding: 8,
                         },
                       },
                     },
                     plugins: {
                       legend: { display: false },
                       tooltip: {
-                        backgroundColor: "rgba(15, 23, 42, 0.9)",
+                        enabled: true,
+                        backgroundColor: "#ffffff",
+                        titleColor: "#1f2937",
+                        bodyColor: "#374151",
+                        borderColor: "#e5e7eb",
+                        borderWidth: 1,
                         titleFont: {
-                          size: 14,
-                          family: "Inter, sans-serif",
-                          weight: "bold" as const,
-                        },
-                        bodyFont: {
                           size: 13,
                           family: "Inter, sans-serif",
+                          weight: 600,
+                        },
+                        bodyFont: {
+                          size: 12,
+                          family: "Inter, sans-serif",
+                          weight: 500,
                         },
                         padding: 12,
-                        cornerRadius: 12,
+                        cornerRadius: 8,
                         displayColors: false,
+                        caretSize: 6,
+                        caretPadding: 8,
                         callbacks: {
-                          label: (context) =>
-                            `${
+                          title: (context) => {
+                            return `${
+                              context[0].label
+                            } ${new Date().getFullYear()}`;
+                          },
+                          label: (context) => {
+                            const value = context.parsed.y;
+                            return `Expenses: ${
                               user?.preferences?.currency || "USD"
-                            }${context.parsed.y.toLocaleString()}`,
+                            }${value.toLocaleString()}`;
+                          },
                         },
+                      },
+                    },
+                    elements: {
+                      point: {
+                        hoverRadius: 6,
+                        hitRadius: 8,
+                      },
+                      line: {
+                        borderCapStyle: "round" as const,
+                        borderJoinStyle: "round" as const,
                       },
                     },
                   }}
@@ -492,14 +573,29 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Category Chart */}
-          <div className="lg:col-span-2 bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/50">
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
-                <Target className="w-5 h-5 text-white" />
+          <div className="lg:col-span-2 bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Expense Categories
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Spending distribution by category
+                  </p>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-slate-800">
-                Category Breakdown
-              </h3>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-900">
+                  Current Period
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  Total breakdown
+                </div>
+              </div>
             </div>
             <div className="h-80 flex items-center justify-center">
               {dashboardData.categoryData.length > 0 ? (
@@ -508,43 +604,112 @@ const Dashboard: React.FC = () => {
                   options={{
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: "60%",
+                    cutout: "65%", // Slightly larger cutout for modern look
+                    layout: {
+                      padding: {
+                        top: 10,
+                        bottom: 20,
+                        left: 10,
+                        right: 10,
+                      },
+                    },
                     plugins: {
                       legend: {
                         position: "bottom" as const,
+                        align: "start" as const,
                         labels: {
                           font: {
                             size: 11,
                             family: "Inter, sans-serif",
-                            weight: "normal" as const,
+                            weight: 500,
                           },
-                          color: "#475569",
-                          boxWidth: 12,
-                          padding: 15,
-                          usePointStyle: true,
-                          pointStyle: "circle" as const,
+                          color: "#6B7280",
+                          boxWidth: 10,
+                          boxHeight: 10,
+                          padding: 12,
+                          usePointStyle: false,
+                          generateLabels: (chart) => {
+                            const data = chart.data;
+                            if (data.labels && data.datasets.length) {
+                              return data.labels.map((label, i) => {
+                                const dataset = data.datasets[0];
+                                const value = dataset.data[i] as number;
+                                const total = (
+                                  dataset.data as number[]
+                                ).reduce((a, b) => a + b, 0);
+                                const percentage = (
+                                  (value / total) *
+                                  100
+                                ).toFixed(1);
+
+                                return {
+                                  text: `${label} (${percentage}%)`,
+                                  fillStyle: Array.isArray(
+                                    dataset.backgroundColor
+                                  )
+                                    ? dataset.backgroundColor[i] || "#000"
+                                    : dataset.backgroundColor || "#000",
+                                  strokeStyle:
+                                    dataset.borderColor as string,
+                                  lineWidth: 1,
+                                  hidden: false,
+                                  index: i,
+                                };
+                              });
+                            }
+                            return [];
+                          },
                         },
                       },
                       tooltip: {
-                        backgroundColor: "rgba(15, 23, 42, 0.9)",
+                        enabled: true,
+                        backgroundColor: "#ffffff",
+                        titleColor: "#1f2937",
+                        bodyColor: "#374151",
+                        borderColor: "#e5e7eb",
+                        borderWidth: 1,
                         titleFont: {
-                          size: 14,
-                          family: "Inter, sans-serif",
-                          weight: "bold" as const,
-                        },
-                        bodyFont: {
                           size: 13,
                           family: "Inter, sans-serif",
+                          weight: 600,
+                        },
+                        bodyFont: {
+                          size: 12,
+                          family: "Inter, sans-serif",
+                          weight: 500,
                         },
                         padding: 12,
-                        cornerRadius: 12,
+                        cornerRadius: 8,
                         displayColors: true,
+                        caretSize: 6,
+                        caretPadding: 8,
                         callbacks: {
-                          label: (context) =>
-                            `${
-                              user?.preferences?.currency || "USD"
-                            }${context.parsed.toLocaleString()}`,
+                          title: (context) => {
+                            return context[0].label || "";
+                          },
+                          label: (context) => {
+                            const value = context.parsed;
+                            const total = (
+                              context.dataset.data as number[]
+                            ).reduce((a, b) => a + b, 0);
+                            const percentage = (
+                              (value / total) *
+                              100
+                            ).toFixed(1);
+                            return [
+                              `Amount: ${
+                                user?.preferences?.currency || "USD"
+                              }${value.toLocaleString()}`,
+                              `Percentage: ${percentage}%`,
+                            ];
+                          },
                         },
+                      },
+                    },
+                    elements: {
+                      arc: {
+                        borderWidth: 2,
+                        borderColor: "#ffffff",
                       },
                     },
                   }}
@@ -563,65 +728,8 @@ const Dashboard: React.FC = () => {
           </div>
         </motion.section>
 
-        {/* Enhanced Tips Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-r from-emerald-50 to-teal-50 p-8 rounded-2xl shadow-xl border border-emerald-200"
-        >
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 shadow-lg">
-              <Lightbulb className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-slate-800">
-                Smart Savings Tips
-              </h3>
-              <p className="text-slate-600 mt-1">
-                Actionable insights to optimize your finances
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              "Set clear monthly spending limits and track your progress regularly.",
-              "Use category tracking to identify areas where you can cut unnecessary expenses.",
-              "Automate bill payments to avoid late fees and maintain good credit.",
-              "Review warranties before expiration to make claims on defective items.",
-              "Build an emergency fund covering 3-6 months of essential expenses.",
-              "Compare prices and read reviews before making significant purchases.",
-              "Consider using the 50/30/20 rule: 50% needs, 30% wants, 20% savings.",
-              "Review and cancel unused subscriptions to reduce recurring expenses.",
-            ].map((tip, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + index * 0.05 }}
-                className="flex items-start space-x-3 p-4 bg-white/60 rounded-xl border border-emerald-100 hover:bg-white/80 transition-colors duration-200"
-              >
-                <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mt-0.5">
-                  <svg
-                    className="w-3 h-3 text-white"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <span className="text-slate-700 font-medium leading-relaxed text-sm">
-                  {tip}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-        </motion.section>
+        {/* Financial Health Score Section */}
+        <FinancialHealthScore />
       </div>
     </div>
   );

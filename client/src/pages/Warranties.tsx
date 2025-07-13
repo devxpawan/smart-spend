@@ -19,16 +19,16 @@ import {
   Image,
   ChevronLeft,
   ChevronRight,
+  QrCode,
 } from "lucide-react";
 import WarrantyModal from "../components/WarrantyModal";
 import ConfirmModal from "../components/ConfirmModal";
+import WarrantyQRCodeModal from "../components/WarrantyQRCodeModal";
 import { useAuth } from "../contexts/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { format, parseISO, isValid, differenceInDays } from "date-fns";
-import {
-  WarrantyImage,
-} from "../types/WarrantyFormData";
+import { WarrantyImage } from "../types/WarrantyFormData";
 import WarrantyInterface from "../types/WarrantyInterface";
 
 // Using WarrantyInterface from types
@@ -79,6 +79,16 @@ const Warranties: React.FC = () => {
   const [confirmModal, setConfirmModal] = useState({
     open: false,
     id: "",
+  });
+  const [qrCodeModal, setQrCodeModal] = useState({
+    open: false,
+    warrantyId: "",
+    productName: "",
+    warrantyInfo: {
+      expirationDate: "",
+      retailer: "",
+      category: "",
+    },
   });
 
   // Image viewer state
@@ -277,13 +287,16 @@ const Warranties: React.FC = () => {
         )
       );
 
+      let createdWarranty = null;
+
       if (selectedWarrantyToEdit) {
         await axios.put(
           `/api/warranties/${selectedWarrantyToEdit._id}`,
           cleanedData
         );
       } else {
-        await axios.post("/api/warranties", cleanedData);
+        const response = await axios.post("/api/warranties", cleanedData);
+        createdWarranty = response.data;
       }
 
       const updatedWarranties = await fetchWarranties(currentPage);
@@ -291,6 +304,20 @@ const Warranties: React.FC = () => {
       setIsAddModalOpen(false);
       setIsEditModalOpen(false);
       setSelectedWarrantyToEdit(null);
+
+      // Show QR code modal for new warranties
+      if (createdWarranty) {
+        setQrCodeModal({
+          open: true,
+          warrantyId: createdWarranty._id,
+          productName: createdWarranty.productName,
+          warrantyInfo: {
+            expirationDate: createdWarranty.expirationDate,
+            retailer: createdWarranty.retailer,
+            category: createdWarranty.category,
+          },
+        });
+      }
 
       if (selectedWarrantyForDetail) {
         const updatedDetail =
@@ -361,6 +388,19 @@ const Warranties: React.FC = () => {
     setShowImageViewer(true);
   };
 
+  const handleShowQRCode = (warranty: WarrantyInterface) => {
+    setQrCodeModal({
+      open: true,
+      warrantyId: warranty._id,
+      productName: warranty.productName,
+      warrantyInfo: {
+        expirationDate: warranty.expirationDate,
+        retailer: warranty.retailer || "",
+        category: warranty.category,
+      },
+    });
+  };
+
   const handleViewDetails = (warranty: WarrantyInterface) => {
     setSelectedWarrantyForDetail(warranty);
     setIsDetailModalOpen(true);
@@ -412,14 +452,14 @@ const Warranties: React.FC = () => {
       {/* Enhanced Header with Stats */}
       <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="flex items-center space-x-4">
-          <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center shadow-lg">
+          <div className="h-12 w-12 rounded-lg bg-purple-500 flex items-center justify-center">
             <ShieldCheck className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-gray-900">
               Warranties Manager
             </h1>
-            <p className="text-slate-600 mt-1">
+            <p className="text-gray-600 mt-1">
               Track and manage your product warranties and coverage
             </p>
             <div className="flex items-center gap-4 mt-2 text-sm">
@@ -459,11 +499,11 @@ const Warranties: React.FC = () => {
         </button>
       </header>
 
-      {/* Enhanced Filters and Search */}
-      <div className="bg-white/70 backdrop-blur-sm p-4 rounded-2xl shadow-xl border border-white/50 space-y-4">
+      {/* Simplified Filters and Search */}
+      <div className="bg-white p-4 rounded-lg border shadow-sm space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
           <input
             type="text"
             placeholder="Search warranties..."
@@ -471,7 +511,7 @@ const Warranties: React.FC = () => {
             onChange={(e) =>
               handleFilterChange("searchTerm", e.target.value)
             }
-            className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white/80 backdrop-blur-sm"
+            className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
@@ -479,7 +519,7 @@ const Warranties: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           {/* Category Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-gray-700">
               Category:
             </label>
             <select
@@ -487,7 +527,7 @@ const Warranties: React.FC = () => {
               onChange={(e) =>
                 handleFilterChange("category", e.target.value)
               }
-              className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Categories</option>
               {categories.map((category) => (
@@ -500,7 +540,7 @@ const Warranties: React.FC = () => {
 
           {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-gray-700">
               Status:
             </label>
             <select
@@ -508,7 +548,7 @@ const Warranties: React.FC = () => {
               onChange={(e) =>
                 handleFilterChange("status", e.target.value)
               }
-              className="form-select px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Warranties</option>
               <option value="false">Active Only</option>
@@ -543,7 +583,7 @@ const Warranties: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-400 p-6 rounded-xl shadow-lg">
+        <div className="bg-red-50 border border-red-200 p-4 rounded-md">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
               <div className="p-2 bg-red-100 rounded-lg">
@@ -567,7 +607,7 @@ const Warranties: React.FC = () => {
       )}
 
       {/* Warranties Table or Empty State */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 overflow-hidden">
+      <div className="bg-white rounded-lg shadow border overflow-hidden">
         {loading && warranties.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <div className="flex flex-col items-center space-y-4">
@@ -578,20 +618,20 @@ const Warranties: React.FC = () => {
             </div>
           </div>
         ) : filteredWarranties.length === 0 ? (
-          <div className="text-center py-16 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl">
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
             <div className="max-w-md mx-auto">
-              <div className="h-20 w-20 bg-gradient-to-r from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                <Package className="w-10 h-10 text-white" />
+              <div className="w-16 h-16 bg-purple-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Package className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-3">
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 {warranties.length === 0
                   ? "No Warranties Yet"
                   : "No Warranties Found"}
               </h3>
-              <p className="text-slate-600 mb-6 leading-relaxed">
+              <p className="text-gray-600 mb-4">
                 {warranties.length === 0
-                  ? "Start protecting your investments by adding your first warranty. Keep track of coverage periods and never miss important warranty claims."
-                  : "Try adjusting your search or filter criteria to find the warranties you're looking for."}
+                  ? "Start protecting your investments by adding your first warranty."
+                  : "Try adjusting your search or filter criteria."}
               </p>
               {warranties.length === 0 && (
                 <button
@@ -609,14 +649,14 @@ const Warranties: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
                   <th
                     scope="col"
-                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                   >
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       <Package className="w-4 h-4" />
                       <span>Product</span>
                     </div>
@@ -660,6 +700,15 @@ const Warranties: React.FC = () => {
                       <span>Retailer</span>
                     </div>
                   </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider"
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <QrCode className="w-4 h-4" />
+                      <span>QR Code</span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white/50 divide-y divide-slate-200">
@@ -673,23 +722,22 @@ const Warranties: React.FC = () => {
                   );
 
                   return (
-                    <tr
-                      key={warranty._id}
-                      className="hover:bg-white/80 transition-all duration-200 group cursor-pointer"
-                      onClick={() => handleViewDetails(warranty)}
-                    >
-                      <td className="px-6 py-5 whitespace-nowrap">
+                    <tr key={warranty._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center mr-4 shadow-md">
                             <Package className="h-5 w-5 text-white" />
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-slate-900 group-hover:text-purple-600 transition-colors duration-200 flex items-center space-x-2">
+                            <button
+                              onClick={() => handleViewDetails(warranty)}
+                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                            >
                               <span>{warranty.productName}</span>
                               <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
+                            </button>
                             {warranty.purchasePrice && (
-                              <div className="text-sm text-slate-600 font-medium mt-1 flex items-center">
+                              <div className="text-sm text-gray-600 font-medium mt-1 flex items-center">
                                 <DollarSign className="w-3 h-3 mr-1" />
                                 {user?.preferences?.currency || "USD"}{" "}
                                 {warranty.purchasePrice.toFixed(2)}
@@ -698,7 +746,7 @@ const Warranties: React.FC = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           {warranty.warrantyCardImages &&
                           warranty.warrantyCardImages.length > 0 ? (
@@ -739,12 +787,12 @@ const Warranties: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
-                        <span className="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
                           {warranty.category}
                         </span>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-4 w-4 text-slate-400" />
                           <div>
@@ -761,7 +809,7 @@ const Warranties: React.FC = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {expired ? (
                           <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200 shadow-sm">
                             <AlertCircle className="h-3 w-3 mr-1.5" />
@@ -779,13 +827,25 @@ const Warranties: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center space-x-2">
                           <Store className="h-4 w-4 text-slate-400" />
                           <div className="text-sm text-slate-900 font-medium">
                             {warranty.retailer || "N/A"}
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShowQRCode(warranty);
+                          }}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700 transition-all duration-200 hover:scale-105"
+                          title="Show QR Code"
+                        >
+                          <QrCode className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -1164,6 +1224,26 @@ const Warranties: React.FC = () => {
         message="Are you sure you want to delete this warranty? This action cannot be undone."
         onConfirm={() => confirmDelete(confirmModal.id)}
         onCancel={() => setConfirmModal({ open: false, id: "" })}
+      />
+
+      {/* QR Code Modal */}
+      <WarrantyQRCodeModal
+        isOpen={qrCodeModal.open}
+        onClose={() =>
+          setQrCodeModal({
+            open: false,
+            warrantyId: "",
+            productName: "",
+            warrantyInfo: {
+              expirationDate: "",
+              retailer: "",
+              category: "",
+            },
+          })
+        }
+        warrantyId={qrCodeModal.warrantyId}
+        productName={qrCodeModal.productName}
+        warrantyInfo={qrCodeModal.warrantyInfo}
       />
     </div>
   );
