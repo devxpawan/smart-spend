@@ -266,36 +266,51 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Enhanced Welcome Header */}
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        {/* Mobile-optimized Welcome Header */}
         <motion.header
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-10"
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="mb-6 sm:mb-8"
         >
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <User className="w-6 h-6 text-white" />
-            </div>
+          <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 border border-gray-200 shadow-lg shadow-gray-200/20">
             <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                {greeting}, {user?.name || "User"}!
-              </h1>
-              <p className="text-lg text-slate-600 mt-1">
-                Here's your financial snapshot for today.
-              </p>
-            </div>
-          </div>
+              <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
+                <div className="relative">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-md shadow-indigo-500/20 ring-2 ring-white/40">
+                    <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full border border-white shadow-sm flex items-center justify-center">
+                    <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-white rounded-full"></div>
+                  </div>
+                </div>
 
-          {/* Current date and time */}
-          <div className="text-sm text-slate-500 font-medium">
-            {new Date().toLocaleDateString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 bg-clip-text text-transparent leading-tight">
+                    {greeting}, {user?.name || "User"}!
+                  </h1>
+                  <p className="text-sm sm:text-base text-slate-600 mt-0.5 sm:mt-1">
+                    Here's your financial snapshot for today.
+                  </p>
+                </div>
+              </div>
+
+              {/* Mobile-optimized date display */}
+              <div className="flex items-center pt-2 sm:pt-3 border-t border-slate-200/50">
+                <div className="flex items-center space-x-1.5 sm:space-x-2">
+                  <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-gray-400 rounded-full"></div>
+                  <span className="text-xs font-medium text-slate-600">
+                    {new Date().toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </motion.header>
 
@@ -327,24 +342,24 @@ const Dashboard: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Enhanced Stats Grid */}
+        {/* Mobile-optimized Stats Grid */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
         >
           {statsCards.map((item, idx) => (
             <Link
               to={item.link}
               key={idx}
-              className={`group relative p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br ${
+              className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br ${
                 item.bgGradient
               } border ${
                 item.borderColor
               } hover:scale-[1.02] overflow-hidden ${
                 item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
-              }`}
+              } min-h-[120px] sm:min-h-[140px]`}
             >
               {/* Background Pattern */}
               <div className="absolute inset-0 opacity-5">
@@ -356,36 +371,36 @@ const Dashboard: React.FC = () => {
               {/* Urgent indicator */}
               {item.urgent && (
                 <div className="absolute top-2 right-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse"></div>
                 </div>
               )}
 
-              <div className="relative z-10">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+              <div className="relative z-10 h-full flex flex-col">
+                <div className="flex items-start justify-between mb-3 sm:mb-4">
+                  <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider">
                         {item.title}
                       </h3>
                       <span className="text-xs text-slate-500 font-medium">
                         {item.subtitle}
                       </span>
                     </div>
-                    <p className="text-3xl font-bold text-slate-800">
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 break-words">
                       {item.value}
                     </p>
                   </div>
                   <div
-                    className={`p-3 rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg`}
+                    className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg flex-shrink-0 ml-2`}
                   >
                     <span className="text-white">{item.icon}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600 font-medium group-hover:text-slate-800 transition-colors flex items-center">
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="text-xs sm:text-sm text-slate-600 font-medium group-hover:text-slate-800 transition-colors flex items-center">
                     View Details
-                    <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
+                    <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
                   </span>
                   {item.urgent && (
                     <span className="text-xs text-red-600 font-semibold">
@@ -398,30 +413,30 @@ const Dashboard: React.FC = () => {
           ))}
         </motion.section>
 
-        {/* Enhanced Charts Section */}
+        {/* Mobile-optimized Charts Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 lg:grid-cols-5 gap-6"
+          className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6"
         >
           {/* Monthly Expenses Chart */}
-          <div className="lg:col-span-3 bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
-                  <TrendingUp className="w-5 h-5 text-white" />
+          <div className="lg:col-span-3 bg-white p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                     Monthly Expenses
                   </h3>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                     Expense trends over time
                   </p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <div className="text-sm font-medium text-gray-900">
                   {new Date().getFullYear()}
                 </div>
@@ -430,7 +445,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="h-80">
+            <div className="h-64 sm:h-72 lg:h-80">
               {dashboardData.monthlyData.length > 0 ? (
                 <Line
                   data={monthlyChartData}
@@ -573,22 +588,22 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Category Chart */}
-          <div className="lg:col-span-2 bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-3">
-                <div className="p-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
-                  <Target className="w-5 h-5 text-white" />
+          <div className="lg:col-span-2 bg-white p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                     Expense Categories
                   </h3>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                     Spending distribution by category
                   </p>
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <div className="text-sm font-medium text-gray-900">
                   Current Period
                 </div>
@@ -597,7 +612,7 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="h-80 flex items-center justify-center">
+            <div className="h-64 sm:h-72 lg:h-80 flex items-center justify-center">
               {dashboardData.categoryData.length > 0 ? (
                 <Doughnut
                   data={categoryChartData}

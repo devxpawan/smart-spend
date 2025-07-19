@@ -107,3 +107,14 @@ span {
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* Simple Google Login Button Centering */
+div[data-testid="google-oauth-button"] {
+  margin: 0 auto !important;
+}
+
+/* Center Google OAuth iframe */
+iframe[src*="accounts.google.com"] {
+  margin: 0 auto !important;
+  display: block !important;
+}

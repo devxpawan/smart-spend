@@ -1,7 +1,7 @@
 // components/LogoutConfirmModal.tsx
 import React, { useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, X, AlertTriangle } from "lucide-react";
+import { LogOut, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
 interface LogoutConfirmModalProps {
@@ -28,7 +28,9 @@ const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
     const firstFocusableElement = focusableElements[0] as HTMLElement;
-    const lastFocusableElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+    const lastFocusableElement = focusableElements[
+      focusableElements.length - 1
+    ] as HTMLElement;
 
     if (e.key === "Tab") {
       if (e.shiftKey) {
@@ -46,11 +48,14 @@ const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
   }, []);
 
   // Handle escape key
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape" && !loading) {
-      onCancel();
-    }
-  }, [onCancel, loading]);
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loading) {
+        onCancel();
+      }
+    },
+    [onCancel, loading]
+  );
 
   // Setup event listeners
   useEffect(() => {
@@ -78,11 +83,11 @@ const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
           aria-modal="true"
           role="dialog"
           aria-labelledby="logout-modal-title"
@@ -90,74 +95,80 @@ const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
           onClick={!loading ? onCancel : undefined}
         >
           <motion.div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden"
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md border border-white/20 overflow-hidden relative"
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             ref={modalRef}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="text-amber-600">
-                    <AlertTriangle className="w-6 h-6 mt-1 shrink-0" />
-                  </div>
-                  <div>
-                    <h2 
-                      id="logout-modal-title"
-                      className="text-xl font-bold text-slate-800"
-                    >
-                      Log out?
-                    </h2>
-                  </div>
-                </div>
-                <button
-                  onClick={onCancel}
-                  className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  aria-label="Close dialog"
-                  disabled={loading}
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+            {/* Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-red-50/80 via-orange-50/60 to-amber-50/80 rounded-2xl"></div>
 
-            {/* Content */}
-            <div className="p-6">
-              <p 
-                id="logout-modal-description"
-                className="text-slate-600 leading-relaxed mb-6"
-              >
-                Are you sure you want to log out? You'll need to sign in again to access your account.
-              </p>
+            {/* Close Button */}
+            <button
+              onClick={onCancel}
+              className="absolute top-4 right-4 z-20 text-slate-400 hover:text-slate-600 transition-all duration-200 p-2 rounded-full hover:bg-white/60 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
+              aria-label="Close dialog"
+              disabled={loading}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Content Container */}
+            <div className="relative z-10 p-6">
+              {/* Icon and Title */}
+              <div className="text-center mb-5">
+                <div className="mx-auto w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mb-3 shadow-lg">
+                  <LogOut className="w-6 h-6 text-white" />
+                </div>
+                <h2
+                  id="logout-modal-title"
+                  className="text-xl font-bold text-slate-800 mb-2"
+                >
+                  Sign Out
+                </h2>
+                <div className="w-10 h-0.5 bg-gradient-to-r from-orange-500 to-red-600 rounded-full mx-auto"></div>
+              </div>
+
+              {/* Message */}
+              <div className="text-center mb-6">
+                <p
+                  id="logout-modal-description"
+                  className="text-slate-600 leading-relaxed"
+                >
+                  Are you sure you want to sign out of your account?
+                </p>
+                <p className="text-slate-500 text-sm mt-1">
+                  You'll need to sign in again to access your dashboard.
+                </p>
+              </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   ref={cancelButtonRef}
                   onClick={onCancel}
-                  className="px-6 py-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors duration-150 ease-in-out shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all duration-200 ease-in-out shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={loading}
                 >
-                  Cancel
+                  Stay Signed In
                 </button>
                 <button
                   onClick={onConfirm}
                   disabled={loading}
-                  className="inline-flex items-center justify-center px-6 py-3 bg-amber-600 text-white font-semibold rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl text-sm transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-orange-600 to-red-600 text-white font-semibold rounded-lg hover:from-orange-700 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-all duration-200 ease-in-out shadow-lg hover:shadow-xl text-sm transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                      Logging out...
+                      Signing out...
                     </>
                   ) : (
                     <>
                       <LogOut className="w-4 h-4 mr-2" />
-                      Log out
+                      Sign Out
                     </>
                   )}
                 </button>

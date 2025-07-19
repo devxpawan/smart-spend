@@ -59,16 +59,17 @@ const LoginRegister: React.FC = () => {
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID!}>
       {/* Full-screen container with gradient background */}
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 relative overflow-hidden">
-        {/* Animated background elements */}
+        {/* Animated background elements - Optimized for mobile */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+          {/* Smaller background elements for mobile */}
+          <div className="absolute -top-20 -right-20 sm:-top-40 sm:-right-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-2xl sm:blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-20 -left-20 sm:-bottom-40 sm:-left-40 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-2xl sm:blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 sm:w-96 sm:h-96 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 rounded-full blur-2xl sm:blur-3xl animate-pulse delay-500"></div>
         </div>
 
-        {/* Main content container - Aligned items */}
-        <div className="relative z-10 min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
-          <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 lg:gap-12 items-start lg:items-center">
+        {/* Main content container - Optimized for mobile */}
+        <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-6 sm:p-6 lg:p-8">
+          <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-start lg:items-center">
             {/* Left side - Branding and illustration - Aligned to center */}
             <motion.div
               className="hidden lg:flex flex-col justify-center h-full"
@@ -141,35 +142,39 @@ const LoginRegister: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Right side - Form - Aligned to center */}
+            {/* Right side - Form - Optimized for mobile */}
             <motion.div
-              className="w-full max-w-md mx-auto lg:max-w-lg flex flex-col justify-center h-full"
+              className="w-full max-w-sm mx-auto sm:max-w-md lg:max-w-lg flex flex-col justify-center h-full"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
             >
-              {/* Mobile logo */}
-              <div className="lg:hidden text-center mb-6">
-                <div className="inline-flex items-center space-x-3 mb-3">
-                  <img src={logo} alt="SmartSpend" className="w-10 h-10" />
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              {/* Mobile logo - Better spacing */}
+              <div className="lg:hidden text-center mb-4 sm:mb-6">
+                <div className="inline-flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
+                  <img
+                    src={logo}
+                    alt="SmartSpend"
+                    className="w-8 h-8 sm:w-10 sm:h-10"
+                  />
+                  <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                     SmartSpend
                   </h1>
                 </div>
               </div>
 
-              {/* Form card */}
-              <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-5 sm:p-6 lg:p-8">
-                {/* Tab switcher */}
-                <div className="mb-6">
-                  <div className="flex bg-gray-100 rounded-2xl p-1 mb-4">
+              {/* Form card - Better mobile padding */}
+              <div className="bg-white/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-white/20 p-4 sm:p-5 md:p-6 lg:p-8">
+                {/* Tab switcher - Mobile optimized */}
+                <div className="mb-5 sm:mb-6">
+                  <div className="flex bg-gray-100 rounded-xl sm:rounded-2xl p-1 mb-3 sm:mb-4">
                     {["login", "register"].map((t) => (
                       <button
                         key={t}
                         onClick={() =>
                           handleTabChange(t as "login" | "register")
                         }
-                        className={`flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                        className={`flex-1 py-2 sm:py-2.5 px-2 sm:px-4 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm transition-all duration-300 ${
                           tab === t
                             ? "bg-white text-indigo-600 shadow-md transform scale-[0.98]"
                             : "text-gray-600 hover:text-gray-800"
@@ -181,12 +186,12 @@ const LoginRegister: React.FC = () => {
                   </div>
 
                   <div className="text-center">
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">
+                    <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1">
                       {tab === "login"
                         ? "Sign in to your account"
                         : "Create your account"}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       {tab === "login"
                         ? "Welcome back! Please enter your details."
                         : "Start your financial journey with us today."}
@@ -205,13 +210,13 @@ const LoginRegister: React.FC = () => {
                     exit={{ opacity: 0, x: tab === "login" ? 20 : -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    {/* Compact form layout for register */}
+                    {/* Mobile-optimized form layout for register */}
                     {tab === "register" ? (
                       <>
-                        {/* Name and Email in a row for larger screens */}
-                        <div className="grid sm:grid-cols-2 gap-3">
+                        {/* Name and Email - Stack on mobile, side by side on larger screens */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
                               Full Name
                             </label>
                             <div className="relative">
@@ -221,14 +226,14 @@ const LoginRegister: React.FC = () => {
                                 required
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="w-full pl-9 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                                className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
                                 placeholder="Your name"
                               />
                             </div>
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
                               Email Address
                             </label>
                             <div className="relative">
@@ -238,7 +243,7 @@ const LoginRegister: React.FC = () => {
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-9 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                                className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
                                 placeholder="Your email"
                               />
                             </div>
@@ -247,7 +252,7 @@ const LoginRegister: React.FC = () => {
 
                         {/* Password field */}
                         <div>
-                          <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
                             Password
                           </label>
                           <div className="relative">
@@ -258,7 +263,7 @@ const LoginRegister: React.FC = () => {
                               minLength={6}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
-                              className="w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                              className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
                               placeholder="Create password"
                             />
                             <button
@@ -279,9 +284,9 @@ const LoginRegister: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        {/* Login form - standard layout */}
+                        {/* Login form - Mobile optimized */}
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                             Email Address
                           </label>
                           <div className="relative">
@@ -291,14 +296,14 @@ const LoginRegister: React.FC = () => {
                               required
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              className="w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                              className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
                               placeholder="Enter your email"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                             Password
                           </label>
                           <div className="relative">
@@ -309,7 +314,7 @@ const LoginRegister: React.FC = () => {
                               minLength={6}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
-                              className="w-full pl-9 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                              className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
                               placeholder="Enter your password"
                             />
                             <button
@@ -317,12 +322,12 @@ const LoginRegister: React.FC = () => {
                               onClick={() =>
                                 setShowPassword(!showPassword)
                               }
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                             >
                               {showPassword ? (
-                                <EyeOff className="w-5 h-5" />
+                                <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
                               ) : (
-                                <Eye className="w-5 h-5" />
+                                <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                               )}
                             </button>
                           </div>
@@ -330,23 +335,23 @@ const LoginRegister: React.FC = () => {
                       </>
                     )}
 
-                    {/* Error message */}
+                    {/* Error message - Mobile optimized */}
                     {error && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center space-x-2"
+                        className="p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm flex items-center space-x-2"
                       >
                         <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
                         <span>{error}</span>
                       </motion.div>
                     )}
 
-                    {/* Submit button */}
+                    {/* Submit button - Mobile optimized */}
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full pl-9 pr-10 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 group text-sm"
+                      className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg sm:rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 group text-sm sm:text-base min-h-[44px]"
                     >
                       <span>
                         {loading
@@ -362,42 +367,43 @@ const LoginRegister: React.FC = () => {
                       )}
                     </button>
 
-                    {/* Compact divider */}
-                    <div className="relative my-4">
+                    {/* Mobile-optimized divider */}
+                    <div className="relative my-3 sm:my-4">
                       <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-gray-200"></div>
                       </div>
-                      <div className="relative flex justify-center text-xs">
-                        <span className="px-3 bg-white text-gray-500 font-medium">
+                      <div className="relative flex justify-center text-xs sm:text-sm">
+                        <span className="px-2 sm:px-3 bg-white text-gray-500 font-medium">
                           Or continue with
                         </span>
                       </div>
                     </div>
 
-                    {/* Google login - more compact */}
-                    <div className="w-full flex justify-center">
-                      <GoogleLogin
-                        onSuccess={handleGoogleSuccess}
-                        onError={handleGoogleError}
-                        theme="outline"
-                        size="medium"
-                        text={
-                          tab === "login" ? "signin_with" : "signup_with"
-                        }
-                        shape="rectangular"
-                        width="100%"
-                      />
+                    {/* Google login - Simple centered approach */}
+                    <div className="w-full">
+                      <div className="flex justify-center">
+                        <GoogleLogin
+                          onSuccess={handleGoogleSuccess}
+                          onError={handleGoogleError}
+                          theme="outline"
+                          size="medium"
+                          text={
+                            tab === "login" ? "signin_with" : "signup_with"
+                          }
+                          shape="rectangular"
+                        />
+                      </div>
                     </div>
 
-                    {/* Switch tab */}
-                    <p className="text-center text-gray-600 text-sm pt-2">
+                    {/* Switch tab - Mobile optimized */}
+                    <p className="text-center text-gray-600 text-xs sm:text-sm pt-2 sm:pt-3">
                       {tab === "login" ? (
                         <>
                           Don't have an account?{" "}
                           <button
                             type="button"
                             onClick={() => handleTabChange("register")}
-                            className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+                            className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors min-h-[44px] inline-flex items-center"
                           >
                             Sign up for free
                           </button>
@@ -408,7 +414,7 @@ const LoginRegister: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleTabChange("login")}
-                            className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors"
+                            className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors min-h-[44px] inline-flex items-center"
                           >
                             Sign in
                           </button>

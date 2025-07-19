@@ -448,59 +448,61 @@ const Warranties: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       {/* Enhanced Header with Stats */}
-      <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div className="flex items-center space-x-4">
-          <div className="h-12 w-12 rounded-lg bg-purple-500 flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Warranties Manager
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Track and manage your product warranties and coverage
-            </p>
-            <div className="flex items-center gap-4 mt-2 text-sm">
-              <span className="text-slate-500">
-                {stats.total} warranties
-              </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-green-600 font-medium">
-                {stats.active} active
-              </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-amber-600 font-medium">
-                {stats.expiringSoon} expiring soon
-              </span>
-              {stats.totalValue > 0 && (
-                <>
-                  <span className="text-slate-500">•</span>
-                  <span className="text-slate-500">
-                    Value: {user?.preferences?.currency || "USD"}{" "}
-                    {stats.totalValue.toFixed(2)}
-                  </span>
-                </>
-              )}
+      <header className="flex flex-col gap-4 sm:gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-purple-500 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                Warranties Manager
+              </h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">
+                Track and manage your product warranties and coverage
+              </p>
             </div>
           </div>
+
+          <button
+            onClick={() => {
+              resetFormData();
+              setIsAddModalOpen(true);
+            }}
+            className="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 text-white hover:from-purple-700 hover:to-violet-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
+          >
+            <Plus className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
+            Add New Warranty
+          </button>
         </div>
 
-        <button
-          onClick={() => {
-            resetFormData();
-            setIsAddModalOpen(true);
-          }}
-          className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 text-white hover:from-purple-700 hover:to-violet-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 text-sm font-semibold transform hover:scale-[1.02]"
-        >
-          <Plus className="mr-2 w-5 h-5" />
-          Add New Warranty
-        </button>
+        {/* Stats Row */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+          <span className="text-slate-500">{stats.total} warranties</span>
+          <span className="text-slate-500 hidden sm:inline">•</span>
+          <span className="text-green-600 font-medium">
+            {stats.active} active
+          </span>
+          <span className="text-slate-500 hidden sm:inline">•</span>
+          <span className="text-amber-600 font-medium">
+            {stats.expiringSoon} expiring soon
+          </span>
+          {stats.totalValue > 0 && (
+            <>
+              <span className="text-slate-500 hidden sm:inline">•</span>
+              <span className="text-slate-500">
+                Value: {user?.preferences?.currency || "USD"}{" "}
+                {stats.totalValue.toFixed(2)}
+              </span>
+            </>
+          )}
+        </div>
       </header>
 
       {/* Simplified Filters and Search */}
-      <div className="bg-white p-4 rounded-lg border shadow-sm space-y-4">
+      <div className="bg-white p-3 sm:p-4 rounded-lg border shadow-sm space-y-3 sm:space-y-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
@@ -511,73 +513,79 @@ const Warranties: React.FC = () => {
             onChange={(e) =>
               handleFilterChange("searchTerm", e.target.value)
             }
-            className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
           />
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Category Filter */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">
-              Category:
-            </label>
-            <select
-              value={filters.category}
-              onChange={(e) =>
-                handleFilterChange("category", e.target.value)
-              }
-              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+        <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
+          {/* First Row - Category and Status Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            {/* Category Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <label className="text-xs sm:text-sm font-medium text-gray-700">
+                Category:
+              </label>
+              <select
+                value={filters.category}
+                onChange={(e) =>
+                  handleFilterChange("category", e.target.value)
+                }
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-md focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+              >
+                <option value="">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <label className="text-xs sm:text-sm font-medium text-gray-700">
+                Status:
+              </label>
+              <select
+                value={filters.status}
+                onChange={(e) =>
+                  handleFilterChange("status", e.target.value)
+                }
+                className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-md focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
+              >
+                <option value="">All Warranties</option>
+                <option value="false">Active Only</option>
+                <option value="true">Expired Only</option>
+              </select>
+            </div>
           </div>
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700">
-              Status:
-            </label>
-            <select
-              value={filters.status}
-              onChange={(e) =>
-                handleFilterChange("status", e.target.value)
-              }
-              className="px-3 py-2 text-sm border rounded-md focus:ring-2 focus:ring-blue-500"
+          {/* Action Buttons */}
+          <div className="flex gap-2 sm:ml-auto">
+            {/* Clear Filters */}
+            <button
+              onClick={() => {
+                setFilters({ category: "", status: "", searchTerm: "" });
+                setCurrentPage(1);
+              }}
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors font-medium"
             >
-              <option value="">All Warranties</option>
-              <option value="false">Active Only</option>
-              <option value="true">Expired Only</option>
-            </select>
+              Clear Filters
+            </button>
+
+            {/* Refresh Button */}
+            <button
+              onClick={() => fetchWarranties(currentPage)}
+              className="flex items-center justify-center px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+              title="Refresh warranties"
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </button>
           </div>
-
-          {/* Clear Filters */}
-          <button
-            onClick={() => {
-              setFilters({ category: "", status: "", searchTerm: "" });
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors font-medium"
-          >
-            Clear Filters
-          </button>
-
-          {/* Refresh Button */}
-          <button
-            onClick={() => fetchWarranties(currentPage)}
-            className="flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ml-auto"
-            title="Refresh warranties"
-            disabled={loading}
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-            />
-          </button>
         </div>
       </div>
 
@@ -648,70 +656,10 @@ const Warranties: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                  >
-                    <div className="flex items-center space-x-1">
-                      <Package className="w-4 h-4" />
-                      <span>Product</span>
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Image className="w-4 h-4" />
-                      <span>Images</span>
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
-                  >
-                    Category
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>Expiration</span>
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
-                  >
-                    Status
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Store className="w-4 h-4" />
-                      <span>Retailer</span>
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider"
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <QrCode className="w-4 h-4" />
-                      <span>QR Code</span>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white/50 divide-y divide-slate-200">
+          <>
+            {/* Mobile Card View */}
+            <div className="block lg:hidden">
+              <div className="divide-y divide-gray-200">
                 {filteredWarranties.map((warranty) => {
                   const daysUntilExpiry = getDaysUntilExpiry(
                     warranty.expirationDate
@@ -722,37 +670,81 @@ const Warranties: React.FC = () => {
                   );
 
                   return (
-                    <tr key={warranty._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center mr-4 shadow-md">
-                            <Package className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <button
-                              onClick={() => handleViewDetails(warranty)}
-                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
-                            >
-                              <span>{warranty.productName}</span>
-                              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                            {warranty.purchasePrice && (
-                              <div className="text-sm text-gray-600 font-medium mt-1 flex items-center">
-                                <DollarSign className="w-3 h-3 mr-1" />
-                                {user?.preferences?.currency || "USD"}{" "}
-                                {warranty.purchasePrice.toFixed(2)}
-                              </div>
+                    <div key={warranty._id} className="p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <button
+                            onClick={() => handleViewDetails(warranty)}
+                            className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                          >
+                            <span className="truncate">
+                              {warranty.productName}
+                            </span>
+                            <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          </button>
+                          <div className="mt-1 flex items-center space-x-2">
+                            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                              {warranty.category}
+                            </span>
+                            {expired ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Expired
+                              </span>
+                            ) : expiringSoon ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Expiring Soon
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Active
+                              </span>
                             )}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <div className="text-gray-600 text-xs">
+                            Expires:
+                          </div>
+                          <div className="font-medium">
+                            {formatDate(warranty.expirationDate)}
+                          </div>
+                          {!expired && (
+                            <div className="text-xs text-gray-500">
+                              {daysUntilExpiry > 0
+                                ? `${daysUntilExpiry} days left`
+                                : "Expires today"}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-gray-600 text-xs">
+                            Retailer:
+                          </div>
+                          <div className="font-medium">
+                            {warranty.retailer || "N/A"}
+                          </div>
+                          {warranty.purchasePrice && (
+                            <div className="text-xs text-gray-500">
+                              {user?.preferences?.currency || "USD"}{" "}
+                              {warranty.purchasePrice.toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2">
                         <div className="flex items-center space-x-2">
                           {warranty.warrantyCardImages &&
                           warranty.warrantyCardImages.length > 0 ? (
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1">
                               <div
-                                className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform"
+                                className="flex -space-x-1 cursor-pointer hover:scale-105 transition-transform"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleViewImages(
@@ -762,20 +754,19 @@ const Warranties: React.FC = () => {
                                 }}
                               >
                                 {warranty.warrantyCardImages
-                                  .slice(0, 3)
+                                  .slice(0, 2)
                                   .map((image, index) => (
                                     <img
                                       key={image.publicId}
                                       src={image.url}
                                       alt={`Warranty card ${index + 1}`}
-                                      className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm hover:border-purple-300"
+                                      className="w-6 h-6 rounded-full border border-white object-cover shadow-sm"
                                     />
                                   ))}
                               </div>
-                              {warranty.warrantyCardImages.length > 3 && (
-                                <span className="text-xs text-slate-500 font-medium">
-                                  +{warranty.warrantyCardImages.length - 3}{" "}
-                                  more
+                              {warranty.warrantyCardImages.length > 2 && (
+                                <span className="text-xs text-slate-500">
+                                  +{warranty.warrantyCardImages.length - 2}
                                 </span>
                               )}
                             </div>
@@ -786,56 +777,7 @@ const Warranties: React.FC = () => {
                             </div>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
-                          {warranty.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="h-4 w-4 text-slate-400" />
-                          <div>
-                            <div className="text-sm text-slate-900 font-medium">
-                              {formatDate(warranty.expirationDate)}
-                            </div>
-                            {!expired && (
-                              <div className="text-xs text-slate-500">
-                                {daysUntilExpiry > 0
-                                  ? `${daysUntilExpiry} days left`
-                                  : "Expires today"}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {expired ? (
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200 shadow-sm">
-                            <AlertCircle className="h-3 w-3 mr-1.5" />
-                            Expired
-                          </span>
-                        ) : expiringSoon ? (
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">
-                            <Clock className="h-3 w-3 mr-1.5" />
-                            Expiring Soon
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
-                            <CheckCircle className="h-3 w-3 mr-1.5" />
-                            Active
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center space-x-2">
-                          <Store className="h-4 w-4 text-slate-400" />
-                          <div className="text-sm text-slate-900 font-medium">
-                            {warranty.retailer || "N/A"}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -846,29 +788,240 @@ const Warranties: React.FC = () => {
                         >
                           <QrCode className="w-4 h-4" />
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                    >
+                      <div className="flex items-center space-x-1">
+                        <Package className="w-4 h-4" />
+                        <span>Product</span>
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Image className="w-4 h-4" />
+                        <span>Images</span>
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
+                      Category
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>Expiration</span>
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
+                      Status
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Store className="w-4 h-4" />
+                        <span>Retailer</span>
+                      </div>
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 lg:px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider"
+                    >
+                      <div className="flex items-center justify-center space-x-2">
+                        <QrCode className="w-4 h-4" />
+                        <span>QR Code</span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white/50 divide-y divide-slate-200">
+                  {filteredWarranties.map((warranty) => {
+                    const daysUntilExpiry = getDaysUntilExpiry(
+                      warranty.expirationDate
+                    );
+                    const expired = isExpired(warranty.expirationDate);
+                    const expiringSoon = isExpiringSoon(
+                      warranty.expirationDate
+                    );
+
+                    return (
+                      <tr key={warranty._id} className="hover:bg-gray-50">
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center mr-3 lg:mr-4 shadow-md">
+                              <Package className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+                            </div>
+                            <div>
+                              <button
+                                onClick={() => handleViewDetails(warranty)}
+                                className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                              >
+                                <span>{warranty.productName}</span>
+                                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </button>
+                              {warranty.purchasePrice && (
+                                <div className="text-sm text-gray-600 font-medium mt-1 flex items-center">
+                                  <DollarSign className="w-3 h-3 mr-1" />
+                                  {user?.preferences?.currency ||
+                                    "USD"}{" "}
+                                  {warranty.purchasePrice.toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            {warranty.warrantyCardImages &&
+                            warranty.warrantyCardImages.length > 0 ? (
+                              <div className="flex items-center space-x-2">
+                                <div
+                                  className="flex -space-x-2 cursor-pointer hover:scale-105 transition-transform"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewImages(
+                                      warranty.warrantyCardImages || [],
+                                      0
+                                    );
+                                  }}
+                                >
+                                  {warranty.warrantyCardImages
+                                    .slice(0, 3)
+                                    .map((image, index) => (
+                                      <img
+                                        key={image.publicId}
+                                        src={image.url}
+                                        alt={`Warranty card ${index + 1}`}
+                                        className="w-6 h-6 lg:w-8 lg:h-8 rounded-full border-2 border-white object-cover shadow-sm hover:border-purple-300"
+                                      />
+                                    ))}
+                                </div>
+                                {warranty.warrantyCardImages.length >
+                                  3 && (
+                                  <span className="text-xs text-slate-500 font-medium">
+                                    +
+                                    {warranty.warrantyCardImages.length -
+                                      3}{" "}
+                                    more
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center text-slate-400">
+                                <Image className="w-4 h-4 mr-1" />
+                                <span className="text-xs">No images</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                            {warranty.category}
+                          </span>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-slate-400" />
+                            <div>
+                              <div className="text-sm text-slate-900 font-medium">
+                                {formatDate(warranty.expirationDate)}
+                              </div>
+                              {!expired && (
+                                <div className="text-xs text-slate-500">
+                                  {daysUntilExpiry > 0
+                                    ? `${daysUntilExpiry} days left`
+                                    : "Expires today"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                          {expired ? (
+                            <span className="inline-flex items-center px-2 lg:px-3 py-1 lg:py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200 shadow-sm">
+                              <AlertCircle className="h-3 w-3 mr-1 lg:mr-1.5" />
+                              Expired
+                            </span>
+                          ) : expiringSoon ? (
+                            <span className="inline-flex items-center px-2 lg:px-3 py-1 lg:py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">
+                              <Clock className="h-3 w-3 mr-1 lg:mr-1.5" />
+                              Expiring Soon
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 lg:px-3 py-1 lg:py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm">
+                              <CheckCircle className="h-3 w-3 mr-1 lg:mr-1.5" />
+                              Active
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            <Store className="h-4 w-4 text-slate-400" />
+                            <div className="text-sm text-slate-900 font-medium">
+                              {warranty.retailer || "N/A"}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-center">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShowQRCode(warranty);
+                            }}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700 transition-all duration-200 hover:scale-105"
+                            title="Show QR Code"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Enhanced Pagination */}
         {pagination.pages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/50">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-slate-700 font-medium">
+          <div className="px-3 sm:px-6 py-3 sm:py-4 border-t border-slate-200 bg-slate-50/50">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-xs sm:text-sm text-slate-700 font-medium">
                 Showing {(pagination.page - 1) * 10 + 1} to{" "}
                 {Math.min(pagination.page * 10, pagination.total)} of{" "}
                 {pagination.total} results
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
                 <button
                   onClick={() => handlePageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
-                  className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   Previous
                 </button>
@@ -879,7 +1032,7 @@ const Warranties: React.FC = () => {
                   <button
                     key={page}
                     onClick={() => handlePageChange(page)}
-                    className={`px-4 py-2 text-sm border rounded-lg font-medium transition-colors ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-lg font-medium transition-colors ${
                       page === pagination.page
                         ? "bg-purple-600 text-white border-purple-600 shadow-md"
                         : "border-slate-300 hover:bg-slate-50"
@@ -891,7 +1044,7 @@ const Warranties: React.FC = () => {
                 <button
                   onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.pages}
-                  className="px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   Next
                 </button>
@@ -945,15 +1098,15 @@ const Warranties: React.FC = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
                 transition={{ duration: 0.2 }}
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] sm:max-h-[85vh] overflow-y-auto mx-4 sm:mx-0"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-violet-50">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center shadow-lg">
-                      <ShieldCheck className="w-5 h-5 text-white" />
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-violet-50">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center shadow-lg">
+                      <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900">
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900">
                       Warranty Details
                     </h2>
                   </div>
@@ -968,8 +1121,8 @@ const Warranties: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 gap-6">
+                <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                  <div className="grid grid-cols-1 gap-4 sm:gap-6">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Product Name
@@ -988,7 +1141,7 @@ const Warranties: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {selectedWarrantyForDetail.purchaseDate && (
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -1052,7 +1205,7 @@ const Warranties: React.FC = () => {
 
                     {(selectedWarrantyForDetail.retailer ||
                       selectedWarrantyForDetail.purchasePrice) && (
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {selectedWarrantyForDetail.retailer && (
                           <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -1104,7 +1257,7 @@ const Warranties: React.FC = () => {
                             }
                             )
                           </label>
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                             {selectedWarrantyForDetail.warrantyCardImages.map(
                               (image, index) => (
                                 <div
@@ -1138,7 +1291,7 @@ const Warranties: React.FC = () => {
                       )}
                   </div>
 
-                  <div className="flex gap-3 pt-4 border-t border-slate-200">
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200">
                     <button
                       onClick={() => handleEdit(selectedWarrantyForDetail)}
                       className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-xl hover:from-purple-700 hover:to-violet-700 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold shadow-lg hover:shadow-xl"

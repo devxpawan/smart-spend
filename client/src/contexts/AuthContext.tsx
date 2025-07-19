@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setToken(res.data.token);
       setUser(res.data.user);
       navigate("/");
-      toast.success("Logged in with Google successfully");
+      toast.success("Logged in successfully");
     } catch (err: any) {
       let errorMessage = "Google login failed";
       if (err.response?.status === 400) {
@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setToken(null);
     setUser(null);
     navigate("/auth");
-    toast.success("Logged out successfully");
+    toast.success("Signed out successfully");
   };
 
   const updateProfile = async (data: FormData) => {
