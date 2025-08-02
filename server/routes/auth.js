@@ -7,6 +7,7 @@ import Expense from "../models/Expense.js";
 import Bill from "../models/Bill.js";
 import Warranty from "../models/Warranty.js";
 import { authenticateToken } from "../middleware/auth.js";
+import { validate, authValidation } from "../middleware/validator.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -84,42 +85,46 @@ const getCloudinaryPublicId = (url) => {
 };
 
 // @route   POST /api/auth/register
-router.post("/register", async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
+router.post(
+  "/register",
+  validate(authValidation.register),
+  async (req, res) => {
+    try {
+      const { name, email, password } = req.body;
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      // Check if user exists
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Hash password and create user
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      const user = new User({
+        name,
+        email,
+        password: hashedPassword,
+      });
+
+      await user.save();
+
+      const token = generateToken(user);
+
+      res.status(201).json({
+        token,
+        user: formatUserResponse(user),
+      });
+    } catch (error) {
+      console.error("Register error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-
-    // Hash password and create user
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const user = new User({
-      name,
-      email,
-      password: hashedPassword,
-    });
-
-    await user.save();
-
-    const token = generateToken(user);
-
-    res.status(201).json({
-      token,
-      user: formatUserResponse(user),
-    });
-  } catch (error) {
-    console.error("Register error:", error);
-    res.status(500).json({ message: "Server error" });
   }
-});
+);
 
 // @route   POST /api/auth/login
-router.post("/login", async (req, res) => {
+router.post("/login", validate(authValidation.login), async (req, res) => {
   try {
     const { email, password } = req.body;
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import logo from "/logo.png";
+import logo from "/logo.webp";
 import { Navigate } from "react-router-dom";
 import {
   Lock,
@@ -11,8 +11,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
+import { validatePassword } from "../utils/passwordValidation";
 
 const LoginRegister: React.FC = () => {
   const [tab, setTab] = useState<"login" | "register">("login");
@@ -20,6 +22,9 @@ const LoginRegister: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState(
+    validatePassword("")
+  );
 
   const { login, register, googleLogin, loading, error, user } = useAuth();
 
@@ -32,10 +37,23 @@ const LoginRegister: React.FC = () => {
     setEmail("");
     setPassword("");
     setShowPassword(false);
+    setPasswordValidation(validatePassword(""));
+  };
+
+  // Handle password change with validation
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setPasswordValidation(validatePassword(value));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // For registration, check password validation
+    if (tab === "register" && !passwordValidation.isValid) {
+      return; // Don't submit if password is invalid
+    }
+
     if (tab === "login") {
       await login(email, password);
       // Navigation is handled in the login function
@@ -200,93 +218,35 @@ const LoginRegister: React.FC = () => {
                 </div>
 
                 {/* Form */}
-                <AnimatePresence mode="wait">
-                  <motion.form
-                    key={tab}
-                    onSubmit={handleSubmit}
-                    className="space-y-4"
-                    initial={{ opacity: 0, x: tab === "login" ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: tab === "login" ? 20 : -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {/* Mobile-optimized form layout for register */}
-                    {tab === "register" ? (
-                      <>
-                        {/* Name and Email - Stack on mobile, side by side on larger screens */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                          <div>
-                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-                              Full Name
-                            </label>
-                            <div className="relative">
-                              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                              <input
-                                type="text"
-                                required
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                                placeholder="Your name"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-                              Email Address
-                            </label>
-                            <div className="relative">
-                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                              <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                                placeholder="Your email"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Password field */}
+                <form
+                  key={tab}
+                  onSubmit={handleSubmit}
+                  className="space-y-4"
+                >
+                  {/* Mobile-optimized form layout for register */}
+                  {tab === "register" ? (
+                    <>
+                      {/* Name and Email - Stack on mobile, side by side on larger screens */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <div>
                           <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-                            Password
+                            Full Name
                           </label>
                           <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
-                              type={showPassword ? "text" : "password"}
+                              type="text"
                               required
-                              minLength={6}
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                              placeholder="Create password"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                              placeholder="Your name"
                             />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setShowPassword(!showPassword)
-                              }
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                              {showPassword ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
-                            </button>
                           </div>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        {/* Login form - Mobile optimized */}
+
                         <div>
-                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
                             Email Address
                           </label>
                           <div className="relative">
@@ -296,133 +256,197 @@ const LoginRegister: React.FC = () => {
                               required
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                              placeholder="Enter your email"
+                              className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                              placeholder="Your email"
                             />
                           </div>
                         </div>
+                      </div>
 
-                        <div>
-                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
-                            Password
-                          </label>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                              type={showPassword ? "text" : "password"}
-                              required
-                              minLength={6}
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                              placeholder="Enter your password"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setShowPassword(!showPassword)
-                              }
-                              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                              {showPassword ? (
-                                <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
-                              ) : (
-                                <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                              )}
-                            </button>
-                          </div>
+                      {/* Password field */}
+                      <div>
+                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+                          Password
+                        </label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            required
+                            minLength={8}
+                            value={password}
+                            onChange={(e) =>
+                              handlePasswordChange(e.target.value)
+                            }
+                            className={`w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm ${
+                              password && !passwordValidation.isValid
+                                ? "border-red-300 focus:ring-red-500"
+                                : "border-gray-200 focus:ring-indigo-500"
+                            }`}
+                            placeholder="Create password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
+                        {/* Password Strength Indicator */}
+                        {password && (
+                          <PasswordStrengthIndicator
+                            password={password}
+                            showRequirements={true}
+                          />
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Login form - Mobile optimized */}
+                      <div>
+                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                          Email Address
+                        </label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <input
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                            placeholder="Enter your email"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                          Password
+                        </label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            required
+                            minLength={6}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                            placeholder="Enter your password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                            ) : (
+                              <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Error message - Mobile optimized */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm flex items-center space-x-2"
+                    >
+                      <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
+                      <span>{error}</span>
+                    </motion.div>
+                  )}
+
+                  {/* Submit button - Mobile optimized */}
+                  <button
+                    type="submit"
+                    disabled={
+                      loading ||
+                      (tab === "register" && !passwordValidation.isValid)
+                    }
+                    className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg sm:rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 group text-sm sm:text-base min-h-[44px]"
+                  >
+                    <span>
+                      {loading
+                        ? tab === "login"
+                          ? "Signing in..."
+                          : "Creating account..."
+                        : tab === "login"
+                        ? "Sign In"
+                        : "Create Account"}
+                    </span>
+                    {!loading && (
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    )}
+                  </button>
+
+                  {/* Mobile-optimized divider */}
+                  <div className="relative my-3 sm:my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs sm:text-sm">
+                      <span className="px-2 sm:px-3 bg-white text-gray-500 font-medium">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Google login - Simple centered approach */}
+                  <div className="w-full">
+                    <div className="flex justify-center">
+                      <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        theme="outline"
+                        size="medium"
+                        text={
+                          tab === "login" ? "signin_with" : "signup_with"
+                        }
+                        shape="rectangular"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Switch tab - Mobile optimized */}
+                  <p className="text-center text-gray-600 text-xs sm:text-sm pt-2 sm:pt-3">
+                    {tab === "login" ? (
+                      <>
+                        Don't have an account?{" "}
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange("register")}
+                          className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors min-h-[44px] inline-flex items-center"
+                        >
+                          Sign up for free
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        Already have an account?{" "}
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange("login")}
+                          className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors min-h-[44px] inline-flex items-center"
+                        >
+                          Sign in
+                        </button>
                       </>
                     )}
-
-                    {/* Error message - Mobile optimized */}
-                    {error && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm flex items-center space-x-2"
-                      >
-                        <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
-                        <span>{error}</span>
-                      </motion.div>
-                    )}
-
-                    {/* Submit button - Mobile optimized */}
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg sm:rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 group text-sm sm:text-base min-h-[44px]"
-                    >
-                      <span>
-                        {loading
-                          ? tab === "login"
-                            ? "Signing in..."
-                            : "Creating account..."
-                          : tab === "login"
-                          ? "Sign In"
-                          : "Create Account"}
-                      </span>
-                      {!loading && (
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      )}
-                    </button>
-
-                    {/* Mobile-optimized divider */}
-                    <div className="relative my-3 sm:my-4">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-200"></div>
-                      </div>
-                      <div className="relative flex justify-center text-xs sm:text-sm">
-                        <span className="px-2 sm:px-3 bg-white text-gray-500 font-medium">
-                          Or continue with
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Google login - Simple centered approach */}
-                    <div className="w-full">
-                      <div className="flex justify-center">
-                        <GoogleLogin
-                          onSuccess={handleGoogleSuccess}
-                          onError={handleGoogleError}
-                          theme="outline"
-                          size="medium"
-                          text={
-                            tab === "login" ? "signin_with" : "signup_with"
-                          }
-                          shape="rectangular"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Switch tab - Mobile optimized */}
-                    <p className="text-center text-gray-600 text-xs sm:text-sm pt-2 sm:pt-3">
-                      {tab === "login" ? (
-                        <>
-                          Don't have an account?{" "}
-                          <button
-                            type="button"
-                            onClick={() => handleTabChange("register")}
-                            className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors min-h-[44px] inline-flex items-center"
-                          >
-                            Sign up for free
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          Already have an account?{" "}
-                          <button
-                            type="button"
-                            onClick={() => handleTabChange("login")}
-                            className="text-indigo-600 font-semibold hover:text-indigo-700 transition-colors min-h-[44px] inline-flex items-center"
-                          >
-                            Sign in
-                          </button>
-                        </>
-                      )}
-                    </p>
-                  </motion.form>
-                </AnimatePresence>
+                  </p>
+                </form>
               </div>
             </motion.div>
           </div>

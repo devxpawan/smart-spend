@@ -3,13 +3,20 @@ import BillFormData from "../types/BillFormData";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { X, AlertCircle, DollarSign, Calendar, Receipt, Tag } from "lucide-react";
+import {
+  X,
+  AlertCircle,
+  DollarSign,
+  Calendar,
+  Receipt,
+  Tag,
+} from "lucide-react";
 
 interface BillModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: BillFormData) => void;
-  initialData?: BillFormData;
+  onSubmit: (data: BillFormData & { _id?: string }) => void;
+  initialData?: BillFormData & { _id?: string };
 }
 
 interface FormErrors {
@@ -17,6 +24,7 @@ interface FormErrors {
   amount?: string;
   dueDate?: string;
   category?: string;
+  duplicateName?: string;
 }
 
 const BillModal: React.FC<BillModalProps> = ({
@@ -34,6 +42,41 @@ const BillModal: React.FC<BillModalProps> = ({
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  const [isDuplicateCheckComplete, setIsDuplicateCheckComplete] =
+    useState(false);
+
+  // Function to check for duplicate bill names
+  const checkForDuplicateName = useCallback(
+    async (name: string) => {
+      if (!user || !name.trim()) return false;
+
+      setIsCheckingDuplicate(true);
+      try {
+        const response = await fetch("/api/bills/check-name", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            name: name.trim(),
+            userId: user.id,
+            billId: initialData?._id,
+          }),
+        });
+
+        const data = await response.json();
+        return data.error === "Duplicate bill name";
+      } catch (error) {
+        console.error("Error checking for duplicate bill name:", error);
+        return false;
+      } finally {
+        setIsCheckingDuplicate(false);
+      }
+    },
+    [user, initialData?._id]
+  );
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -80,11 +123,23 @@ const BillModal: React.FC<BillModalProps> = ({
   }, [initialData, isOpen]);
 
   // Form validation
-  const validateForm = useCallback((): boolean => {
+  const validateForm = useCallback(async (): Promise<boolean> => {
     const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
       newErrors.name = "Bill name is required";
+    } else if (!initialData) {
+      // Only check for duplicates when creating a new bill, not when editing
+      const isDuplicate = await checkForDuplicateName(formData.name);
+      if (isDuplicate) {
+        newErrors.duplicateName = "A bill with this name already exists";
+      }
+    }
+
+    // Validate that the bill name contains at least one alphabetic character and no symbols
+    const nameRegex = /^(?=.*[a-zA-Z])[a-zA-Z0-9\s]*$/;
+    if (!nameRegex.test(formData.name)) {
+      newErrors.name = "Bill name must contain at least one alphabetic character and no symbols";
     }
 
     if (!formData.amount || parseFloat(formData.amount as string) <= 0) {
@@ -106,10 +161,10 @@ const BillModal: React.FC<BillModalProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData]);
+  }, [formData, checkForDuplicateName]);
 
   // Handle input changes
-  const handleChange = (
+  const handleChange = async (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
@@ -125,13 +180,37 @@ const BillModal: React.FC<BillModalProps> = ({
         [name]: undefined,
       }));
     }
+
+    // If name field is changed, check for duplicates after a short delay
+    if (name === "name" && value.trim()) {
+      setIsDuplicateCheckComplete(false);
+      // Debounce the duplicate check
+      const timer = setTimeout(async () => {
+        const isDuplicate = await checkForDuplicateName(value);
+        if (isDuplicate) {
+          setErrors((prev) => ({
+            ...prev,
+            duplicateName: "A bill with this name already exists",
+          }));
+        } else {
+          setErrors((prev) => ({
+            ...prev,
+            duplicateName: undefined,
+          }));
+        }
+        setIsDuplicateCheckComplete(true);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    const isValid = await validateForm();
+    if (!isValid) {
       return;
     }
 
@@ -140,11 +219,18 @@ const BillModal: React.FC<BillModalProps> = ({
       await onSubmit({
         ...formData,
         amount: parseFloat(formData.amount as string),
+        _id: initialData?._id,
       });
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error submitting bill:", err);
-      setErrors({ name: "Failed to submit bill. Please try again." });
+      if (err.message.includes("Duplicate bill name")) {
+        setErrors({
+          duplicateName: "A bill with this name already exists",
+        });
+      } else {
+        setErrors({ name: "Failed to submit bill. Please try again." });
+      }
     } finally {
       setLoading(false);
     }
@@ -158,7 +244,9 @@ const BillModal: React.FC<BillModalProps> = ({
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
     const firstFocusableElement = focusableElements[0] as HTMLElement;
-    const lastFocusableElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+    const lastFocusableElement = focusableElements[
+      focusableElements.length - 1
+    ] as HTMLElement;
 
     if (e.key === "Tab") {
       if (e.shiftKey) {
@@ -176,11 +264,14 @@ const BillModal: React.FC<BillModalProps> = ({
   }, []);
 
   // Handle escape key
-  const handleEscape = useCallback((e: KeyboardEvent) => {
-    if (e.key === "Escape") {
-      onClose();
-    }
-  }, [onClose]);
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    },
+    [onClose]
+  );
 
   // Setup event listeners
   useEffect(() => {
@@ -193,6 +284,11 @@ const BillModal: React.FC<BillModalProps> = ({
       setTimeout(() => {
         if (firstInputRef.current) {
           firstInputRef.current.focus();
+
+          // If editing, check for duplicate name when opening
+          if (initialData && formData.name.trim()) {
+            checkForDuplicateName(formData.name);
+          }
         }
       }, 100);
     }
@@ -234,7 +330,10 @@ const BillModal: React.FC<BillModalProps> = ({
               <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
                 <Receipt className="w-5 h-5 text-white" />
               </div>
-              <h2 id="modal-title" className="text-xl font-bold text-slate-800">
+              <h2
+                id="modal-title"
+                className="text-xl font-bold text-slate-800"
+              >
                 {initialData ? "Edit Bill" : "Add New Bill"}
               </h2>
             </div>
@@ -278,13 +377,29 @@ const BillModal: React.FC<BillModalProps> = ({
                       required
                       ref={firstInputRef}
                       aria-invalid={errors.name ? "true" : "false"}
-                      aria-describedby={errors.name ? "name-error" : undefined}
+                      aria-describedby={
+                        errors.name ? "name-error" : undefined
+                      }
                     />
                   </div>
                   {errors.name && (
-                    <div id="name-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="name-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.name}</span>
+                    </div>
+                  )}
+                  {errors.duplicateName && (
+                    <div
+                      id="duplicate-name-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">
+                        {errors.duplicateName}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -317,11 +432,17 @@ const BillModal: React.FC<BillModalProps> = ({
                       }`}
                       required
                       aria-invalid={errors.amount ? "true" : "false"}
-                      aria-describedby={errors.amount ? "amount-error" : undefined}
+                      aria-describedby={
+                        errors.amount ? "amount-error" : undefined
+                      }
+                      disabled={!!errors.duplicateName}
                     />
                   </div>
                   {errors.amount && (
-                    <div id="amount-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="amount-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.amount}</span>
                     </div>
@@ -356,11 +477,17 @@ const BillModal: React.FC<BillModalProps> = ({
                       }`}
                       required
                       aria-invalid={errors.dueDate ? "true" : "false"}
-                      aria-describedby={errors.dueDate ? "dueDate-error" : undefined}
+                      aria-describedby={
+                        errors.dueDate ? "dueDate-error" : undefined
+                      }
+                      disabled={!!errors.duplicateName}
                     />
                   </div>
                   {errors.dueDate && (
-                    <div id="dueDate-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="dueDate-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.dueDate}</span>
                     </div>
@@ -391,7 +518,10 @@ const BillModal: React.FC<BillModalProps> = ({
                       }`}
                       required
                       aria-invalid={errors.category ? "true" : "false"}
-                      aria-describedby={errors.category ? "category-error" : undefined}
+                      aria-describedby={
+                        errors.category ? "category-error" : undefined
+                      }
+                      disabled={!!errors.duplicateName}
                     >
                       {categories.map((category) => (
                         <option key={category} value={category}>
@@ -401,7 +531,10 @@ const BillModal: React.FC<BillModalProps> = ({
                     </select>
                   </div>
                   {errors.category && (
-                    <div id="category-error" className="mt-1 flex items-center space-x-1 text-red-600">
+                    <div
+                      id="category-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.category}</span>
                     </div>
@@ -420,7 +553,12 @@ const BillModal: React.FC<BillModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={
+                    loading ||
+                    !!errors.duplicateName ||
+                    (isCheckingDuplicate && !isDuplicateCheckComplete) ||
+                    !!errors.duplicateName
+                  }
                   className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-lg hover:from-amber-700 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed text-sm transform hover:scale-[1.02]"
                 >
                   {loading ? (

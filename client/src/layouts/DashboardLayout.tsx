@@ -388,7 +388,7 @@ const DashboardLayout: React.FC = () => {
       <div className="relative z-10 px-4 pt-4 pb-4 flex flex-col h-full">
         <div className="flex items-center justify-center px-2 py-3 mb-6 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
           <img
-            src="/logo.png"
+            src="/logo.webp"
             alt="SmartSpend Logo"
             className="h-8 w-8 rounded-lg shadow-md"
             onError={(e) => {

@@ -14,8 +14,18 @@ const Contact: React.FC = () => {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setResult("Sending....");
     const formData = new FormData(event.target as HTMLFormElement);
+    const email = formData.get("email") as string;
+
+    // Email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      setResult("Please enter a valid email address");
+      return;
+    }
+
+    setResult("Sending....");
 
     formData.append(
       "access_key",
@@ -361,7 +371,7 @@ const About: React.FC = () => {
                     Add Your Data
                   </h4>
                   <p className="text-slate-600 text-xs">
-                    Import or manually add your financial information
+                    Add your financial information and start tracking
                   </p>
                 </div>
                 <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">

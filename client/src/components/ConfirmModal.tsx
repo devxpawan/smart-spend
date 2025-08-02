@@ -214,7 +214,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               <div className="flex flex-col sm:flex-row gap-2">
                 <button
                   onClick={onCancel}
-                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all duration-200 ease-in-out shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg hover:bg-white hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all duration-200 ease-in-out shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed mr-2"
                   ref={cancelButtonRef}
                   disabled={loading}
                 >

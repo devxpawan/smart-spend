@@ -56,6 +56,15 @@ router.post("/", async (req, res) => {
       notes,
     } = req.body;
 
+    // Check for duplicate bill name
+    const existingBill = await Bill.isDuplicateName(req.user.id, name);
+    if (existingBill) {
+      return res.status(400).json({
+        error: 'Duplicate bill name',
+        message: 'A bill with this name already exists'
+      });
+    }
+
     const newBill = new Bill({
       user: req.user.id,
       name,
@@ -72,6 +81,75 @@ router.post("/", async (req, res) => {
     res.status(201).json(bill);
   } catch (error) {
     console.error("Create bill error:", error);
+
+    if (error.name === 'DuplicateBillNameError') {
+      return res.status(400).json({
+        error: 'Duplicate bill name',
+        message: 'A bill with this name already exists'
+      });
+    }
+
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   PUT /api/bills/:id
+router.put("/:id", async (req, res) => {
+  try {
+    const {
+      name,
+      amount,
+      dueDate,
+      category,
+      isRecurring,
+      recurringPeriod,
+      isPaid,
+      reminderDate,
+      notes,
+    } = req.body;
+
+    const bill = await Bill.findOne({
+      _id: req.params.id,
+      user: req.user.id,
+    });
+
+    if (!bill) {
+      return res.status(404).json({ message: "Bill not found" });
+    }
+
+    // Check for duplicate bill name if name is being changed
+    if (name && name !== bill.name) {
+      const existingBill = await Bill.isDuplicateName(req.user.id, name, req.params.id);
+      if (existingBill) {
+        return res.status(400).json({
+          error: 'Duplicate bill name',
+          message: 'A bill with this name already exists'
+        });
+      }
+    }
+
+    if (name) bill.name = name;
+    if (amount !== undefined) bill.amount = amount;
+    if (dueDate) bill.dueDate = dueDate;
+    if (category) bill.category = category;
+    if (isRecurring !== undefined) bill.isRecurring = isRecurring;
+    if (recurringPeriod) bill.recurringPeriod = recurringPeriod;
+    if (isPaid !== undefined) bill.isPaid = isPaid;
+    if (reminderDate) bill.reminderDate = reminderDate;
+    if (notes !== undefined) bill.notes = notes;
+
+    const updatedBill = await bill.save();
+    res.json(updatedBill);
+  } catch (error) {
+    console.error("Update bill error:", error);
+
+    if (error.name === 'DuplicateBillNameError') {
+      return res.status(400).json({
+        error: 'Duplicate bill name',
+        message: 'A bill with this name already exists'
+      });
+    }
+
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -295,6 +373,41 @@ router.get("/monthly/:year/:month", async (req, res) => {
     });
   } catch (error) {
     console.error("Get monthly bills error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   POST /api/bills/check-name
+// @desc    Check if a bill name already exists for the user
+// @access  Private
+router.post("/check-name", async (req, res) => {
+  try {
+    const { name, userId, billId } = req.body;
+
+    if (!name || !userId) {
+      return res.status(400).json({
+        error: 'Missing required parameters',
+        message: 'Name and user ID are required'
+      });
+    }
+
+    const query = { user: userId, name };
+    if (billId) {
+      query._id = { $ne: billId };
+    }
+
+    const existingBill = await Bill.isDuplicateName(userId, name, billId);
+
+    if (existingBill) {
+      return res.status(400).json({
+        error: 'Duplicate bill name',
+        message: 'A bill with this name already exists'
+      });
+    }
+
+    res.json({ available: true });
+  } catch (error) {
+    console.error("Check bill name error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
