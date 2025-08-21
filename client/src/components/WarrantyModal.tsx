@@ -16,6 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { WarrantyImage } from "../types/WarrantyFormData";
+import axios from "axios";
 
 interface WarrantyFormData {
   productName: string;
@@ -26,6 +27,7 @@ interface WarrantyFormData {
   notes: string;
   purchasePrice?: number;
   warrantyCardImages?: WarrantyImage[];
+  isLifetimeWarranty?: boolean;
 }
 
 interface WarrantyModalProps {
@@ -47,6 +49,7 @@ interface FormErrors {
   notes?: string;
   purchasePrice?: string;
   warrantyCardImages?: string;
+  isLifetimeWarranty?: string;
 }
 
 const WarrantyModal: React.FC<WarrantyModalProps> = ({
@@ -70,6 +73,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
     notes: "",
     purchasePrice: undefined,
     warrantyCardImages: [],
+    isLifetimeWarranty: false,
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
@@ -110,6 +114,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
         notes: "",
         purchasePrice: undefined,
         warrantyCardImages: [],
+        isLifetimeWarranty: false,
       });
     }
     setErrors({});
@@ -123,9 +128,9 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
       newErrors.productName = "Product name is required";
     }
 
-    if (!formData.expirationDate) {
-      newErrors.expirationDate = "Expiration date is required";
-    } else {
+    if (!formData.isLifetimeWarranty && !formData.expirationDate) {
+      newErrors.expirationDate = "Expiration date is required for non-lifetime warranties";
+    } else if (!formData.isLifetimeWarranty && formData.expirationDate) {
       const expirationDate = new Date(formData.expirationDate);
       if (isNaN(expirationDate.getTime())) {
         newErrors.expirationDate = "Please enter a valid expiration date";
@@ -169,16 +174,28 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "purchasePrice"
-          ? value
-            ? parseFloat(value)
-            : undefined
-          : value,
-    }));
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    setFormData((prev) => {
+      const newFormData = {
+        ...prev,
+        [name]:
+          type === "checkbox"
+            ? checked
+            : name === "purchasePrice"
+            ? value
+              ? parseFloat(value)
+              : undefined
+            : value,
+      };
+
+      // If lifetime warranty is checked, clear the expiration date
+      if (name === "isLifetimeWarranty" && checked) {
+        newFormData.expirationDate = "";
+      }
+
+      return newFormData;
+    });
 
     // Clear field-specific error when user starts typing
     if (errors[name as keyof FormErrors]) {
@@ -216,22 +233,15 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
         setUploadingImage(true);
         setErrors((prev) => ({ ...prev, warrantyCardImages: undefined }));
 
-        const formData = new FormData();
-        formData.append("warrantyImage", file);
+        const imageFormData = new FormData();
+        imageFormData.append("warrantyImage", file);
 
-        const response = await fetch("/api/warranties/upload-image", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: formData,
-        });
+        const response = await axios.post(
+          "/api/warranties/upload-image",
+          imageFormData
+        );
 
-        if (!response.ok) {
-          throw new Error("Failed to upload image");
-        }
-
-        const imageData = await response.json();
+        const imageData = response.data;
 
         setFormData((prev) => ({
           ...prev,
@@ -264,59 +274,35 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
       setDeletingImageId(publicId);
       setErrors((prev) => ({ ...prev, warrantyCardImages: undefined }));
 
-      let response;
-      let endpoint;
+      let endpoint: string;
 
-      // If we have a warranty ID (editing mode), use the proper endpoint
       if (warrantyId) {
         endpoint = `/api/warranties/${warrantyId}/delete-image?publicId=${encodeURIComponent(
           publicId
         )}`;
-        response = await fetch(endpoint, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
       } else {
-        // For new warranties, just remove from local state and use legacy endpoint
-        // URL encode the publicId to handle forward slashes
         const encodedPublicId = encodeURIComponent(publicId);
         endpoint = `/api/warranties/delete-image/${encodedPublicId}`;
-        response = await fetch(endpoint, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
       }
 
-      if (response.ok) {
-        setFormData((prev) => ({
-          ...prev,
-          warrantyCardImages:
-            prev.warrantyCardImages?.filter(
-              (img) => img.publicId !== publicId
-            ) || [],
-        }));
-      } else {
-        const errorData = await response.json();
-        console.error("Image deletion failed:", {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData,
-        });
-        setErrors((prev) => ({
-          ...prev,
-          warrantyCardImages:
-            errorData.message || "Failed to delete image",
-        }));
-      }
+      await axios.delete(endpoint);
+
+      setFormData((prev) => ({
+        ...prev,
+        warrantyCardImages:
+          prev.warrantyCardImages?.filter(
+            (img) => img.publicId !== publicId
+          ) || [],
+      }));
     } catch (error) {
       console.error("Image deletion error:", error);
+      const errorMsg =
+        axios.isAxiosError(error) && error.response?.data?.message
+          ? error.response.data.message
+          : "Failed to delete image. Please try again.";
       setErrors((prev) => ({
         ...prev,
-        warrantyCardImages: "Failed to delete image. Please try again.",
+        warrantyCardImages: errorMsg,
       }));
     } finally {
       setDeletingImageId(null);
@@ -624,13 +610,43 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   )}
                 </div>
 
+                {/* Lifetime Warranty Checkbox */}
+                <div className="md:col-span-2">
+                  <div className="flex items-center space-x-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                    <input
+                      type="checkbox"
+                      name="isLifetimeWarranty"
+                      id="isLifetimeWarranty"
+                      checked={formData.isLifetimeWarranty || false}
+                      onChange={handleInputChange}
+                      className="h-5 w-5 text-green-600 border-green-300 rounded focus:ring-green-500 focus:ring-2"
+                      aria-describedby="lifetimeWarranty-help"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <ShieldCheck className="h-5 w-5 text-green-600" />
+                      <label
+                        htmlFor="isLifetimeWarranty"
+                        className="text-sm font-semibold text-green-800 cursor-pointer"
+                      >
+                        Lifetime Warranty
+                      </label>
+                    </div>
+                  </div>
+                  <p
+                    id="lifetimeWarranty-help"
+                    className="mt-2 text-xs text-green-600"
+                  >
+                    Check this if your product has a lifetime warranty. You won't need to specify an expiration date.
+                  </p>
+                </div>
+
                 {/* Expiration Date */}
                 <div>
                   <label
                     htmlFor="expirationDate"
                     className="block text-sm font-semibold text-slate-700 mb-2"
                   >
-                    Expiration Date *
+                    Expiration Date {!formData.isLifetimeWarranty && "*"}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -642,12 +658,15 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       id="expirationDate"
                       value={formData.expirationDate}
                       onChange={handleInputChange}
+                      disabled={formData.isLifetimeWarranty}
                       className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
-                        errors.expirationDate
+                        formData.isLifetimeWarranty
+                          ? "bg-slate-100 text-slate-500 cursor-not-allowed"
+                          : errors.expirationDate
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 focus:ring-purple-500"
                       }`}
-                      required
+                      required={!formData.isLifetimeWarranty}
                       aria-invalid={
                         errors.expirationDate ? "true" : "false"
                       }
@@ -668,6 +687,11 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                         {errors.expirationDate}
                       </span>
                     </div>
+                  )}
+                  {formData.isLifetimeWarranty && (
+                    <p className="mt-1 text-xs text-green-600">
+                      Expiration date is not required for lifetime warranties
+                    </p>
                   )}
                 </div>
 
@@ -811,7 +835,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                     id="notes-help"
                     className="mt-1 text-xs text-slate-500"
                   >
-                    {formData.notes.length}/1000 characters
+                    {formData.notes?.length || 0}/1000 characters
                   </p>
                 </div>
 

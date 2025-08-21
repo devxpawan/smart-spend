@@ -646,7 +646,7 @@ const Profile: React.FC = () => {
                   onClick={handleRevertChanges}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 text-slate-700 font-medium border-2 border-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-all duration-200 text-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 text-slate-700 font-semibold border-2 border-slate-300 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 transition-all duration-200 text-sm rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
                   <X className="w-5 h-5" />
                   Revert Changes
@@ -658,7 +658,7 @@ const Profile: React.FC = () => {
                 disabled={loading || !hasChanges}
                 whileHover={{ scale: hasChanges ? 1.02 : 1 }}
                 whileTap={{ scale: hasChanges ? 0.98 : 1 }}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-slate-900 text-white font-medium hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 bg-slate-900 text-white font-semibold hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
               >
                 {loading ? (
                   <>
@@ -691,7 +691,7 @@ const Profile: React.FC = () => {
                 onClick={() => setShowDeleteModal(true)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200 text-sm"
+                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 sm:py-3 bg-red-600 text-white font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200 text-sm rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
               >
                 <Trash2 className="w-5 h-5" />
                 Delete Account

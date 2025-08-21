@@ -4,25 +4,25 @@ A web application for managing personal finances, including bills, expenses, and
 
 ## Features
 
-- **User Authentication**
+**User Authentication**
 
   - Secure login/registration system
   - Google OAuth integration
   - Protected routes
 
-- **Bills Management**
+**Bills Management**
 
   - Track recurring bills
   - Set due dates and payment reminders
   - View bill history and payment status
 
-- **Expense Tracking**
+**Expense Tracking**
 
   - Record and categorize expenses
   - Visual expense analytics
   - Track spending patterns
 
-- **Warranty Management**
+**Warranty Management**
 
   - Store warranty information for products
   - Set warranty expiration reminders

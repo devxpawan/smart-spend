@@ -13,6 +13,8 @@ import path from "path";
 import fs from "fs";
 import { OAuth2Client } from "google-auth-library";
 import cloudinary from "../cloudinary.js";
+import sendEmail from "../utils/sendEmail.js";
+import generateOTP from "../utils/otpGenerator.js";
 
 /**
  * Google OAuth Configuration:
@@ -92,29 +94,45 @@ router.post(
     try {
       const { name, email, password } = req.body;
 
-      // Check if user exists
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
+      let user = await User.findOne({ email });
+
+      if (user && user.isVerified) {
         return res.status(400).json({ message: "User already exists" });
       }
 
-      // Hash password and create user
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
+      const otp = generateOTP();
+      const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      const user = new User({
-        name,
+      if (user && !user.isVerified) {
+        // User exists but is not verified, update OTP
+        user.otp = otp;
+        user.otpExpires = otpExpires;
+        await user.save();
+      } else {
+        // New user
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        user = new User({
+          name,
+          email,
+          password: hashedPassword,
+          otp,
+          otpExpires,
+        });
+
+        await user.save();
+      }
+
+      // Send OTP email
+      await sendEmail(
         email,
-        password: hashedPassword,
-      });
-
-      await user.save();
-
-      const token = generateToken(user);
+        "Verify your email",
+        `Your OTP is: ${otp}. It will expire in 10 minutes.`
+      );
 
       res.status(201).json({
-        token,
-        user: formatUserResponse(user),
+        message: "OTP sent to your email. Please verify to continue.",
       });
     } catch (error) {
       console.error("Register error:", error);
@@ -122,6 +140,75 @@ router.post(
     }
   }
 );
+
+// @route   POST /api/auth/verify-otp
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    if (user.otp !== otp || user.otpExpires < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    const token = generateToken(user);
+
+    res.json({
+      token,
+      user: formatUserResponse(user),
+    });
+  } catch (error) {
+    console.error("OTP verification error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   POST /api/auth/resend-otp
+router.post("/resend-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "User is already verified" });
+    }
+
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.otp = otp;
+    user.otpExpires = otpExpires;
+    await user.save();
+
+    // Send OTP email
+    await sendEmail(
+      email,
+      "Verify your email",
+      `Your new OTP is: ${otp}. It will expire in 10 minutes.`
+    );
+
+    res.json({ message: "New OTP sent to your email" });
+  } catch (error) {
+    console.error("Resend OTP error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 // @route   POST /api/auth/login
 router.post("/login", validate(authValidation.login), async (req, res) => {
@@ -132,6 +219,10 @@ router.post("/login", validate(authValidation.login), async (req, res) => {
     const user = await User.findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    if (!user.isVerified) {
+      return res.status(401).json({ message: "Please verify your email to login" });
     }
 
     const token = generateToken(user);
@@ -169,9 +260,11 @@ router.post("/google", async (req, res) => {
         email: payload.email,
         googleId: payload.sub,
         avatar: payload.picture,
+        isVerified: true, // Google users are considered verified
       });
     } else if (!user.googleId) {
       user.googleId = payload.sub;
+      user.isVerified = true;
       if (payload.picture && !user.avatar) {
         user.avatar = payload.picture;
       }

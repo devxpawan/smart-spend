@@ -17,6 +17,7 @@ interface WarrantyFormData {
   notes?: string;
   purchasePrice?: number;
   warrantyCardImages?: WarrantyImage[];
+  isLifetimeWarranty?: boolean;
 }
 
 export type { WarrantyImage };

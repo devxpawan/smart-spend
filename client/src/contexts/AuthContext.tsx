@@ -31,13 +31,14 @@ export interface AuthContextType {
     name: string,
     email: string,
     password: string
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   googleLogin: (credential: string) => Promise<void>;
   logout: () => void;
   updateProfile: (data: FormData) => Promise<void>;
   removeAvatar: () => Promise<void>;
   updateCurrency: (currency: string) => Promise<void>;
   deleteProfile: () => Promise<void>; // ADD THIS LINE
+  loginWithToken: (token: string, user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -118,22 +119,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     name: string,
     email: string,
     password: string
-  ) => {
+  ): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
     try {
-      const res = await axios.post("/api/auth/register", {
+      await axios.post("/api/auth/register", {
         name,
         email,
         password,
       });
 
-      localStorage.setItem("token", res.data.token);
-      setToken(res.data.token);
-      setUser(res.data.user);
-      navigate("/");
-      toast.success("Account created successfully");
+      toast.success("OTP sent to your email. Please verify to continue.");
+      setLoading(false);
+      return true;
     } catch (err: any) {
       let errorMessage = "Registration failed";
       if (err.response?.status === 400) {
@@ -147,8 +146,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       setError(errorMessage);
       toast.error(errorMessage);
-    } finally {
       setLoading(false);
+      return false;
     }
   };
 
@@ -311,6 +310,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const loginWithToken = (token: string, user: User) => {
+    localStorage.setItem("token", token);
+    setToken(token);
+    setUser(user);
+    navigate("/");
+    toast.success("Logged in successfully");
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -326,6 +333,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         removeAvatar,
         updateCurrency,
         deleteProfile, // ADD THIS LINE
+        loginWithToken,
       }}
     >
       {children}

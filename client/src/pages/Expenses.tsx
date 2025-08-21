@@ -67,6 +67,9 @@ const Expenses: React.FC = () => {
     customYear: new Date().getFullYear(),
   });
 
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+
   const { user } = useAuth();
 
   useEffect(() => {
@@ -224,10 +227,8 @@ const Expenses: React.FC = () => {
             valueB = 0;
         }
 
-        if (valueA < valueB)
-          return sortConfig.direction === "asc" ? -1 : 1;
-        if (valueA > valueB)
-          return sortConfig.direction === "asc" ? 1 : -1;
+        if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
+        if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
         return 0;
       });
 
@@ -281,10 +282,7 @@ const Expenses: React.FC = () => {
         console.error("Error submitting expense:", error);
         setError("Failed to submit expense");
         if (axios.isAxiosError(error) && error.response) {
-          console.error(
-            "Detailed error from server:",
-            error.response.data
-          );
+          console.error("Detailed error from server:", error.response.data);
         }
       } finally {
         setLoading(false);
@@ -294,6 +292,37 @@ const Expenses: React.FC = () => {
     },
     [editExpenseData, fetchExpenses]
   );
+
+  const handleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredExpenses.map((exp) => exp._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await Promise.all(
+        selectedIds.map((id) => axios.delete(`/api/expenses/${id}`))
+      );
+      setExpenses((prev) =>
+        prev.filter((exp) => !selectedIds.includes(exp._id))
+      );
+      setSelectedIds([]);
+    } catch (err) {
+      setError("Failed to delete selected expenses");
+    } finally {
+      setIsBulkDeleteModalOpen(false);
+    }
+  };
 
   if (loading && expenses.length === 0) {
     return (
@@ -550,6 +579,29 @@ const Expenses: React.FC = () => {
         </div>
       )}
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-slate-100 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="text-sm font-medium text-slate-700">
+            {selectedIds.length} item(s) selected
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              className="px-3 py-2 text-xs font-semibold text-white bg-red-600 rounded-md hover:bg-red-700"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Expenses Table or Empty State */}
       {filteredExpenses.length === 0 && !loading && !error ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg border">
@@ -586,19 +638,38 @@ const Expenses: React.FC = () => {
             <div className="block sm:hidden">
               <div className="divide-y divide-gray-200">
                 {filteredExpenses.map((expense) => (
-                  <div key={expense._id} className="p-4 space-y-3">
+                  <div
+                    key={expense._id}
+                    className={`p-4 space-y-3 ${
+                      selectedIds.includes(expense._id) ? "bg-blue-50" : ""
+                    }`}
+                    onClick={() => handleSelect(expense._id)}
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <button
-                          onClick={() => setEditExpenseData(expense)}
-                          className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
-                        >
-                          <span className="truncate">
-                            {expense.description}
-                          </span>
-                          <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                        </button>
-                        <div className="mt-1 flex items-center space-x-2">
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                            checked={selectedIds.includes(expense._id)}
+                            onChange={() => handleSelect(expense._id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            onClick={(e) =>
+                              handleActionClick(e, () =>
+                                setEditExpenseData(expense)
+                              )
+                            }
+                            className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                          >
+                            <span className="truncate">
+                              {expense.description}
+                            </span>
+                            <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          </button>
+                        </div>
+                        <div className="mt-1 flex items-center space-x-2 ml-7">
                           <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
                             {expense.category}
                           </span>
@@ -606,7 +677,7 @@ const Expenses: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm ml-7">
                       <div>
                         <div className="text-gray-600">
                           Date:{" "}
@@ -641,6 +712,21 @@ const Expenses: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th scope="col" className="p-4">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        onChange={handleSelectAll}
+                        checked={
+                          filteredExpenses.length > 0 &&
+                          selectedIds.length === filteredExpenses.length
+                        }
+                        //indeterminate={
+                        //  selectedIds.length > 0 &&
+                        //  selectedIds.length < filteredExpenses.length
+                        //}
+                      />
+                    </th>
                     <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       <div className="flex items-center space-x-1">
                         <Receipt className="w-4 h-4" />
@@ -669,10 +755,29 @@ const Expenses: React.FC = () => {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredExpenses.map((expense) => (
-                    <tr key={expense._id} className="hover:bg-gray-50">
+                    <tr
+                      key={expense._id}
+                      className={`hover:bg-gray-50 ${
+                        selectedIds.includes(expense._id) ? "bg-blue-50" : ""
+                      }`}
+                      onClick={() => handleSelect(expense._id)}
+                    >
+                      <td className="p-4">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          checked={selectedIds.includes(expense._id)}
+                          onChange={() => handleSelect(expense._id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </td>
                       <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                         <button
-                          onClick={() => setEditExpenseData(expense)}
+                          onClick={(e) =>
+                            handleActionClick(e, () =>
+                              setEditExpenseData(expense)
+                            )
+                          }
                           className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
                         >
                           <span>{expense.description}</span>
@@ -723,6 +828,14 @@ const Expenses: React.FC = () => {
         onCancel={() => setIsModalOpen(false)}
         title="Delete Expense?"
         message="Are you sure you want to delete this expense?"
+      />
+
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setIsBulkDeleteModalOpen(false)}
+        title="Delete Expenses?"
+        message={`Are you sure you want to delete ${selectedIds.length} expense(s)?`}
       />
 
       {(isAddModalOpen || editExpenseData) && (

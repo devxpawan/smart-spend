@@ -15,6 +15,7 @@ import About from "./pages/About";
 import Warranties from "./pages/Warranties";
 import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 
+
 function App() {
   const { loading } = useAuth();
 
@@ -34,6 +35,7 @@ function App() {
 
         {/* Auth Routes */}
         <Route path="/auth" element={<LoginRegister />} />
+        
         {/* Dashboard Routes */}
         <Route
           path="/"

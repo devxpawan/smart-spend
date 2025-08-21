@@ -121,7 +121,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       newErrors.category = "Please select a category";
     }
 
-    if ((formData.notes && formData.notes?.length) || 0) {
+    if (formData.notes && formData.notes.length > 500) {
       newErrors.notes = "Notes must be less than 500 characters";
     }
 

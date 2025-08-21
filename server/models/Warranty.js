@@ -18,7 +18,13 @@ const warrantySchema = new mongoose.Schema({
   },
   expirationDate: {
     type: Date,
-    required: true,
+    required: function() {
+      return !this.isLifetimeWarranty;
+    },
+  },
+  isLifetimeWarranty: {
+    type: Boolean,
+    default: false,
   },
   retailer: {
     type: String,

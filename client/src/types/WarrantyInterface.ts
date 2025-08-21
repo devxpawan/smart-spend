@@ -13,6 +13,7 @@ interface WarrantyInterface {
   documentUrls?: string[];
   warrantyCardImages?: WarrantyImage[];
   reminderDate?: string;
+  isLifetimeWarranty?: boolean;
   user: string;
   createdAt: string;
   updatedAt?: string;

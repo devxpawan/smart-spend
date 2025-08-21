@@ -42,6 +42,7 @@ interface LocalWarrantyFormData {
   notes: string;
   purchasePrice?: number;
   warrantyCardImages?: WarrantyImage[];
+  isLifetimeWarranty?: boolean;
 }
 
 interface PaginationData {
@@ -102,6 +103,9 @@ const Warranties: React.FC = () => {
     status: "",
     searchTerm: "",
   });
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   const [formData, setFormData] = useState<LocalWarrantyFormData>({
     productName: "",
@@ -212,12 +216,13 @@ const Warranties: React.FC = () => {
     // Calculate stats
     const now = new Date();
     const active = filtered.filter(
-      (w) => new Date(w.expirationDate) > now
+      (w) => w.isLifetimeWarranty || new Date(w.expirationDate) > now
     ).length;
     const expired = filtered.filter(
-      (w) => new Date(w.expirationDate) <= now
+      (w) => !w.isLifetimeWarranty && new Date(w.expirationDate) <= now
     ).length;
     const expiringSoon = filtered.filter((w) => {
+      if (w.isLifetimeWarranty) return false;
       const expDate = new Date(w.expirationDate);
       const daysUntilExpiry = differenceInDays(expDate, now);
       return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
@@ -240,22 +245,34 @@ const Warranties: React.FC = () => {
   }, [warranties, filters.searchTerm]);
 
   // Utility functions
-  const isExpired = useCallback((expirationDate: string) => {
-    return new Date(expirationDate) < new Date();
-  }, []);
+  const isExpired = useCallback(
+    (expirationDate: string, isLifetimeWarranty?: boolean) => {
+      if (isLifetimeWarranty) return false;
+      return new Date(expirationDate) < new Date();
+    },
+    []
+  );
 
-  const isExpiringSoon = useCallback((expirationDate: string) => {
-    const expDate = new Date(expirationDate);
-    const today = new Date();
-    const daysUntilExpiry = differenceInDays(expDate, today);
-    return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
-  }, []);
+  const isExpiringSoon = useCallback(
+    (expirationDate: string, isLifetimeWarranty?: boolean) => {
+      if (isLifetimeWarranty) return false;
+      const expDate = new Date(expirationDate);
+      const today = new Date();
+      const daysUntilExpiry = differenceInDays(expDate, today);
+      return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
+    },
+    []
+  );
 
-  const getDaysUntilExpiry = useCallback((expirationDate: string) => {
-    const expDate = new Date(expirationDate);
-    const today = new Date();
-    return differenceInDays(expDate, today);
-  }, []);
+  const getDaysUntilExpiry = useCallback(
+    (expirationDate: string, isLifetimeWarranty?: boolean) => {
+      if (isLifetimeWarranty) return null;
+      const expDate = new Date(expirationDate);
+      const today = new Date();
+      return differenceInDays(expDate, today);
+    },
+    []
+  );
 
   const formatDate = useCallback((dateString: string) => {
     if (!dateString) return "N/A";
@@ -279,6 +296,7 @@ const Warranties: React.FC = () => {
         purchasePrice: data.purchasePrice || undefined,
         currency: user?.preferences?.currency || "USD",
         warrantyCardImages: data.warrantyCardImages || [],
+        isLifetimeWarranty: data.isLifetimeWarranty || false,
       };
 
       const cleanedData = Object.fromEntries(
@@ -322,8 +340,7 @@ const Warranties: React.FC = () => {
       if (selectedWarrantyForDetail) {
         const updatedDetail =
           updatedWarranties.find(
-            (w: WarrantyInterface) =>
-              w._id === selectedWarrantyForDetail._id
+            (w: WarrantyInterface) => w._id === selectedWarrantyForDetail._id
           ) || null;
         setSelectedWarrantyForDetail(updatedDetail);
       }
@@ -365,7 +382,9 @@ const Warranties: React.FC = () => {
     setSelectedWarrantyToEdit(warranty);
     setFormData({
       productName: warranty.productName,
-      expirationDate: warranty.expirationDate.split("T")[0],
+      expirationDate: warranty.expirationDate
+        ? warranty.expirationDate.split("T")[0]
+        : "",
       category: warranty.category,
       purchaseDate: warranty.purchaseDate
         ? warranty.purchaseDate.split("T")[0]
@@ -374,6 +393,7 @@ const Warranties: React.FC = () => {
       notes: warranty.notes || "",
       purchasePrice: warranty.purchasePrice || undefined,
       warrantyCardImages: warranty.warrantyCardImages || [],
+      isLifetimeWarranty: warranty.isLifetimeWarranty || false,
     });
     setIsEditModalOpen(true);
   };
@@ -432,6 +452,35 @@ const Warranties: React.FC = () => {
   const handleFilterChange = (key: keyof FilterConfig, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
+  };
+
+  const handleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredWarranties.map((w) => w._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await Promise.all(
+        selectedIds.map((id) => axios.delete(`/api/warranties/${id}`))
+      );
+      await fetchWarranties(currentPage);
+      setSelectedIds([]);
+    } catch (err) {
+      setError("Failed to delete selected warranties");
+    } finally {
+      setIsBulkDeleteModalOpen(false);
+    }
   };
 
   if (loading && warranties.length === 0) {
@@ -510,9 +559,7 @@ const Warranties: React.FC = () => {
             type="text"
             placeholder="Search warranties..."
             value={filters.searchTerm}
-            onChange={(e) =>
-              handleFilterChange("searchTerm", e.target.value)
-            }
+            onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
           />
         </div>
@@ -549,9 +596,7 @@ const Warranties: React.FC = () => {
               </label>
               <select
                 value={filters.status}
-                onChange={(e) =>
-                  handleFilterChange("status", e.target.value)
-                }
+                onChange={(e) => handleFilterChange("status", e.target.value)}
                 className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-md focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
               >
                 <option value="">All Warranties</option>
@@ -614,6 +659,29 @@ const Warranties: React.FC = () => {
         </div>
       )}
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-slate-100 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="text-sm font-medium text-slate-700">
+            {selectedIds.length} item(s) selected
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              className="px-3 py-2 text-xs font-semibold text-white bg-red-600 rounded-md hover:bg-red-700"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Warranties Table or Empty State */}
       <div className="bg-white rounded-lg shadow border overflow-hidden">
         {loading && warranties.length === 0 ? (
@@ -662,31 +730,59 @@ const Warranties: React.FC = () => {
               <div className="divide-y divide-gray-200">
                 {filteredWarranties.map((warranty) => {
                   const daysUntilExpiry = getDaysUntilExpiry(
-                    warranty.expirationDate
+                    warranty.expirationDate,
+                    warranty.isLifetimeWarranty
                   );
-                  const expired = isExpired(warranty.expirationDate);
+                  const expired = isExpired(
+                    warranty.expirationDate,
+                    warranty.isLifetimeWarranty
+                  );
                   const expiringSoon = isExpiringSoon(
-                    warranty.expirationDate
+                    warranty.expirationDate,
+                    warranty.isLifetimeWarranty
                   );
 
                   return (
-                    <div key={warranty._id} className="p-4 space-y-3">
+                    <div
+                      key={warranty._id}
+                      className={`p-4 space-y-3 ${
+                        selectedIds.includes(warranty._id) ? "bg-blue-50" : ""
+                      }`}
+                      onClick={() => handleSelect(warranty._id)}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <button
-                            onClick={() => handleViewDetails(warranty)}
-                            className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
-                          >
-                            <span className="truncate">
-                              {warranty.productName}
-                            </span>
-                            <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                          <div className="mt-1 flex items-center space-x-2">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                              checked={selectedIds.includes(warranty._id)}
+                              onChange={() => handleSelect(warranty._id)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewDetails(warranty);
+                              }}
+                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                            >
+                              <span className="truncate">
+                                {warranty.productName}
+                              </span>
+                              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </div>
+                          <div className="mt-1 flex items-center space-x-2 ml-7">
                             <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
                               {warranty.category}
                             </span>
-                            {expired ? (
+                            {warranty.isLifetimeWarranty ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                                <ShieldCheck className="h-3 w-3 mr-1" />
+                                Lifetime
+                              </span>
+                            ) : expired ? (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
                                 <AlertCircle className="h-3 w-3 mr-1" />
                                 Expired
@@ -706,26 +802,34 @@ const Warranties: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="grid grid-cols-2 gap-3 text-sm ml-7">
                         <div>
-                          <div className="text-gray-600 text-xs">
-                            Expires:
-                          </div>
+                          <div className="text-gray-600 text-xs">Expires:</div>
                           <div className="font-medium">
-                            {formatDate(warranty.expirationDate)}
+                            {warranty.isLifetimeWarranty ? (
+                              <span className="text-green-600 font-semibold">
+                                Lifetime
+                              </span>
+                            ) : (
+                              formatDate(warranty.expirationDate)
+                            )}
                           </div>
-                          {!expired && (
-                            <div className="text-xs text-gray-500">
-                              {daysUntilExpiry > 0
-                                ? `${daysUntilExpiry} days left`
-                                : "Expires today"}
+                          {warranty.isLifetimeWarranty ? (
+                            <div className="text-xs text-green-600 font-medium">
+                              Never expires
                             </div>
+                          ) : (
+                            !expired && (
+                              <div className="text-xs text-gray-500">
+                                {daysUntilExpiry && daysUntilExpiry > 0
+                                  ? `${daysUntilExpiry} days left`
+                                  : "Expires today"}
+                              </div>
+                            )
                           )}
                         </div>
                         <div>
-                          <div className="text-gray-600 text-xs">
-                            Retailer:
-                          </div>
+                          <div className="text-gray-600 text-xs">Retailer:</div>
                           <div className="font-medium">
                             {warranty.retailer || "N/A"}
                           </div>
@@ -738,7 +842,7 @@ const Warranties: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center justify-between pt-2 ml-7">
                         <div className="flex items-center space-x-2">
                           {warranty.warrantyCardImages &&
                           warranty.warrantyCardImages.length > 0 ? (
@@ -778,16 +882,28 @@ const Warranties: React.FC = () => {
                           )}
                         </div>
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShowQRCode(warranty);
-                          }}
-                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700 transition-all duration-200 hover:scale-105"
-                          title="Show QR Code"
-                        >
-                          <QrCode className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(warranty._id);
+                            }}
+                            className="text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500"
+                            title="Delete Warranty"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShowQRCode(warranty);
+                            }}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700 transition-all duration-200 hover:scale-105"
+                            title="Show QR Code"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -800,6 +916,18 @@ const Warranties: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th scope="col" className="p-4">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        onChange={handleSelectAll}
+                        checked={
+                          filteredWarranties.length > 0 &&
+                          selectedIds.length === filteredWarranties.length
+                        }
+                        
+                      />
+                    </th>
                     <th
                       scope="col"
                       className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
@@ -852,25 +980,42 @@ const Warranties: React.FC = () => {
                       scope="col"
                       className="px-4 lg:px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider"
                     >
-                      <div className="flex items-center justify-center space-x-2">
-                        <QrCode className="w-4 h-4" />
-                        <span>QR Code</span>
-                      </div>
+                      Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white/50 divide-y divide-slate-200">
                   {filteredWarranties.map((warranty) => {
                     const daysUntilExpiry = getDaysUntilExpiry(
-                      warranty.expirationDate
+                      warranty.expirationDate,
+                      warranty.isLifetimeWarranty
                     );
-                    const expired = isExpired(warranty.expirationDate);
+                    const expired = isExpired(
+                      warranty.expirationDate,
+                      warranty.isLifetimeWarranty
+                    );
                     const expiringSoon = isExpiringSoon(
-                      warranty.expirationDate
+                      warranty.expirationDate,
+                      warranty.isLifetimeWarranty
                     );
 
                     return (
-                      <tr key={warranty._id} className="hover:bg-gray-50">
+                      <tr
+                        key={warranty._id}
+                        className={`hover:bg-gray-50 ${
+                          selectedIds.includes(warranty._id) ? "bg-blue-50" : ""
+                        }`}
+                        onClick={() => handleSelect(warranty._id)}
+                      >
+                        <td className="p-4">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            checked={selectedIds.includes(warranty._id)}
+                            onChange={() => handleSelect(warranty._id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center mr-3 lg:mr-4 shadow-md">
@@ -878,7 +1023,10 @@ const Warranties: React.FC = () => {
                             </div>
                             <div>
                               <button
-                                onClick={() => handleViewDetails(warranty)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleViewDetails(warranty);
+                                }}
                                 className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
                               >
                                 <span>{warranty.productName}</span>
@@ -887,8 +1035,7 @@ const Warranties: React.FC = () => {
                               {warranty.purchasePrice && (
                                 <div className="text-sm text-gray-600 font-medium mt-1 flex items-center">
                                   <DollarSign className="w-3 h-3 mr-1" />
-                                  {user?.preferences?.currency ||
-                                    "USD"}{" "}
+                                  {user?.preferences?.currency || "USD"}{" "}
                                   {warranty.purchasePrice.toFixed(2)}
                                 </div>
                               )}
@@ -921,12 +1068,10 @@ const Warranties: React.FC = () => {
                                       />
                                     ))}
                                 </div>
-                                {warranty.warrantyCardImages.length >
-                                  3 && (
+                                {warranty.warrantyCardImages.length > 3 && (
                                   <span className="text-xs text-slate-500 font-medium">
                                     +
-                                    {warranty.warrantyCardImages.length -
-                                      3}{" "}
+                                    {warranty.warrantyCardImages.length - 3}{" "}
                                     more
                                   </span>
                                 )}
@@ -949,20 +1094,37 @@ const Warranties: React.FC = () => {
                             <Calendar className="h-4 w-4 text-slate-400" />
                             <div>
                               <div className="text-sm text-slate-900 font-medium">
-                                {formatDate(warranty.expirationDate)}
+                                {warranty.isLifetimeWarranty ? (
+                                  <span className="text-green-600 font-semibold">
+                                    Lifetime
+                                  </span>
+                                ) : (
+                                  formatDate(warranty.expirationDate)
+                                )}
                               </div>
-                              {!expired && (
-                                <div className="text-xs text-slate-500">
-                                  {daysUntilExpiry > 0
-                                    ? `${daysUntilExpiry} days left`
-                                    : "Expires today"}
+                              {warranty.isLifetimeWarranty ? (
+                                <div className="text-xs text-green-600 font-medium">
+                                  Never expires
                                 </div>
+                              ) : (
+                                !expired && (
+                                  <div className="text-xs text-slate-500">
+                                    {daysUntilExpiry && daysUntilExpiry > 0
+                                      ? `${daysUntilExpiry} days left`
+                                      : "Expires today"}
+                                  </div>
+                                )
                               )}
                             </div>
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                          {expired ? (
+                          {warranty.isLifetimeWarranty ? (
+                            <span className="inline-flex items-center px-2 lg:px-3 py-1 lg:py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200 shadow-sm">
+                              <ShieldCheck className="h-3 w-3 mr-1 lg:mr-1.5" />
+                              Lifetime
+                            </span>
+                          ) : expired ? (
                             <span className="inline-flex items-center px-2 lg:px-3 py-1 lg:py-1.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200 shadow-sm">
                               <AlertCircle className="h-3 w-3 mr-1 lg:mr-1.5" />
                               Expired
@@ -988,16 +1150,28 @@ const Warranties: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleShowQRCode(warranty);
-                            }}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700 transition-all duration-200 hover:scale-105"
-                            title="Show QR Code"
-                          >
-                            <QrCode className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(warranty._id);
+                              }}
+                              className="text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 transform hover:scale-105"
+                              title="Delete Warranty"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleShowQRCode(warranty);
+                              }}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 hover:text-blue-700 transition-all duration-200 hover:scale-105"
+                              title="Show QR Code"
+                            >
+                              <QrCode className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1025,22 +1199,21 @@ const Warranties: React.FC = () => {
                 >
                   Previous
                 </button>
-                {Array.from(
-                  { length: pagination.pages },
-                  (_, i) => i + 1
-                ).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-lg font-medium transition-colors ${
-                      page === pagination.page
-                        ? "bg-purple-600 text-white border-purple-600 shadow-md"
-                        : "border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {Array.from({ length: pagination.pages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-lg font-medium transition-colors ${
+                        page === pagination.page
+                          ? "bg-purple-600 text-white border-purple-600 shadow-md"
+                          : "border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
                 <button
                   onClick={() => handlePageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.pages}
@@ -1172,21 +1345,29 @@ const Warranties: React.FC = () => {
                         Status
                       </label>
                       <div className="bg-slate-50 p-3 rounded-lg">
-                        {isExpired(
-                          selectedWarrantyForDetail.expirationDate
-                        ) ? (
+                        {selectedWarrantyForDetail.isLifetimeWarranty ? (
+                          <span className="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800 border border-green-200">
+                            <ShieldCheck className="h-4 w-4 mr-2" />
+                            Lifetime Warranty
+                          </span>
+                        ) : isExpired(
+                            selectedWarrantyForDetail.expirationDate,
+                            selectedWarrantyForDetail.isLifetimeWarranty
+                          ) ? (
                           <span className="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold bg-red-100 text-red-800 border border-red-200">
                             <AlertCircle className="h-4 w-4 mr-2" />
                             Expired
                           </span>
                         ) : isExpiringSoon(
-                            selectedWarrantyForDetail.expirationDate
+                            selectedWarrantyForDetail.expirationDate,
+                            selectedWarrantyForDetail.isLifetimeWarranty
                           ) ? (
                           <span className="inline-flex items-center px-3 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                             <Clock className="h-4 w-4 mr-2" />
                             Expiring Soon (
                             {getDaysUntilExpiry(
-                              selectedWarrantyForDetail.expirationDate
+                              selectedWarrantyForDetail.expirationDate,
+                              selectedWarrantyForDetail.isLifetimeWarranty
                             )}{" "}
                             days left)
                           </span>
@@ -1195,7 +1376,8 @@ const Warranties: React.FC = () => {
                             <CheckCircle className="h-4 w-4 mr-2" />
                             Active (
                             {getDaysUntilExpiry(
-                              selectedWarrantyForDetail.expirationDate
+                              selectedWarrantyForDetail.expirationDate,
+                              selectedWarrantyForDetail.isLifetimeWarranty
                             )}{" "}
                             days left)
                           </span>
@@ -1377,6 +1559,14 @@ const Warranties: React.FC = () => {
         message="Are you sure you want to delete this warranty? This action cannot be undone."
         onConfirm={() => confirmDelete(confirmModal.id)}
         onCancel={() => setConfirmModal({ open: false, id: "" })}
+      />
+
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onConfirm={handleBulkDelete}
+        onCancel={() => setIsBulkDeleteModalOpen(false)}
+        title="Delete Warranties?"
+        message={`Are you sure you want to delete ${selectedIds.length} warranty(s)?`}
       />
 
       {/* QR Code Modal */}

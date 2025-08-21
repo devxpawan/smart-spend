@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import logo from "/logo.webp";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
   Lock,
   Mail,
@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import { validatePassword } from "../utils/passwordValidation";
+import OTPVerificationModal from "../components/OTPVerificationModal";
 
 const LoginRegister: React.FC = () => {
   const [tab, setTab] = useState<"login" | "register">("login");
@@ -27,6 +28,11 @@ const LoginRegister: React.FC = () => {
   );
 
   const { login, register, googleLogin, loading, error, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const showOtpModal = location.state?.showOtpModal;
+  const otpEmail = location.state?.email;
 
   if (user) return <Navigate to="/" replace />;
 
@@ -56,10 +62,11 @@ const LoginRegister: React.FC = () => {
 
     if (tab === "login") {
       await login(email, password);
-      // Navigation is handled in the login function
     } else {
-      await register(name, email, password);
-      // Navigation is handled in the register function
+      const success = await register(name, email, password);
+      if (success) {
+        navigate("/auth", { state: { showOtpModal: true, email: email } });
+      }
     }
   };
 
@@ -451,6 +458,12 @@ const LoginRegister: React.FC = () => {
             </motion.div>
           </div>
         </div>
+
+        <OTPVerificationModal
+          isOpen={showOtpModal}
+          onClose={() => navigate("/auth", { state: { showOtpModal: false } })}
+          email={otpEmail}
+        />
       </div>
     </GoogleOAuthProvider>
   );

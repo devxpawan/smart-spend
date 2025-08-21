@@ -60,9 +60,7 @@ const Bills: React.FC = () => {
     id: null,
   });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editBillData, setEditBillData] = useState<BillInterface | null>(
-    null
-  );
+  const [editBillData, setEditBillData] = useState<BillInterface | null>(null);
 
   // Enhanced filtering and sorting
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -76,6 +74,9 @@ const Bills: React.FC = () => {
     customMonth: new Date().getMonth() + 1,
     customYear: new Date().getFullYear(),
   });
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
 
   const { user } = useAuth();
 
@@ -118,9 +119,7 @@ const Bills: React.FC = () => {
     if (!confirmModal.id) return;
     try {
       await axios.delete(`/api/bills/${confirmModal.id}`);
-      setBills((prev) =>
-        prev.filter((bill) => bill._id !== confirmModal.id)
-      );
+      setBills((prev) => prev.filter((bill) => bill._id !== confirmModal.id));
       setError("");
     } catch (err) {
       setError("Failed to delete bill");
@@ -141,9 +140,7 @@ const Bills: React.FC = () => {
         response = await axios.put(`/api/bills/${id}`, { isPaid: false });
         setBills((prevBills) =>
           prevBills.map((bill) =>
-            bill._id === id
-              ? { ...bill, isPaid: response.data.isPaid }
-              : bill
+            bill._id === id ? { ...bill, isPaid: response.data.isPaid } : bill
           )
         );
       }
@@ -371,14 +368,69 @@ const Bills: React.FC = () => {
     [editBillData, fetchBills]
   );
 
+  const handleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredBills.map((b) => b._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await Promise.all(
+        selectedIds.map((id) => axios.delete(`/api/bills/${id}`))
+      );
+      setBills((prev) => prev.filter((bill) => !selectedIds.includes(bill._id)));
+      setSelectedIds([]);
+    } catch (err) {
+      setError("Failed to delete selected bills");
+    } finally {
+      setIsBulkDeleteModalOpen(false);
+    }
+  };
+
+  const handleBulkMarkAsPaid = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await Promise.all(
+        selectedIds.map((id) => axios.put(`/api/bills/${id}/pay`))
+      );
+      await fetchBills();
+      setSelectedIds([]);
+    } catch (err) {
+      setError("Failed to mark bills as paid");
+    }
+  };
+
+  const handleBulkMarkAsUnpaid = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          axios.put(`/api/bills/${id}`, { isPaid: false })
+        )
+      );
+      await fetchBills();
+      setSelectedIds([]);
+    } catch (err) {
+      setError("Failed to mark bills as unpaid");
+    }
+  };
+
   if (loading && bills.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600"></div>
-          <p className="text-slate-600 font-medium">
-            Loading your bills...
-          </p>
+          <p className="text-slate-600 font-medium">Loading your bills...</p>
         </div>
       </div>
     );
@@ -414,9 +466,7 @@ const Bills: React.FC = () => {
 
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-          <span className="text-gray-500">
-            {filteredBills.length} bills
-          </span>
+          <span className="text-gray-500">{filteredBills.length} bills</span>
           <span className="text-gray-500 hidden sm:inline">•</span>
           <span className="text-gray-500">
             Total: {user?.preferences?.currency || "USD"}{" "}
@@ -628,6 +678,41 @@ const Bills: React.FC = () => {
         </div>
       )}
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-slate-100 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="text-sm font-medium text-slate-700">
+            {selectedIds.length} item(s) selected
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBulkMarkAsPaid}
+              className="px-3 py-2 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700"
+            >
+              Mark Paid
+            </button>
+            <button
+              onClick={handleBulkMarkAsUnpaid}
+              className="px-3 py-2 text-xs font-semibold text-white bg-yellow-600 rounded-md hover:bg-yellow-700"
+            >
+              Mark Unpaid
+            </button>
+            <button
+              onClick={() => setIsBulkDeleteModalOpen(true)}
+              className="px-3 py-2 text-xs font-semibold text-white bg-red-600 rounded-md hover:bg-red-700"
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Bills Table or Empty State */}
       {filteredBills.length === 0 && !loading && !error ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg border">
@@ -664,17 +749,34 @@ const Bills: React.FC = () => {
                 {filteredBills.map((bill) => {
                   const status = getBillStatus(bill.dueDate, bill.isPaid);
                   return (
-                    <div key={bill._id} className="p-4 space-y-3">
+                    <div
+                      key={bill._id}
+                      className={`p-4 space-y-3 ${
+                        selectedIds.includes(bill._id) ? "bg-blue-50" : ""
+                      }`}
+                      onClick={() => handleSelect(bill._id)}
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <button
-                            onClick={() => setEditBillData(bill)}
-                            className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
-                          >
-                            <span className="truncate">{bill.name}</span>
-                            <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                          </button>
-                          <div className="mt-1 flex items-center space-x-2">
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                              checked={selectedIds.includes(bill._id)}
+                              onChange={() => handleSelect(bill._id)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <button
+                              onClick={(e) =>
+                                handleActionClick(e, () => setEditBillData(bill))
+                              }
+                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                            >
+                              <span className="truncate">{bill.name}</span>
+                              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            </button>
+                          </div>
+                          <div className="mt-1 flex items-center space-x-2 ml-7">
                             <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
                               {bill.category}
                             </span>
@@ -688,7 +790,7 @@ const Bills: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-sm ml-7">
                         <div>
                           <div className="text-gray-600">
                             Due:{" "}
@@ -701,7 +803,7 @@ const Bills: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2 pt-2">
+                      <div className="flex items-center space-x-2 pt-2 ml-7">
                         <button
                           onClick={(e) =>
                             handleActionClick(e, () =>
@@ -753,6 +855,21 @@ const Bills: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th scope="col" className="p-4">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        onChange={handleSelectAll}
+                        checked={
+                          filteredBills.length > 0 &&
+                          selectedIds.length === filteredBills.length
+                        }
+                        //indeterminate={
+                        //  selectedIds.length > 0 &&
+                        //  selectedIds.length < filteredBills.length
+                        //}
+                      />
+                    </th>
                     <th
                       scope="col"
                       className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
@@ -802,15 +919,29 @@ const Bills: React.FC = () => {
                 </thead>
                 <tbody className="bg-white/50 divide-y divide-slate-200">
                   {filteredBills.map((bill) => {
-                    const status = getBillStatus(
-                      bill.dueDate,
-                      bill.isPaid
-                    );
+                    const status = getBillStatus(bill.dueDate, bill.isPaid);
                     return (
-                      <tr key={bill._id} className="hover:bg-gray-50">
+                      <tr
+                        key={bill._id}
+                        className={`hover:bg-gray-50 ${
+                          selectedIds.includes(bill._id) ? "bg-blue-50" : ""
+                        }`}
+                        onClick={() => handleSelect(bill._id)}
+                      >
+                        <td className="p-4">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            checked={selectedIds.includes(bill._id)}
+                            onChange={() => handleSelect(bill._id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <button
-                            onClick={() => setEditBillData(bill)}
+                            onClick={(e) =>
+                              handleActionClick(e, () => setEditBillData(bill))
+                            }
                             className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
                           >
                             <span>{bill.name}</span>
@@ -858,9 +989,7 @@ const Bills: React.FC = () => {
                               }`}
                               disabled={togglingId === bill._id}
                               title={
-                                bill.isPaid
-                                  ? "Mark as Unpaid"
-                                  : "Mark as Paid"
+                                bill.isPaid ? "Mark as Unpaid" : "Mark as Paid"
                               }
                             >
                               {togglingId === bill._id ? (
@@ -902,6 +1031,13 @@ const Bills: React.FC = () => {
         onCancel={() => setConfirmModal({ open: false, id: null })}
         onConfirm={handleDeleteConfirmed}
         message="This action cannot be undone. Do you really want to delete this bill?"
+      />
+
+      <ConfirmModal
+        isOpen={isBulkDeleteModalOpen}
+        onCancel={() => setIsBulkDeleteModalOpen(false)}
+        onConfirm={handleBulkDelete}
+        message={`This action cannot be undone. Do you really want to delete ${selectedIds.length} bill(s)?`}
       />
 
       {(isAddModalOpen || editBillData) && (

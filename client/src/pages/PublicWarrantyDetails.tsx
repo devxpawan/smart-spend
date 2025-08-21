@@ -18,13 +18,14 @@ interface PublicWarrantyData {
   id: string;
   productName: string;
   purchaseDate: string;
-  expirationDate: string;
+  expirationDate: string | null;
+  isLifetimeWarranty: boolean;
   retailer: string;
   category: string;
   notes: string;
   createdAt: string;
   isExpired: boolean;
-  daysUntilExpiry: number;
+  daysUntilExpiry: number | null;
 }
 
 const PublicWarrantyDetails: React.FC = () => {
@@ -64,23 +65,26 @@ const PublicWarrantyDetails: React.FC = () => {
     fetchWarrantyDetails();
   }, [id]);
 
-  const getStatusColor = (isExpired: boolean, daysUntilExpiry: number) => {
+  const getStatusColor = (isExpired: boolean, daysUntilExpiry: number | null, isLifetimeWarranty: boolean) => {
+    if (isLifetimeWarranty) return "text-green-600 bg-green-50";
     if (isExpired) return "text-red-600 bg-red-50";
-    if (daysUntilExpiry <= 30) return "text-orange-600 bg-orange-50";
+    if (daysUntilExpiry && daysUntilExpiry <= 30) return "text-orange-600 bg-orange-50";
     return "text-green-600 bg-green-50";
   };
 
-  const getStatusIcon = (isExpired: boolean, daysUntilExpiry: number) => {
+  const getStatusIcon = (isExpired: boolean, daysUntilExpiry: number | null, isLifetimeWarranty: boolean) => {
+    if (isLifetimeWarranty) return <ShieldCheck className="w-5 h-5" />;
     if (isExpired) return <AlertCircle className="w-5 h-5" />;
-    if (daysUntilExpiry <= 30) return <Clock className="w-5 h-5" />;
+    if (daysUntilExpiry && daysUntilExpiry <= 30) return <Clock className="w-5 h-5" />;
     return <CheckCircle className="w-5 h-5" />;
   };
 
-  const getStatusText = (isExpired: boolean, daysUntilExpiry: number) => {
+  const getStatusText = (isExpired: boolean, daysUntilExpiry: number | null, isLifetimeWarranty: boolean) => {
+    if (isLifetimeWarranty) return "Lifetime Warranty";
     if (isExpired) return "Expired";
-    if (daysUntilExpiry <= 0) return "Expires today";
-    if (daysUntilExpiry === 1) return "Expires tomorrow";
-    if (daysUntilExpiry <= 30) return `Expires in ${daysUntilExpiry} days`;
+    if (daysUntilExpiry && daysUntilExpiry <= 0) return "Expires today";
+    if (daysUntilExpiry && daysUntilExpiry === 1) return "Expires tomorrow";
+    if (daysUntilExpiry && daysUntilExpiry <= 30) return `Expires in ${daysUntilExpiry} days`;
     return "Active";
   };
 
@@ -156,19 +160,21 @@ const PublicWarrantyDetails: React.FC = () => {
           <div
             className={`px-6 py-4 border-b ${getStatusColor(
               warranty.isExpired,
-              warranty.daysUntilExpiry
+              warranty.daysUntilExpiry,
+              warranty.isLifetimeWarranty
             )}`}
           >
             <div className="flex items-center space-x-3">
-              {getStatusIcon(warranty.isExpired, warranty.daysUntilExpiry)}
+              {getStatusIcon(warranty.isExpired, warranty.daysUntilExpiry, warranty.isLifetimeWarranty)}
               <div>
                 <p className="font-semibold">
                   {getStatusText(
                     warranty.isExpired,
-                    warranty.daysUntilExpiry
+                    warranty.daysUntilExpiry,
+                    warranty.isLifetimeWarranty
                   )}
                 </p>
-                {!warranty.isExpired && warranty.daysUntilExpiry <= 30 && (
+                {!warranty.isLifetimeWarranty && !warranty.isExpired && warranty.daysUntilExpiry && warranty.daysUntilExpiry <= 30 && (
                   <p className="text-sm opacity-75">
                     Consider renewing or extending your warranty soon
                   </p>
@@ -240,7 +246,11 @@ const PublicWarrantyDetails: React.FC = () => {
                       Warranty Expires
                     </p>
                     <p className="text-gray-900">
-                      {format(parseISO(warranty.expirationDate), "PPP")}
+                      {warranty.isLifetimeWarranty 
+                        ? "Never Expires" 
+                        : warranty.expirationDate
+                        ? format(parseISO(warranty.expirationDate), "PPP")
+                        : "N/A"}
                     </p>
                   </div>
                 </div>

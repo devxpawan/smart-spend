@@ -57,7 +57,7 @@ const getCloudinaryPublicId = (url) => {
 router.get("/public/:id", async (req, res) => {
   try {
     const warranty = await Warranty.findById(req.params.id).select(
-      "productName purchaseDate expirationDate retailer category notes createdAt qrCode"
+      "productName purchaseDate expirationDate isLifetimeWarranty retailer category notes createdAt qrCode"
     );
 
     if (!warranty) {
@@ -70,16 +70,17 @@ router.get("/public/:id", async (req, res) => {
       productName: warranty.productName,
       purchaseDate: warranty.purchaseDate,
       expirationDate: warranty.expirationDate,
+      isLifetimeWarranty: warranty.isLifetimeWarranty,
       retailer: warranty.retailer,
       category: warranty.category,
       notes: warranty.notes,
       createdAt: warranty.createdAt,
       // Calculate warranty status
-      isExpired: new Date() > new Date(warranty.expirationDate),
-      daysUntilExpiry: Math.ceil(
+      isExpired: warranty.isLifetimeWarranty ? false : (warranty.expirationDate ? new Date() > new Date(warranty.expirationDate) : false),
+      daysUntilExpiry: warranty.isLifetimeWarranty ? null : (warranty.expirationDate ? Math.ceil(
         (new Date(warranty.expirationDate) - new Date()) /
           (1000 * 60 * 60 * 24)
-      ),
+      ) : null),
     };
 
     res.json(publicWarrantyData);
@@ -104,6 +105,7 @@ router.get("/expiring/soon", async (req, res) => {
 
     const expiringWarranties = await Warranty.find({
       user: req.user.id,
+      isLifetimeWarranty: { $ne: true },
       expirationDate: { $gte: today, $lte: nextMonth },
     }).sort({ expirationDate: 1 });
 
@@ -130,9 +132,15 @@ router.get("/", async (req, res) => {
 
     const today = new Date();
     if (expired === "true") {
-      filter.expirationDate = { $lt: today };
+      filter.$and = [
+        { isLifetimeWarranty: { $ne: true } },
+        { expirationDate: { $lt: today } }
+      ];
     } else if (expired === "false") {
-      filter.expirationDate = { $gte: today };
+      filter.$or = [
+        { isLifetimeWarranty: true },
+        { expirationDate: { $gte: today } }
+      ];
     }
 
     const total = await Warranty.countDocuments(filter);
@@ -163,13 +171,19 @@ router.post(
   "/",
   [
     check("productName", "Product name is required").trim().notEmpty(),
-    check("expirationDate", "Expiration date is required").notEmpty(),
+    check("expirationDate", "Expiration date is required when not lifetime warranty").custom((value, { req }) => {
+      if (!req.body.isLifetimeWarranty && !value) {
+        throw new Error('Expiration date is required when not lifetime warranty');
+      }
+      return true;
+    }),
     check("category", "Category is required").notEmpty(),
     check("purchasePrice", "Purchase price must be a number")
       .optional()
       .isNumeric(),
     check("retailer", "Retailer name is invalid").optional().trim(),
     check("notes", "Notes are invalid").optional().trim(),
+    check("isLifetimeWarranty", "isLifetimeWarranty must be a boolean").optional().isBoolean(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -191,14 +205,18 @@ router.post(
         reminderDate,
         currency,
         warrantyCardImages,
+        isLifetimeWarranty,
       } = req.body;
 
       // Validate dates
-      const expDate = new Date(expirationDate);
-      if (isNaN(expDate.getTime())) {
-        return res
-          .status(400)
-          .json({ message: "Invalid expiration date format" });
+      let expDate = null;
+      if (!isLifetimeWarranty && expirationDate) {
+        expDate = new Date(expirationDate);
+        if (isNaN(expDate.getTime())) {
+          return res
+            .status(400)
+            .json({ message: "Invalid expiration date format" });
+        }
       }
 
       if (purchaseDate) {
@@ -215,6 +233,7 @@ router.post(
         productName: productName.trim(),
         purchaseDate: purchaseDate || null,
         expirationDate: expDate,
+        isLifetimeWarranty: isLifetimeWarranty || false,
         retailer: retailer?.trim() || null,
         purchasePrice: purchasePrice || null,
         category,
@@ -286,7 +305,15 @@ router.put(
       .notEmpty(),
     check("expirationDate", "Invalid expiration date")
       .optional()
-      .isISO8601(),
+      .custom((value, { req }) => {
+        if (!req.body.isLifetimeWarranty && value) {
+          const date = new Date(value);
+          if (isNaN(date.getTime())) {
+            throw new Error('Invalid expiration date format');
+          }
+        }
+        return true;
+      }),
     check("category", "Category is required").optional().notEmpty(),
     check("purchasePrice", "Purchase price must be a number")
       .optional()
@@ -311,6 +338,7 @@ router.put(
         reminderDate,
         currency,
         warrantyCardImages,
+        isLifetimeWarranty,
       } = req.body;
 
       const warranty = await Warranty.findOne({
@@ -328,6 +356,13 @@ router.put(
       if (purchaseDate !== undefined) warranty.purchaseDate = purchaseDate;
       if (expirationDate !== undefined)
         warranty.expirationDate = expirationDate;
+      if (isLifetimeWarranty !== undefined) {
+        warranty.isLifetimeWarranty = isLifetimeWarranty;
+        // If it's a lifetime warranty, ensure expirationDate is null
+        if (isLifetimeWarranty) {
+          warranty.expirationDate = null;
+        }
+      }
       if (retailer !== undefined)
         warranty.retailer = retailer?.trim() || null;
       if (purchasePrice !== undefined)
