@@ -1,6 +1,5 @@
 import React from 'react';
-import { validatePassword, getPasswordStrengthColor, getPasswordStrengthBgColor } from '../utils/passwordValidation';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { validatePassword, getPasswordStrengthBgColor } from '../utils/passwordValidation';
 
 interface PasswordStrengthIndicatorProps {
   password: string;
@@ -27,35 +26,22 @@ const PasswordStrengthIndicator: React.FC<PasswordStrengthIndicatorProps> = ({
                        validation.strength === 'medium' ? '66%' : '100%';
 
   return (
-    <div className="mt-2 space-y-2">
+    <div className="mt-2 space-y-1">
       {/* Strength Bar */}
-      <div className="space-y-1">
-        <div className="flex justify-between items-center">
-          <span className="text-xs text-gray-600">Password Strength</span>
-          <span className={`text-xs font-medium capitalize ${getPasswordStrengthColor(validation.strength)}`}>
-            {validation.strength}
-          </span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthBgColor(validation.strength)}`}
-            style={{ width: strengthWidth }}
-          />
-        </div>
+      <div className="w-full bg-gray-200 rounded-full h-1.5">
+        <div 
+          className={`h-1.5 rounded-full transition-all duration-300 ${getPasswordStrengthBgColor(validation.strength)}`}
+          style={{ width: strengthWidth }}
+        />
       </div>
 
       {/* Requirements List */}
       {showRequirements && (
-        <div className="space-y-1">
-          <span className="text-xs text-gray-600">Requirements:</span>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
           {requirements.map((req, index) => (
-            <div key={index} className="flex items-center space-x-2">
-              {req.test ? (
-                <CheckCircle className="w-3 h-3 text-green-500" />
-              ) : (
-                <XCircle className="w-3 h-3 text-red-500" />
-              )}
-              <span className={`text-xs ${req.test ? 'text-green-600' : 'text-red-600'}`}>
+            <div key={index} className="flex items-center">
+              <div className={`w-1.5 h-1.5 rounded-full mr-2 ${req.test ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              <span className={`text-xs ${req.test ? 'text-gray-600' : 'text-gray-500'}`}>
                 {req.text}
               </span>
             </div>

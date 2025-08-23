@@ -16,6 +16,7 @@ import Warranties from "./pages/Warranties";
 import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 
 
+
 function App() {
   const { loading } = useAuth();
 

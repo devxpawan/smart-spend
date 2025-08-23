@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import logo from "/logo.webp";
-import { Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Navigate, useNavigate, useLocation, Link } from "react-router-dom";
 import {
   Lock,
   Mail,
@@ -16,6 +16,8 @@ import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import { validatePassword } from "../utils/passwordValidation";
 import OTPVerificationModal from "../components/OTPVerificationModal";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import ResetPasswordModal from "../components/ResetPasswordModal";
 
 const LoginRegister: React.FC = () => {
   const [tab, setTab] = useState<"login" | "register">("login");
@@ -26,6 +28,9 @@ const LoginRegister: React.FC = () => {
   const [passwordValidation, setPasswordValidation] = useState(
     validatePassword("")
   );
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   const { login, register, googleLogin, loading, error, user } = useAuth();
   const navigate = useNavigate();
@@ -360,6 +365,13 @@ const LoginRegister: React.FC = () => {
                             )}
                           </button>
                         </div>
+                        <div className="text-right mt-2">
+                          <Link to="#" onClick={() => setIsForgotPasswordModalOpen(true)}>
+                            <span className="text-xs sm:text-sm text-indigo-600 hover:underline">
+                              Forgot Password?
+                            </span>
+                          </Link>
+                        </div>
                       </div>
                     </>
                   )}
@@ -463,6 +475,22 @@ const LoginRegister: React.FC = () => {
           isOpen={showOtpModal}
           onClose={() => navigate("/auth", { state: { showOtpModal: false } })}
           email={otpEmail}
+        />
+
+        <ForgotPasswordModal
+          isOpen={isForgotPasswordModalOpen}
+          onClose={() => setIsForgotPasswordModalOpen(false)}
+          onEmailSubmitted={(email) => {
+            setResetEmail(email);
+            setIsForgotPasswordModalOpen(false);
+            setIsResetPasswordModalOpen(true);
+          }}
+        />
+
+        <ResetPasswordModal
+          isOpen={isResetPasswordModalOpen}
+          onClose={() => setIsResetPasswordModalOpen(false)}
+          email={resetEmail}
         />
       </div>
     </GoogleOAuthProvider>

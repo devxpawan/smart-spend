@@ -39,6 +39,8 @@ export interface AuthContextType {
   updateCurrency: (currency: string) => Promise<void>;
   deleteProfile: () => Promise<void>; // ADD THIS LINE
   loginWithToken: (token: string, user: User) => void;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, otp: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -318,6 +320,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     toast.success("Logged in successfully");
   };
 
+  const forgotPassword = async (email: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await axios.post("/api/auth/forgot-password", { email });
+      toast.success("Password reset OTP sent to your email.");
+    } catch (err: any) {
+      let errorMessage = "Failed to send OTP";
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err; // Re-throw to handle in component
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string, otp: string, password: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await axios.post("/api/auth/reset-password", { email, otp, password });
+      toast.success("Password has been reset successfully.");
+    } catch (err: any) {
+      let errorMessage = "Failed to reset password";
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err; // Re-throw to handle in component
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -334,6 +374,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         updateCurrency,
         deleteProfile, // ADD THIS LINE
         loginWithToken,
+        forgotPassword,
+        resetPassword,
       }}
     >
       {children}

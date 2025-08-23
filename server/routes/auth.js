@@ -237,6 +237,65 @@ router.post("/login", validate(authValidation.login), async (req, res) => {
   }
 });
 
+// @route   POST /api/auth/forgot-password
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const otp = generateOTP();
+    user.passwordResetOTP = otp;
+    user.passwordResetExpires = Date.now() + 300000; // 5 minutes
+
+    await user.save();
+
+    await sendEmail(
+      user.email,
+      "Password Reset OTP",
+      `Your OTP for password reset is: ${otp}. It will expire in 5 minutes.`
+    );
+
+    res.json({ message: "OTP sent to your email." });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// @route   POST /api/auth/reset-password
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    const user = await User.findOne({
+      email,
+      passwordResetOTP: otp,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.passwordResetOTP = undefined;
+    user.passwordResetExpires = undefined;
+
+    await user.save();
+
+    res.json({ message: "Password has been reset successfully." });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+""
+
 // @route   POST /api/auth/google
 router.post("/google", async (req, res) => {
   try {
