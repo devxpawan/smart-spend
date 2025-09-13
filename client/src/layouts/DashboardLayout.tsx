@@ -1,28 +1,31 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-  useCallback,
-  Fragment,
-} from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Menu as HeadlessMenu, Transition } from "@headlessui/react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  Home,
-  DollarSign,
-  Receipt,
-  ShieldCheck,
-  Menu,
-  LogOut,
-  Info,
-  User,
   BarChart3,
   ChevronsLeft,
   ChevronsRight,
+  DollarSign,
+  Home,
+  Info,
+  LogOut,
+  Menu,
+  Receipt,
+  ShieldCheck,
+  TrendingUp,
+  User,
+  X as XIcon,
 } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import React, {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import LogoutConfirmModal from "../components/LogoutConfirmModal";
-import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../contexts/AuthContext";
 
 // TYPES & INTERFACES
 
@@ -46,21 +49,16 @@ interface NavigationItemProps {
   isCollapsed: boolean;
 }
 
-interface UserProfileProps {
-  user: UserData | null;
-  isActive: boolean;
-  onNavigate: () => void;
-  isCollapsed: boolean;
-}
-
-interface LogoutButtonProps {
-  onLogout: () => void;
-  isCollapsed: boolean;
-}
-
 interface CollapseButtonProps {
   isCollapsed: boolean;
   onToggle: () => void;
+}
+
+interface UserMenuProps {
+  user: UserData | null;
+  onLogout: () => void;
+  isCollapsed: boolean;
+  onNavigate?: () => void;
 }
 
 // CONSTANTS
@@ -71,6 +69,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     path: "/",
     icon: <Home className="w-4 h-4" />,
     gradient: "from-blue-500 to-indigo-600",
+  },
+  {
+    name: "Incomes",
+    path: "/incomes",
+    icon: <TrendingUp className="w-4 h-4" />,
+    gradient: "from-sky-500 to-cyan-600",
   },
   {
     name: "Expenses",
@@ -116,7 +120,7 @@ const ANIMATION_VARIANTS = {
       },
     },
     closed: {
-      x: -288,
+      x: "-100%",
       opacity: 0,
       transition: {
         type: "tween",
@@ -144,7 +148,7 @@ const CollapseButton: React.FC<CollapseButtonProps> = ({
 }) => (
   <button
     onClick={onToggle}
-    className="hidden md:flex absolute -right-3 top-1/2 z-20 -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-slate-700 text-slate-300 shadow-lg transition-all duration-200 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 h-6 w-6"
+        className="hidden md:flex absolute -right-3 top-1/2 z-20 -translate-y-1/2 items-center justify-center rounded-full border-2 border-slate-900 bg-slate-700 text-slate-200 shadow-lg transition-all duration-200 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring-4 focus:ring-indigo-500/50 h-6 w-6"
     aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
   >
     <AnimatePresence mode="wait">
@@ -153,6 +157,7 @@ const CollapseButton: React.FC<CollapseButtonProps> = ({
         initial={{ opacity: 0, rotate: -90 }}
         animate={{ opacity: 1, rotate: 0, transition: { duration: 0.2 } }}
         exit={{ opacity: 0, rotate: 90, transition: { duration: 0.2 } }}
+        style={{ transformOrigin: "center" }}
       >
         {isCollapsed ? (
           <ChevronsRight className="h-4 w-4" />
@@ -167,97 +172,28 @@ const CollapseButton: React.FC<CollapseButtonProps> = ({
 const NavigationItem: React.FC<NavigationItemProps> = React.memo(
   ({ item, isActive, onNavigate, isCollapsed }) => (
     <li>
-      <Link
-        to={item.path}
-        onClick={onNavigate}
-        className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
-          isActive
-            ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25"
-            : "text-slate-300 hover:bg-white/10 hover:text-white"
-        } ${isCollapsed ? "justify-center" : ""}`}
-        style={{ willChange: "transform" }}
-        aria-current={isActive ? "page" : undefined}
-        role="menuitem"
-        aria-label={`Navigate to ${item.name}`}
-      >
-        <div
-          className={`relative z-10 rounded-md p-1.5 ${
-            isActive
-              ? "bg-white/20"
-              : `bg-gradient-to-r ${item.gradient} opacity-90 group-hover:opacity-100`
-          } transition-all duration-150`}
-          aria-hidden="true"
-        >
-          {item.icon}
-        </div>
-        <AnimatePresence>
-          {!isCollapsed && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{
-                opacity: 1,
-                x: 0,
-                transition: { delay: 0.1, duration: 0.2 },
-              }}
-              exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
-              className="relative z-10 font-semibold whitespace-nowrap"
-            >
-              {item.name}
-            </motion.span>
-          )}
-        </AnimatePresence>
-        {!isActive && !isCollapsed && (
-          <div
-            className="absolute inset-0 rounded-lg bg-gradient-to-r from-white/5 to-white/10 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
-            aria-hidden="true"
-          />
-        )}
-      </Link>
-    </li>
-  )
-);
-
-const UserProfile: React.FC<UserProfileProps> = React.memo(
-  ({ user, isActive, onNavigate, isCollapsed }) => {
-    const [avatarError, setAvatarError] = useState(false);
-
-    const avatarUrl = useMemo(() => {
-      if (avatarError || !user?.avatar) {
-        return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          user?.name || "User"
-        )}&background=6366f1&color=ffffff&size=40`;
-      }
-      return user.avatar.split("=")[0];
-    }, [user, avatarError]);
-
-    return (
-      <li>
+      <div className="relative">
         <Link
-          to="/profile"
+          to={item.path}
           onClick={onNavigate}
-          className={`group flex items-center gap-3 rounded-lg px-3 py-3 text-xs font-semibold transition-all duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 ${
+          className={`group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-semibold transition-all duration-150 ease-out focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500/50 ${
             isActive
               ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25"
-              : "text-slate-300 hover:bg-white/10 hover:text-white bg-white/5 border border-white/20"
-          } ${isCollapsed ? "justify-center" : ""}`}
-          style={{ willChange: "transform" }}
-          aria-current={isActive ? "page" : undefined}
-          role="menuitem"
-          aria-label="View your profile"
-        >
-          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 ring-2 ring-white/30 shadow-md">
-            <img
-              src={avatarUrl}
-              alt={`${user?.name || "User"} avatar`}
-              referrerPolicy="no-referrer"
-              onError={() => setAvatarError(true)}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
+              : "text-slate-200 hover:bg-white/10 hover:text-white"
+          } ${isCollapsed ? "justify-center" : ""}`}>
+          <div
+            className={`relative z-10 rounded-md p-1.5 ${
+              isActive
+                ? "bg-white/20"
+                : `bg-gradient-to-r ${item.gradient} opacity-90 group-hover:opacity-100`
+            } transition-all duration-150`}
+            aria-hidden="true"
+          >
+            {item.icon}
           </div>
           <AnimatePresence>
             {!isCollapsed && (
-              <motion.div
+              <motion.span
                 initial={{ opacity: 0, x: -10 }}
                 animate={{
                   opacity: 1,
@@ -265,65 +201,145 @@ const UserProfile: React.FC<UserProfileProps> = React.memo(
                   transition: { delay: 0.1, duration: 0.2 },
                 }}
                 exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
-                className="flex min-w-0 flex-1 flex-col whitespace-nowrap"
+                className="relative z-10 font-semibold whitespace-nowrap"
+                style={{ transform: "translateX(0)" }}
               >
-                <p className="truncate text-xs font-semibold text-slate-200 group-hover:text-white">
-                  {user?.name || "User"}
-                </p>
-                <p className="truncate text-[10px] text-slate-400 group-hover:text-slate-300">
-                  {user?.email || "user@example.com"}
-                </p>
-              </motion.div>
+                {item.name}
+              </motion.span>
             )}
           </AnimatePresence>
-          {!isCollapsed && (
-            <User
-              className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-300"
+          {!isActive && !isCollapsed && (
+            <div
+              className="absolute inset-0 rounded-lg bg-gradient-to-r from-white/5 to-white/10 opacity-0 transition-opacity duration-150 group-hover:opacity-100"
               aria-hidden="true"
             />
           )}
         </Link>
-      </li>
-    );
-  }
-);
-
-const LogoutButton: React.FC<LogoutButtonProps> = React.memo(
-  ({ onLogout, isCollapsed }) => (
-    <li>
-      <button
-        onClick={onLogout}
-        className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs text-rose-400 transition-all duration-150 hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-rose-500 bg-white/5 border border-rose-400/30 hover:border-rose-500/60 ${
-          isCollapsed ? "justify-center" : ""
-        }`}
-        role="menuitem"
-        aria-label="Sign out of your account"
-      >
-        <div
-          className="rounded-md bg-rose-500/20 p-1.5 transition-colors duration-150 group-hover:bg-white/20"
-          aria-hidden="true"
-        >
-          <LogOut className="w-4.5 h-4.5 " aria-hidden="true" />
-        </div>
-        <AnimatePresence>
-          {!isCollapsed && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{
-                opacity: 1,
-                x: 0,
-                transition: { delay: 0.1, duration: 0.2 },
-              }}
-              exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
-              className="font-semibold whitespace-nowrap"
-            >
-              Sign Out
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </button>
+        {isCollapsed && (
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1 bg-slate-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+            {item.name}
+          </div>
+        )}
+      </div>
     </li>
   )
+);
+
+const UserMenu: React.FC<UserMenuProps> = React.memo(
+  ({ user, onLogout, isCollapsed, onNavigate }) => {
+    const [avatarError, setAvatarError] = useState(false);
+
+    const avatarUrl = useMemo(() => {
+      if (avatarError || !user?.avatar) {
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          user?.name || "U"
+        )}&background=6366f1&color=ffffff&size=40`;
+      }
+      return user.avatar.split("=")[0];
+    }, [user, avatarError]);
+
+    return (
+      <HeadlessMenu as="div" className="relative w-full text-left">
+        {({ open }) => (
+          <>
+            <HeadlessMenu.Button
+              className={`group flex w-full items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 ease-out focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-indigo-500/50 ${
+                isCollapsed ? "justify-center p-2" : "px-3 py-2.5"
+              } text-slate-200 hover:bg-white/10 hover:text-white bg-white/5 backdrop-blur-sm border border-white/10`}
+            >
+              <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 ring-2 ring-white/20 shadow-md">
+                <img
+                  src={avatarUrl}
+                  alt={user?.name ? `${user.name} avatar` : "User avatar"}
+                  referrerPolicy="no-referrer"
+                  onError={() => setAvatarError(true)}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{
+                      opacity: 1,
+                      x: 0,
+                      transition: { delay: 0.1, duration: 0.2 },
+                    }}
+                    exit={{ opacity: 0, x: -10, transition: { duration: 0.2 } }}
+                    className="flex min-w-0 flex-1 flex-col whitespace-nowrap text-left"
+                    style={{ transform: "translateX(0)" }}
+                  >
+                    <p className="truncate font-semibold text-slate-100 group-hover:text-white">
+                      {user?.name || "User"}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <AnimatePresence>
+                {!isCollapsed && (
+                  <motion.div
+                    animate={{ rotate: open ? 90 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronsRight className="h-4 w-4 text-slate-300" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </HeadlessMenu.Button>
+
+            <Transition
+              as={Fragment}
+              show={open}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <HeadlessMenu.Items
+                static
+                className={`absolute z-20 w-48 origin-bottom-left rounded-xl bg-slate-800/90 p-1 backdrop-blur-lg shadow-lg ring-1 ring-white/10 focus:outline-none ${
+                  isCollapsed
+                    ? "bottom-0 left-full ml-2"
+                    : "bottom-full left-0 mb-2"
+                }`}
+              >
+                <HeadlessMenu.Item>
+                  {({ active }) => (
+                    <Link
+                      to="/profile"
+                      onClick={onNavigate}
+                      className={`${active ? "bg-white/10 text-white" : "text-slate-200"
+                        } group flex w-full items-center rounded-md px-3 py-2 text-sm font-semibold`}
+                    >
+                      <User className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Profile
+                    </Link>
+                  )}
+                </HeadlessMenu.Item>
+                <div className="my-1 h-px bg-white/10" />
+                <HeadlessMenu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={onLogout}
+                      className={`${active
+                          ? "bg-rose-500/20 text-rose-300"
+                          : "text-rose-300"
+                        } group flex w-full items-center rounded-md px-3 py-2 text-sm font-semibold`}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+                      Sign Out
+                    </button>
+                  )}
+                </HeadlessMenu.Item>
+              </HeadlessMenu.Items>
+            </Transition>
+          </>
+        )}
+      </HeadlessMenu>
+    );
+  }
 );
 
 const SidebarSkeleton: React.FC = () => (
@@ -367,9 +383,8 @@ const DashboardLayout: React.FC = () => {
   const [isCollapsed, setIsCollapsed] = useState(
     () => localStorage.getItem("sidebarCollapsed") === "true"
   );
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, logout, loading: authLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const { user, logout } = useAuth();
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -382,11 +397,7 @@ const DashboardLayout: React.FC = () => {
     [location.pathname]
   );
 
-  // Loading effect
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
+  
 
   // Save collapsed state to localStorage
   useEffect(() => {
@@ -511,8 +522,8 @@ const DashboardLayout: React.FC = () => {
                     Spend
                   </span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-medium -mt-0.5 whitespace-nowrap">
-                  Track • Save • Optimize
+                <span className="text-[10px] text-slate-300 font-medium -mt-0.5 whitespace-nowrap">
+                  Manage • Save • Optimize
                 </span>
               </motion.div>
             )}
@@ -520,14 +531,14 @@ const DashboardLayout: React.FC = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-200 text-xs">
+          <div className="mb-4 p-2 bg-red-500/20 border border-red-500/30 rounded-lg text-red-300 text-xs">
             {error}
             <button
               onClick={() => setError(null)}
               className="ml-2 text-red-300 hover:text-white"
               aria-label="Dismiss error"
             >
-              ×
+              <XIcon className="w-4 h-4" />
             </button>
           </div>
         )}
@@ -547,27 +558,21 @@ const DashboardLayout: React.FC = () => {
         </nav>
 
         <div className="mt-6 border-t border-white/20 pt-4">
-          <ul className="space-y-3.5">
-            <UserProfile
-              user={user}
-              isActive={isActive("/profile")}
-              onNavigate={handleSidebarClose}
-              isCollapsed={isCollapsed}
-            />
-            <LogoutButton
-              onLogout={handleLogoutClick}
-              isCollapsed={isCollapsed}
-            />
-          </ul>
+          <UserMenu
+            user={user}
+            onLogout={handleLogoutClick}
+            isCollapsed={isCollapsed}
+            onNavigate={handleSidebarClose}
+          />
         </div>
       </div>
     </div>
   );
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="h-screen flex overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 font-sans">
-        <div className="hidden md:flex md:w-64 lg:w-72 xl:w-80 md:flex-col shadow-xl">
+        <div className="hidden md:flex md:w-64 md:flex-col shadow-xl">
           <SidebarSkeleton />
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -625,7 +630,7 @@ const DashboardLayout: React.FC = () => {
 
       <div
         className={`hidden md:flex md:flex-col shadow-xl relative transition-all duration-300 ease-in-out ${
-          isCollapsed ? "md:w-20" : "md:w-64 lg:w-72 xl:w-80"
+          isCollapsed ? "md:w-24" : "md:w-64"
         }`}
       >
         <CollapseButton
@@ -641,14 +646,17 @@ const DashboardLayout: React.FC = () => {
             <button
               ref={mobileMenuButtonRef}
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg text-slate-800 hover:bg-slate-300/80 focus:outline-none active:bg-slate-200/50 transition-colors duration-150"
+              className="p-2 rounded-lg text-slate-800 hover:bg-slate-300/80 focus:outline-none active:bg-slate-200/50 transition-colors duration-150 relative"
               aria-label="Open navigation menu"
               aria-expanded={sidebarOpen}
               aria-controls="mobile-sidebar"
             >
               <Menu className="w-5 h-5" />
+              {isCollapsed && (
+                <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-white"></span>
+              )}
             </button>
-            <div className="flex items-center gap-2">
+            <div className="flex-1 text-center">
               <span className="text-base font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                 Smart
                 <span className="bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
@@ -656,7 +664,7 @@ const DashboardLayout: React.FC = () => {
                 </span>
               </span>
             </div>
-            <div className="w-9"></div>
+            <div className="w-9 h-9"></div>
           </div>
         </div>
 
@@ -682,9 +690,8 @@ const DashboardLayout: React.FC = () => {
 
 // Display names
 NavigationItem.displayName = "NavigationItem";
-UserProfile.displayName = "UserProfile";
-LogoutButton.displayName = "LogoutButton";
 SidebarSkeleton.displayName = "SidebarSkeleton";
 CollapseButton.displayName = "CollapseButton";
+UserMenu.displayName = "UserMenu";
 
 export default React.memo(DashboardLayout);

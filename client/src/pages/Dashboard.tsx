@@ -1,31 +1,37 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
 import axios from "axios";
 import {
+  ArcElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+} from "chart.js";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertCircle,
+  ArrowRight,
   DollarSign,
   Receipt,
   ShieldCheck,
-  ArrowRight,
-  TrendingUp,
   Target,
-  AlertCircle,
+  TrendingUp,
   User,
 } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import React, { useEffect, useMemo, useState } from "react";
+import { Doughnut, Line } from "react-chartjs-2";
+import { Link } from "react-router-dom";
 import FinancialHealthScore from "../components/FinancialHealthScore";
 import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-} from "chart.js";
-import { Doughnut, Line } from "react-chartjs-2";
-import { motion, AnimatePresence } from "framer-motion";
+  SkeletonCard,
+  SkeletonChart,
+  SkeletonDoughnut,
+} from "../components/SkeletonLoaders";
+import { useAuth } from "../contexts/AuthContext";
+import { retryWithBackoff } from "../utils/retry";
 
 ChartJS.register(
   ArcElement,
@@ -61,22 +67,34 @@ interface WarrantyInterface {
 
 interface DashboardData {
   totalExpenses: number;
+  totalIncomes: number;
   upcomingBills: BillInterface[];
   expiringWarranties: WarrantyInterface[];
   categoryData: ExpenseSummary[];
-  monthlyData: any[];
+  incomeCategoryData: ExpenseSummary[];
+  monthlyExpenseData: any[];
+  monthlyIncomeData: any[];
+}
+
+interface ErrorState {
+  stats: string;
+  charts: string;
 }
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loadingCharts, setLoadingCharts] = useState(true);
+  const [errors, setErrors] = useState<ErrorState>({ stats: "", charts: "" });
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalExpenses: 0,
+    totalIncomes: 0,
     upcomingBills: [],
     expiringWarranties: [],
     categoryData: [],
-    monthlyData: [],
+    incomeCategoryData: [],
+    monthlyExpenseData: [],
+    monthlyIncomeData: [],
   });
 
   // Get current time-based greeting
@@ -87,58 +105,102 @@ const Dashboard: React.FC = () => {
     return "Good evening";
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchStatsData = async () => {
     try {
-      setLoading(true);
-      setError("");
+      setLoadingStats(true);
+      setErrors((prev) => ({ ...prev, stats: "" }));
 
-      const [monthlyRes, categoryRes, billsRes, warrantiesRes] =
-        await Promise.all([
-          axios.get("/api/expenses/summary/monthly"),
-          axios.get("/api/expenses/summary/category"),
+      const fetchData = () =>
+        Promise.all([
           axios.get("/api/bills/upcoming/reminders"),
           axios.get("/api/warranties/expiring/soon"),
         ]);
 
-      const currentYearTotal = monthlyRes.data.reduce(
+      const [billsRes, warrantiesRes] = await retryWithBackoff(fetchData);
+
+      setDashboardData((prev) => ({
+        ...prev,
+        upcomingBills: billsRes.data,
+        expiringWarranties: warrantiesRes.data,
+      }));
+    } catch (error: any) {
+      console.error("Dashboard stats fetch error:", error);
+      setErrors((prev) => ({
+        ...prev,
+        stats: error.response?.data?.message || "Failed to load key stats.",
+      }));
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const fetchChartsData = async () => {
+    try {
+      setLoadingCharts(true);
+      setErrors((prev) => ({ ...prev, charts: "" }));
+
+      const fetchData = () =>
+        Promise.all([
+          axios.get("/api/expenses/summary/monthly"),
+          axios.get("/api/incomes/summary/monthly"),
+          axios.get("/api/expenses/summary/category"),
+          axios.get("/api/incomes/summary/category"),
+        ]);
+
+      const [
+        monthlyExpensesRes,
+        monthlyIncomesRes,
+        expenseCategoryRes,
+        incomeCategoryRes,
+      ] = await retryWithBackoff(fetchData);
+
+      const currentYearTotalExpenses = monthlyExpensesRes.data.reduce(
         (sum: number, month: any) => sum + month.total,
         0
       );
 
-      setDashboardData({
-        totalExpenses: currentYearTotal,
-        upcomingBills: billsRes.data,
-        expiringWarranties: warrantiesRes.data,
-        categoryData: categoryRes.data,
-        monthlyData: monthlyRes.data,
-      });
-    } catch (error: any) {
-      console.error("Dashboard fetch error:", error);
-      setError(
-        error.response?.data?.message ||
-          "Failed to load dashboard data. Please try again."
+      const currentYearTotalIncomes = monthlyIncomesRes.data.reduce(
+        (sum: number, month: any) => sum + month.total,
+        0
       );
+
+      setDashboardData((prev) => ({
+        ...prev,
+        totalExpenses: currentYearTotalExpenses,
+        totalIncomes: currentYearTotalIncomes,
+        categoryData: expenseCategoryRes.data,
+        incomeCategoryData: incomeCategoryRes.data,
+        monthlyExpenseData: monthlyExpensesRes.data,
+        monthlyIncomeData: monthlyIncomesRes.data,
+      }));
+    } catch (error: any) {
+      console.error("Dashboard charts fetch error:", error);
+      setErrors((prev) => ({
+        ...prev,
+        charts: error.response?.data?.message || "Failed to load chart data.",
+      }));
     } finally {
-      setLoading(false);
+      setLoadingCharts(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchStatsData();
+    fetchChartsData();
   }, []);
 
-  const categoryChartData = useMemo(
+  const expenseCategoryChartData = useMemo(
     () => ({
       labels: dashboardData.categoryData.map((cat) => cat._id),
       datasets: [
         {
           data: dashboardData.categoryData.map((cat) => cat.total),
           backgroundColor: [
-            "#3B82F6", // Keep original colors
-            "#10B981",
+            "#3B82F6",
+            "#EF4444",
             "#F59E0B",
             "#8B5CF6",
-            "#EF4444",
+            "#10B981",
             "#6366F1",
             "#14B8A6",
             "#F97316",
@@ -148,13 +210,43 @@ const Dashboard: React.FC = () => {
             "#8B5A2B",
           ],
           borderColor: "#FFFFFF",
-          borderWidth: 2, // Thinner borders for professional look
+          borderWidth: 2,
           hoverBorderWidth: 3,
-          hoverOffset: 4, // Reduced hover effect
+          hoverOffset: 4,
         },
       ],
     }),
     [dashboardData.categoryData]
+  );
+
+  const incomeCategoryChartData = useMemo(
+    () => ({
+      labels: dashboardData.incomeCategoryData.map((cat) => cat._id),
+      datasets: [
+        {
+          data: dashboardData.incomeCategoryData.map((cat) => cat.total),
+          backgroundColor: [
+            "#10B981",
+            "#3B82F6",
+            "#F97316",
+            "#EC4899",
+            "#84CC16",
+            "#06B6D4",
+            "#8B5A2B",
+            "#6366F1",
+            "#14B8A6",
+            "#F59E0B",
+            "#8B5CF6",
+            "#EF4444",
+          ],
+          borderColor: "#FFFFFF",
+          borderWidth: 2,
+          hoverBorderWidth: 3,
+          hoverOffset: 4,
+        },
+      ],
+    }),
+    [dashboardData.incomeCategoryData]
   );
 
   const monthlyChartData = useMemo(
@@ -176,7 +268,7 @@ const Dashboard: React.FC = () => {
       datasets: [
         {
           label: "Monthly Expenses",
-          data: dashboardData.monthlyData.map((month) => month.total),
+          data: dashboardData.monthlyExpenseData.map((month) => month.total),
           borderColor: "#3B82F6", // Keep original blue color
           backgroundColor: "rgba(59, 130, 246, 0.1)", // Keep original blue fill
           pointBackgroundColor: "#3B82F6",
@@ -191,19 +283,45 @@ const Dashboard: React.FC = () => {
           fill: true,
           borderWidth: 2, // Thinner line for professional look
         },
+        {
+          label: "Monthly Incomes",
+          data: dashboardData.monthlyIncomeData.map((month) => month.total),
+          borderColor: "#10B981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          pointBackgroundColor: "#10B981",
+          pointBorderColor: "#ffffff",
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointHoverBackgroundColor: "#10B981",
+          pointHoverBorderColor: "#ffffff",
+          pointHoverBorderWidth: 2,
+          tension: 0.1,
+          fill: true,
+          borderWidth: 2,
+        },
       ],
     }),
-    [dashboardData.monthlyData]
+    [dashboardData.monthlyExpenseData, dashboardData.monthlyIncomeData]
   );
 
   const formatCurrency = (amount: number) => {
-    return `${
-      user?.preferences?.currency || "USD"
-    } ${amount.toLocaleString()}`;
+    return `${user?.preferences?.currency || "USD"} ${amount.toLocaleString()}`;
   };
 
   const statsCards = useMemo(
     () => [
+      {
+        icon: <TrendingUp className="w-7 h-7" />,
+        title: "Total Incomes",
+        subtitle: "This Year",
+        value: formatCurrency(dashboardData.totalIncomes),
+        rawValue: dashboardData.totalIncomes,
+        link: "/incomes",
+        gradient: "from-sky-500 to-cyan-600",
+        bgGradient: "from-sky-50 to-cyan-50",
+        borderColor: "border-sky-200",
+      },
       {
         icon: <DollarSign className="w-7 h-7" />,
         title: "Total Expenses",
@@ -248,22 +366,7 @@ const Dashboard: React.FC = () => {
     [dashboardData, user?.preferences?.currency]
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex flex-col items-center space-y-4"
-        >
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600"></div>
-          <p className="text-slate-600 font-medium">
-            Loading your dashboard...
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
+  
 
   return (
     <div className="min-h-screen">
@@ -316,7 +419,7 @@ const Dashboard: React.FC = () => {
 
         {/* Error Display */}
         <AnimatePresence>
-          {error && (
+          {errors.stats && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -327,11 +430,37 @@ const Dashboard: React.FC = () => {
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div>
                   <h3 className="text-sm font-semibold text-red-800">
-                    Error Loading Dashboard
+                    Error Loading Stats
                   </h3>
-                  <p className="text-sm text-red-700 mt-1">{error}</p>
+                  <p className="text-sm text-red-700 mt-1">{errors.stats}</p>
                   <button
-                    onClick={() => fetchDashboardData()}
+                    onClick={() => fetchStatsData()}
+                    className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {errors.charts && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6"
+            >
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-semibold text-red-800">
+                    Error Loading Charts
+                  </h3>
+                  <p className="text-sm text-red-700 mt-1">{errors.charts}</p>
+                  <button
+                    onClick={() => fetchChartsData()}
                     className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium"
                   >
                     Try again
@@ -347,70 +476,72 @@ const Dashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
         >
-          {statsCards.map((item, idx) => (
-            <Link
-              to={item.link}
-              key={idx}
-              className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br ${
-                item.bgGradient
-              } border ${
-                item.borderColor
-              } hover:scale-[1.02] overflow-hidden ${
-                item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
-              } min-h-[120px] sm:min-h-[140px]`}
-            >
-              {/* Background Pattern */}
-              <div className="absolute inset-0 opacity-5">
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${item.gradient}`}
-                ></div>
-              </div>
-
-              {/* Urgent indicator */}
-              {item.urgent && (
-                <div className="absolute top-2 right-2">
-                  <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse"></div>
-                </div>
-              )}
-
-              <div className="relative z-10 h-full flex flex-col">
-                <div className="flex items-start justify-between mb-3 sm:mb-4">
-                  <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                      <h3 className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider">
-                        {item.title}
-                      </h3>
-                      <span className="text-xs text-slate-500 font-medium">
-                        {item.subtitle}
-                      </span>
-                    </div>
-                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 break-words">
-                      {item.value}
-                    </p>
+          {loadingStats
+            ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
+            : statsCards.map((item, idx) => (
+                <Link
+                  to={item.link}
+                  key={idx}
+                  className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br ${
+                    item.bgGradient
+                  } border ${
+                    item.borderColor
+                  } hover:scale-[1.02] overflow-hidden ${
+                    item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
+                  } min-h-[120px] sm:min-h-[140px]`}
+                >
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-5">
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${item.gradient}`}
+                    ></div>
                   </div>
-                  <div
-                    className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg flex-shrink-0 ml-2`}
-                  >
-                    <span className="text-white">{item.icon}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="text-xs sm:text-sm text-slate-600 font-medium group-hover:text-slate-800 transition-colors flex items-center">
-                    View Details
-                    <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
-                  </span>
+                  {/* Urgent indicator */}
                   {item.urgent && (
-                    <span className="text-xs text-red-600 font-semibold">
-                      URGENT
-                    </span>
+                    <div className="absolute top-2 right-2">
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    </div>
                   )}
-                </div>
-              </div>
-            </Link>
-          ))}
+
+                  <div className="relative z-10 h-full flex flex-col">
+                    <div className="flex items-start justify-between mb-3 sm:mb-4">
+                      <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider">
+                            {item.title}
+                          </h3>
+                          {/* <span className="text-xs text-slate-500 font-medium">
+                        {item.subtitle}
+                      </span> */}
+                        </div>
+                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 break-words">
+                          {item.value}
+                        </p>
+                      </div>
+                      <div
+                        className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg flex-shrink-0 ml-2`}
+                      >
+                        <span className="text-white">{item.icon}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-xs sm:text-sm text-slate-600 font-medium group-hover:text-slate-800 transition-colors flex items-center">
+                        View Details
+                        <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
+                      </span>
+                      {item.urgent && (
+                        <span className="text-xs text-red-600 font-semibold">
+                          URGENT
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
         </motion.section>
 
         {/* Mobile-optimized Charts Section */}
@@ -420,327 +551,343 @@ const Dashboard: React.FC = () => {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6"
         >
-          {/* Monthly Expenses Chart */}
-          <div className="lg:col-span-3 bg-white p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                    Monthly Expenses
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                    Expense trends over time
-                  </p>
-                </div>
-              </div>
-              <div className="text-left sm:text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {new Date().getFullYear()}
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  Year to date
-                </div>
-              </div>
-            </div>
-            <div className="h-64 sm:h-72 lg:h-80">
-              {dashboardData.monthlyData.length > 0 ? (
-                <Line
-                  data={monthlyChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                      intersect: false,
-                      mode: "index" as const,
-                    },
-                    layout: {
-                      padding: {
-                        top: 20,
-                        right: 20,
-                        bottom: 10,
-                        left: 10,
-                      },
-                    },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        grid: {
-                          color: "#f1f5f9",
-                          lineWidth: 1,
-                          drawTicks: false,
-                        },
-                        border: {
-                          display: true,
-                          color: "#e2e8f0",
-                          width: 1,
-                        },
-                        ticks: {
-                          callback: (value) => {
-                            const numValue = Number(value);
-                            if (numValue >= 1000000) {
-                              return `${
-                                user?.preferences?.currency || "USD"
-                              }${(numValue / 1000000).toFixed(1)}M`;
-                            } else if (numValue >= 1000) {
-                              return `${
-                                user?.preferences?.currency || "USD"
-                              }${(numValue / 1000).toFixed(0)}K`;
-                            }
-                            return `${
-                              user?.preferences?.currency || "USD"
-                            }${numValue.toLocaleString()}`;
-                          },
-                          font: {
-                            size: 11,
-                            family: "Inter, sans-serif",
-                            weight: 500,
-                          },
-                          color: "#6b7280",
-                          padding: 12,
-                          maxTicksLimit: 6,
-                        },
-                      },
-                      x: {
-                        grid: {
-                          display: false,
-                        },
-                        border: {
-                          display: true,
-                          color: "#e2e8f0",
-                          width: 1,
-                        },
-                        ticks: {
-                          font: {
-                            size: 11,
-                            family: "Inter, sans-serif",
-                            weight: 500,
-                          },
-                          color: "#6b7280",
-                          padding: 8,
-                        },
-                      },
-                    },
-                    plugins: {
-                      legend: { display: false },
-                      tooltip: {
-                        enabled: true,
-                        backgroundColor: "#ffffff",
-                        titleColor: "#1f2937",
-                        bodyColor: "#374151",
-                        borderColor: "#e5e7eb",
-                        borderWidth: 1,
-                        titleFont: {
-                          size: 13,
-                          family: "Inter, sans-serif",
-                          weight: 600,
-                        },
-                        bodyFont: {
-                          size: 12,
-                          family: "Inter, sans-serif",
-                          weight: 500,
-                        },
-                        padding: 12,
-                        cornerRadius: 8,
-                        displayColors: false,
-                        caretSize: 6,
-                        caretPadding: 8,
-                        callbacks: {
-                          title: (context) => {
-                            return `${
-                              context[0].label
-                            } ${new Date().getFullYear()}`;
-                          },
-                          label: (context) => {
-                            const value = context.parsed.y;
-                            return `Expenses: ${
-                              user?.preferences?.currency || "USD"
-                            }${value.toLocaleString()}`;
-                          },
-                        },
-                      },
-                    },
-                    elements: {
-                      point: {
-                        hoverRadius: 6,
-                        hitRadius: 8,
-                      },
-                      line: {
-                        borderCapStyle: "round" as const,
-                        borderJoinStyle: "round" as const,
-                      },
-                    },
-                  }}
-                />
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 font-medium">
-                      No expense data available
-                    </p>
+          {loadingCharts ? (
+            <>
+              <SkeletonChart />
+              <SkeletonDoughnut />
+            </>
+          ) : (
+            <>
+              {/* Monthly Expenses Chart */}
+              <div className="lg:col-span-3 bg-white p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                        Monthly Overview
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                        Income vs. Expense trends
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <div className="text-sm font-medium text-gray-900">
+                      {new Date().getFullYear()}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      Year to date
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Category Chart */}
-          <div className="lg:col-span-2 bg-white p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
-              <div className="flex items-center space-x-2 sm:space-x-3">
-                <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
-                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                    Expense Categories
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                    Spending distribution by category
-                  </p>
+                <div className="h-64 sm:h-72 lg:h-80">
+                  {(dashboardData.monthlyExpenseData.length > 0 ||
+                    dashboardData.monthlyIncomeData.length > 0) ? (
+                    <Line
+                      data={monthlyChartData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                          intersect: false,
+                          mode: "index" as const,
+                        },
+                        layout: {
+                          padding: {
+                            top: 20,
+                            right: 20,
+                            bottom: 10,
+                            left: 10,
+                          },
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            grid: {
+                              color: "#f1f5f9",
+                              lineWidth: 1,
+                              drawTicks: false,
+                            },
+                            border: {
+                              display: true,
+                              color: "#e2e8f0",
+                              width: 1,
+                            },
+                            ticks: {
+                              callback: (value) => {
+                                const numValue = Number(value);
+                                if (numValue >= 1000000) {
+                                  return `${user?.preferences?.currency || "USD"}${(numValue / 1000000).toFixed(1)}M`;
+                                } else if (numValue >= 1000) {
+                                  return `${user?.preferences?.currency || "USD"}${(numValue / 1000).toFixed(0)}K`;
+                                }
+                                return `${user?.preferences?.currency || "USD"}${numValue.toLocaleString()}`;
+                              },
+                              font: {
+                                size: 11,
+                                family: "Inter, sans-serif",
+                                weight: 500,
+                              },
+                              color: "#6b7280",
+                              padding: 12,
+                              maxTicksLimit: 6,
+                            },
+                          },
+                          x: {
+                            grid: {
+                              display: false,
+                            },
+                            border: {
+                              display: true,
+                              color: "#e2e8f0",
+                              width: 1,
+                            },
+                            ticks: {
+                              font: {
+                                size: 11,
+                                family: "Inter, sans-serif",
+                                weight: 500,
+                              },
+                              color: "#6b7280",
+                              padding: 8,
+                            },
+                          },
+                        },
+                        plugins: {
+                          legend: {
+                            display: true,
+                            position: "top" as const,
+                            align: "end" as const,
+                            labels: {
+                              boxWidth: 12,
+                              padding: 20,
+                              color: "#6b7280",
+                              font: {
+                                size: 12,
+                                family: "Inter, sans-serif",
+                                weight: 500,
+                              },
+                            },
+                          },
+                          tooltip: {
+                            enabled: true,
+                            backgroundColor: "#ffffff",
+                            titleColor: "#1f2937",
+                            bodyColor: "#374151",
+                            borderColor: "#e5e7eb",
+                            borderWidth: 1,
+                            titleFont: {
+                              size: 13,
+                              family: "Inter, sans-serif",
+                              weight: 600,
+                            },
+                            bodyFont: {
+                              size: 12,
+                              family: "Inter, sans-serif",
+                              weight: 500,
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            caretSize: 6,
+                            caretPadding: 8,
+                            callbacks: {
+                              title: (context) => {
+                                return `${context[0].label} ${new Date().getFullYear()}`;
+                              },
+                              label: (context) => {
+                                const label = context.dataset.label || "";
+                                const value = context.parsed.y;
+                                if (value !== null) {
+                                  return `${label}: ${user?.preferences?.currency || "USD"}${value.toLocaleString()}`;
+                                }
+                                return "";
+                              },
+                            },
+                          },
+                        },
+                        elements: {
+                          point: {
+                            hoverRadius: 6,
+                            hitRadius: 8,
+                          },
+                          line: {
+                            borderCapStyle: "round" as const,
+                            borderJoinStyle: "round" as const,
+                          },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-center">
+                        <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500 font-medium">
+                          No income or expense data available
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="text-left sm:text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  Current Period
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  Total breakdown
-                </div>
-              </div>
-            </div>
-            <div className="h-64 sm:h-72 lg:h-80 flex items-center justify-center">
-              {dashboardData.categoryData.length > 0 ? (
-                <Doughnut
-                  data={categoryChartData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: "65%", // Slightly larger cutout for modern look
-                    layout: {
-                      padding: {
-                        top: 10,
-                        bottom: 20,
-                        left: 10,
-                        right: 10,
-                      },
-                    },
-                    plugins: {
-                      legend: {
-                        position: "bottom" as const,
-                        align: "start" as const,
-                        labels: {
-                          font: {
-                            size: 11,
-                            family: "Inter, sans-serif",
-                            weight: 500,
-                          },
-                          color: "#6B7280",
-                          boxWidth: 10,
-                          boxHeight: 10,
-                          padding: 12,
-                          usePointStyle: false,
-                          generateLabels: (chart) => {
-                            const data = chart.data;
-                            if (data.labels && data.datasets.length) {
-                              return data.labels.map((label, i) => {
-                                const dataset = data.datasets[0];
-                                const value = dataset.data[i] as number;
-                                const total = (
-                                  dataset.data as number[]
-                                ).reduce((a, b) => a + b, 0);
-                                const percentage = (
-                                  (value / total) *
-                                  100
-                                ).toFixed(1);
 
-                                return {
-                                  text: `${label} (${percentage}%)`,
-                                  fillStyle: Array.isArray(
-                                    dataset.backgroundColor
-                                  )
-                                    ? dataset.backgroundColor[i] || "#000"
-                                    : dataset.backgroundColor || "#000",
-                                  strokeStyle:
-                                    dataset.borderColor as string,
-                                  lineWidth: 1,
-                                  hidden: false,
-                                  index: i,
-                                };
-                              });
-                            }
-                            return [];
-                          },
-                        },
-                      },
-                      tooltip: {
-                        enabled: true,
-                        backgroundColor: "#ffffff",
-                        titleColor: "#1f2937",
-                        bodyColor: "#374151",
-                        borderColor: "#e5e7eb",
-                        borderWidth: 1,
-                        titleFont: {
-                          size: 13,
-                          family: "Inter, sans-serif",
-                          weight: 600,
-                        },
-                        bodyFont: {
-                          size: 12,
-                          family: "Inter, sans-serif",
-                          weight: 500,
-                        },
-                        padding: 12,
-                        cornerRadius: 8,
-                        displayColors: true,
-                        caretSize: 6,
-                        caretPadding: 8,
-                        callbacks: {
-                          title: (context) => {
-                            return context[0].label || "";
-                          },
-                          label: (context) => {
-                            const value = context.parsed;
-                            const total = (
-                              context.dataset.data as number[]
-                            ).reduce((a, b) => a + b, 0);
-                            const percentage = (
-                              (value / total) *
-                              100
-                            ).toFixed(1);
-                            return [
-                              `Amount: ${
-                                user?.preferences?.currency || "USD"
-                              }${value.toLocaleString()}`,
-                              `Percentage: ${percentage}%`,
-                            ];
-                          },
-                        },
-                      },
-                    },
-                    elements: {
-                      arc: {
-                        borderWidth: 2,
-                        borderColor: "#ffffff",
-                      },
-                    },
-                  }}
-                />
-              ) : (
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 mx-auto">
-                    <Target className="w-8 h-8 text-slate-400" />
+              {/* Category Charts */}
+              <div className="lg:col-span-2 bg-white p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
+                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                        Category Breakdown
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                        Income vs. Expense
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-slate-500 font-medium">
-                    No category data available
-                  </p>
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col items-center">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Expenses</h4>
+                    <div className="w-full h-48">
+                      {dashboardData.categoryData.length > 0 ? (
+                        <Doughnut
+                          data={expenseCategoryChartData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: "65%",
+                            plugins: {
+                              legend: {
+                                position: "bottom",
+                                labels: {
+                                  font: { size: 10 },
+                                  boxWidth: 8,
+                                  generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    if (data.labels && data.datasets.length) {
+                                      return data.labels.map((label, i) => {
+                                        const dataset = data.datasets[0];
+                                        const value = dataset.data[i] as number;
+                                        const total = (dataset.data as number[]).reduce(
+                                          (a, b) => a + b,
+                                          0
+                                        );
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return {
+                                          text: `${label} (${percentage}%)`,
+                                          fillStyle:
+                                            (dataset.backgroundColor as string[])[i] || "#000",
+                                          strokeStyle: dataset.borderColor as string,
+                                          lineWidth: 1,
+                                          hidden: false,
+                                          index: i,
+                                        };
+                                      });
+                                    }
+                                    return [];
+                                  },
+                                },
+                              },
+                              tooltip: {
+                                callbacks: {
+                                  label: (context) => {
+                                    const label = context.label || "";
+                                    const value = context.parsed;
+                                    const total = (context.dataset.data as number[]).reduce(
+                                      (a, b) => a + b,
+                                      0
+                                    );
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                  },
+                                },
+                              },
+                            },
+                          }}
+                        />
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-center text-xs text-slate-500">
+                          No expense data
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Incomes</h4>
+                    <div className="w-full h-48">
+                      {dashboardData.incomeCategoryData.length > 0 ? (
+                        <Doughnut
+                          data={incomeCategoryChartData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: "65%",
+                            plugins: {
+                              legend: {
+                                position: "bottom",
+                                labels: {
+                                  font: { size: 10 },
+                                  boxWidth: 8,
+                                  generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    if (data.labels && data.datasets.length) {
+                                      return data.labels.map((label, i) => {
+                                        const dataset = data.datasets[0];
+                                        const value = dataset.data[i] as number;
+                                        const total = (dataset.data as number[]).reduce(
+                                          (a, b) => a + b,
+                                          0
+                                        );
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return {
+                                          text: `${label} (${percentage}%)`,
+                                          fillStyle:
+                                            (dataset.backgroundColor as string[])[i] || "#000",
+                                          strokeStyle: dataset.borderColor as string,
+                                          lineWidth: 1,
+                                          hidden: false,
+                                          index: i,
+                                        };
+                                      });
+                                    }
+                                    return [];
+                                  },
+                                },
+                              },
+                              tooltip: {
+                                callbacks: {
+                                  label: (context) => {
+                                    const label = context.label || "";
+                                    const value = context.parsed;
+                                    const total = (context.dataset.data as number[]).reduce(
+                                      (a, b) => a + b,
+                                      0
+                                    );
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                  },
+                                },
+                              },
+                            },
+                          }}
+                        />
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-center text-xs text-slate-500">
+                          No income data
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </motion.section>
 
         {/* Financial Health Score Section */}

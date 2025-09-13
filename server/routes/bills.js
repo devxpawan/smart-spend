@@ -50,6 +50,7 @@ router.post("/", async (req, res) => {
       amount,
       dueDate,
       category,
+      isPaid,
       isRecurring,
       recurringPeriod,
       reminderDate,
@@ -71,6 +72,7 @@ router.post("/", async (req, res) => {
       amount,
       dueDate,
       category,
+      isPaid,
       isRecurring,
       recurringPeriod,
       reminderDate,
@@ -154,47 +156,6 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// @route   PUT /api/bills/:id
-router.put("/:id", async (req, res) => {
-  try {
-    const {
-      name,
-      amount,
-      dueDate,
-      category,
-      isRecurring,
-      recurringPeriod,
-      isPaid,
-      reminderDate,
-      notes,
-    } = req.body;
-
-    const bill = await Bill.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
-
-    if (!bill) {
-      return res.status(404).json({ message: "Bill not found" });
-    }
-
-    if (name) bill.name = name;
-    if (amount !== undefined) bill.amount = amount;
-    if (dueDate) bill.dueDate = dueDate;
-    if (category) bill.category = category;
-    if (isRecurring !== undefined) bill.isRecurring = isRecurring;
-    if (recurringPeriod) bill.recurringPeriod = recurringPeriod;
-    if (isPaid !== undefined) bill.isPaid = isPaid;
-    if (reminderDate) bill.reminderDate = reminderDate;
-    if (notes !== undefined) bill.notes = notes;
-
-    const updatedBill = await bill.save();
-    res.json(updatedBill);
-  } catch (error) {
-    console.error("Update bill error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 // @route   DELETE /api/bills/:id
 router.delete("/:id", async (req, res) => {

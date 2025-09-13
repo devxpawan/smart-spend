@@ -34,13 +34,14 @@ export interface AuthContextType {
   ) => Promise<boolean>;
   googleLogin: (credential: string) => Promise<void>;
   logout: () => void;
-  updateProfile: (data: FormData) => Promise<void>;
+  updateProfile: (data: FormData, config?: any) => Promise<void>;
   removeAvatar: () => Promise<void>;
   updateCurrency: (currency: string) => Promise<void>;
   deleteProfile: () => Promise<void>; // ADD THIS LINE
   loginWithToken: (token: string, user: User) => void;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (email: string, otp: string, password: string) => Promise<void>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -193,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     toast.success("Signed out successfully");
   };
 
-  const updateProfile = async (data: FormData) => {
+  const updateProfile = async (data: FormData, config?: any) => {
     setLoading(true);
     setError(null);
 
@@ -202,6 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         headers: {
           "Content-Type": "multipart/form-data",
         },
+        ...config,
       });
       setUser(res.data.user);
       toast.success("Profile updated successfully");
@@ -358,6 +360,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const clearError = () => {
+    setError(null);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -372,10 +378,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         updateProfile,
         removeAvatar,
         updateCurrency,
-        deleteProfile, // ADD THIS LINE
+        deleteProfile,
         loginWithToken,
         forgotPassword,
         resetPassword,
+        clearError,
       }}
     >
       {children}

@@ -8,7 +8,6 @@ import {
   Calendar,
   Store,
   DollarSign,
-  Tag,
   FileText,
   ShieldCheck,
   Upload,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { WarrantyImage } from "../types/WarrantyFormData";
 import axios from "axios";
+import CustomSelect from "./CustomSelect";
 
 interface WarrantyFormData {
   productName: string;
@@ -67,7 +67,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
   const [formData, setFormData] = useState<WarrantyFormData>({
     productName: "",
     expirationDate: "",
-    category: "Electronics (Phones, Laptops, TVs)",
+    category: "",
     purchaseDate: "",
     retailer: "",
     notes: "",
@@ -100,6 +100,8 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
     "Office Equipment",
   ];
 
+  
+
   // Initialize form data
   useEffect(() => {
     if (initialData) {
@@ -108,7 +110,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
       setFormData({
         productName: "",
         expirationDate: "",
-        category: "Electronics (Phones, Laptops, TVs)",
+        category: "",
         purchaseDate: "",
         retailer: "",
         notes: "",
@@ -141,8 +143,9 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
       newErrors.category = "Category is required";
     }
 
-    // Validate purchase date if provided
-    if (formData.purchaseDate) {
+    if (!formData.purchaseDate) {
+      newErrors.purchaseDate = "Purchase date is required";
+    } else {
       const purchaseDate = new Date(formData.purchaseDate);
       if (isNaN(purchaseDate.getTime())) {
         newErrors.purchaseDate = "Please enter a valid purchase date";
@@ -527,33 +530,23 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   >
                     Category *
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Tag className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <select
-                      id="category"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleInputChange}
-                      className={`form-select block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
-                        errors.category
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-purple-500"
-                      }`}
-                      required
-                      aria-invalid={errors.category ? "true" : "false"}
-                      aria-describedby={
-                        errors.category ? "category-error" : undefined
-                      }
-                    >
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <CustomSelect
+                    options={categories.map((cat) => ({
+                      value: cat,
+                      label: cat,
+                    }))}
+                    value={formData.category}
+                    onChange={(value) =>
+                      handleInputChange({
+                        target: { name: "category", value },
+                      } as React.ChangeEvent<HTMLSelectElement>)
+                    }
+                    className={`${
+                      errors.category
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 focus:ring-purple-500"
+                    }`}
+                  />
                   {errors.category && (
                     <div
                       id="category-error"
@@ -571,7 +564,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                     htmlFor="purchaseDate"
                     className="block text-sm font-semibold text-slate-700 mb-2"
                   >
-                    Purchase Date
+                    Purchase Date *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -589,6 +582,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 focus:ring-purple-500"
                       }`}
+                      required
                       aria-invalid={errors.purchaseDate ? "true" : "false"}
                       aria-describedby={
                         errors.purchaseDate

@@ -1,13 +1,13 @@
-import React from "react";
 import {
-  CheckCircle,
-  Users,
-  Shield,
-  TrendingUp,
   Award,
+  CheckCircle,
   Mail,
   Send,
+  Shield,
+  TrendingUp,
+  Users,
 } from "lucide-react";
+import React from "react";
 
 const Contact: React.FC = () => {
   const [result, setResult] = React.useState("");
@@ -146,26 +146,28 @@ const Contact: React.FC = () => {
 const About: React.FC = () => {
   const features = [
     {
-      name: "Expense Tracking",
+      name: "Income Management",
+      description:
+        "Effortlessly record and categorize your income sources.",
+      emoji: "💸",
+    },
+    {
+      name: "Expense Management",
       description:
         "Monitor your spending with detailed analytics and categorization",
       emoji: "💰",
     },
     {
       name: "Bill Management",
-      description: "Never miss payments with smart reminders and tracking",
+      description: "Never miss payments with smart reminders.",
       emoji: "📅",
     },
     {
-      name: "Warranty Tracking",
-      description: "Keep track of product warranties and protection plans",
+      name: "Warranty Management",
+      description: "Keep of product warranties and protection plans",
       emoji: "🛡️",
     },
-    {
-      name: "Profile Management",
-      description: "Customize your preferences and security settings",
-      emoji: "👤",
-    },
+    
   ];
 
   return (
@@ -196,12 +198,7 @@ const About: React.FC = () => {
                 secure, and stress-free.
               </p>
               <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
-                Our mission is to democratize personal finance management
-                by providing an intuitive, comprehensive platform that
-                helps individuals track expenses, manage bills, monitor
-                warranties, and make informed financial decisions. We're
-                committed to building technology that empowers users to
-                achieve their financial goals with confidence and clarity.
+                Our mission is to provide a user-friendly and comprehensive platform for managing finances.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -371,7 +368,7 @@ const About: React.FC = () => {
                     Add Your Data
                   </h4>
                   <p className="text-slate-600 text-xs">
-                    Add your financial information and start tracking
+                    Add your financial information and start managing
                   </p>
                 </div>
                 <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
@@ -382,7 +379,7 @@ const About: React.FC = () => {
                     Start Managing
                   </h4>
                   <p className="text-slate-600 text-xs">
-                    Track, analyze, and optimize your spending
+                    Analyze, and optimize your finances
                   </p>
                 </div>
               </div>
@@ -404,8 +401,8 @@ const About: React.FC = () => {
                 SmartSpend
               </h3>
               <p className="text-slate-600 max-w-md mx-auto">
-                Empowering smarter financial decisions through intelligent
-                expense tracking, bill management, and warranty protection.
+                  Empowering smarter financial decisions through intelligent
+                  expense, income, bill, and warranty management.
               </p>
               <div className="flex justify-center space-x-6 text-sm text-slate-500">
                 <span>© 2025 SmartSpend</span>

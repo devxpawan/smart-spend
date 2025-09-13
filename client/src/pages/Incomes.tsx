@@ -21,19 +21,20 @@ import {
     RefreshCw,
     Search,
     Trash2,
-    TrendingDown,
+    TrendingUp,
     X,
     XCircle,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmModal from "../components/ConfirmModal";
 import CustomSelect from "../components/CustomSelect";
-import ExpenseBulkEditModal, { BulkEditData } from "../components/ExpenseBulkEditModal";
-import ExpenseModal from "../components/ExpenseModal";
+import IncomeBulkEditModal, { BulkEditData } from "../components/IncomeBulkEditModal";
+import IncomeModal from "../components/IncomeModal";
 import { useAuth } from "../contexts/AuthContext";
-import { expenseCategories } from "../lib/expenseCategories";
-import ExpenseFormData from "../types/ExpenseFormData";
-import ExpenseInterface from "../types/ExpenseInterface";
+import { incomeCategories } from "../lib/incomeCategories";
+import IncomeFormData from "../types/IncomeFormData";
+import IncomeInterface from "../types/IncomeInterface";
+
 
 
 // Types
@@ -50,13 +51,14 @@ interface FilterConfig {
   customYear?: number;
 }
 
-const Expenses: React.FC = () => {
-  const [expenses, setExpenses] = useState<ExpenseInterface[]>([]);
+const Incomes: React.FC = () => {
+  const [incomes, setIncomes] = useState<IncomeInterface[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editExpenseData, setEditExpenseData] =
-    useState<ExpenseInterface | null>(null);
+  const [editIncomeData, setEditIncomeData] = useState<IncomeInterface | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -87,26 +89,40 @@ const Expenses: React.FC = () => {
 
   const { user } = useAuth();
 
-  const fetchExpenses = useCallback(async () => {
+  useEffect(() => {
+    fetchIncomes();
+  }, []);
+
+  // Auto-clear error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  const fetchIncomes = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/expenses");
+      console.log("Fetching incomes...");
+      const response = await axios.get("/api/incomes");
+      console.log("Incomes response:", response);
       const data = Array.isArray(response.data)
         ? response.data
-        : response.data.expenses;
-      setExpenses(data || []);
+        : response.data.incomes;
+      console.log("Incomes data:", data);
+      setIncomes(data || []);
       setError("");
     } catch (err) {
-      setError("Failed to fetch expenses");
-      console.error("Error fetching expenses:", err);
+      setError("Failed to fetch incomes");
+      console.error("Error fetching incomes:", err);
+      if (axios.isAxiosError(err)) {
+        console.error("Axios error details:", err.response);
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchExpenses();
-  }, [fetchExpenses]);
+  };
 
   const openConfirmModal = (id: string) => {
     setSelectedId(id);
@@ -118,16 +134,14 @@ const Expenses: React.FC = () => {
     const idToDelete = selectedId; // Capture ID before modal closes
     setDeletingId(idToDelete); // Set deleting state
     try {
-      await axios.delete(`/api/expenses/${idToDelete}`);
-      setExpenses((prev) =>
-        prev.filter((expense) => expense._id !== idToDelete)
-      );
+      await axios.delete(`/api/incomes/${idToDelete}`);
+      setIncomes((prev) => prev.filter((income) => income._id !== idToDelete));
       setIsModalOpen(false);
       setSelectedId(null);
       setError(""); // Clear any previous error
     } catch (err) {
-      setError("Failed to delete expense");
-      console.error("Error deleting expense:", err);
+      setError("Failed to delete income");
+      console.error("Error deleting income:", err);
     } finally {
       setDeletingId(null); // Reset deleting state
     }
@@ -139,35 +153,34 @@ const Expenses: React.FC = () => {
     action();
   };
 
-  // Memoized filtered and sorted expenses
+  const categories = incomeCategories;
+
+  // Memoized filtered and sorted incomes
   const {
-    filteredExpenses,
+    filteredIncomes,
     totalAmount,
-    categories,
     monthlyTotal,
     currentRecords,
     nPages,
   } = useMemo(() => {
-    const filtered = expenses.filter((expense) => {
+    let filtered = incomes.filter((income) => {
       // Search filter
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
-        if (
-          !expense.description.toLowerCase().includes(searchLower)
-        ) {
+        if (!income.description.toLowerCase().includes(searchLower)) {
           return false;
         }
       }
 
       // Category filter
-      if (filters.category && expense.category !== filters.category) {
+      if (filters.category && income.category !== filters.category) {
         return false;
       }
 
       // Date range filter
       if (filters.dateRange !== "all") {
-        const expenseDate = parseISO(expense.date);
-        if (!isValid(expenseDate)) return false;
+        const incomeDate = parseISO(income.date);
+        if (!isValid(incomeDate)) return false;
 
         const now = new Date();
         let dateRange: { start: Date; end: Date };
@@ -209,7 +222,7 @@ const Expenses: React.FC = () => {
             return true;
         }
 
-        if (!isWithinInterval(expenseDate, dateRange)) {
+        if (!isWithinInterval(incomeDate, dateRange)) {
           return false;
         }
       }
@@ -217,10 +230,10 @@ const Expenses: React.FC = () => {
       return true;
     });
 
-    // Sort expenses
+    // Sort incomes
     filtered.sort((a, b) => {
-      let valueA: number | string;
-      let valueB: number | string;
+      let valueA: any;
+      let valueB: any;
 
       switch (sortConfig.key) {
         case "date":
@@ -250,25 +263,24 @@ const Expenses: React.FC = () => {
     });
 
     const total = filtered.reduce(
-      (sum, expense) => sum + (expense.amount || 0),
+      (sum, income) => sum + (income.amount || 0),
       0
     );
-    const categories = expenseCategories;
 
     // Calculate this month's total
     const now = new Date();
-    const thisMonthExpenses = expenses.filter((expense) => {
-      const expenseDate = parseISO(expense.date);
+    const thisMonthIncomes = incomes.filter((income) => {
+      const incomeDate = parseISO(income.date);
       return (
-        isValid(expenseDate) &&
-        isWithinInterval(expenseDate, {
+        isValid(incomeDate) &&
+        isWithinInterval(incomeDate, {
           start: startOfMonth(now),
           end: endOfMonth(now),
         })
       );
     });
-    const monthlyTotal = thisMonthExpenses.reduce(
-      (sum, expense) => sum + (expense.amount || 0),
+    const monthlyTotal = thisMonthIncomes.reduce(
+      (sum, income) => sum + (income.amount || 0),
       0
     );
 
@@ -282,14 +294,14 @@ const Expenses: React.FC = () => {
     const nPages = Math.ceil(filtered.length / recordsPerPage);
 
     return {
-      filteredExpenses: filtered,
+      filteredIncomes: filtered,
       totalAmount: total,
-      categories: categories,
       monthlyTotal,
       currentRecords,
       nPages,
+      currentPage,
     };
-  }, [expenses, filters, sortConfig, currentPage]);
+  }, [incomes, filters, sortConfig, currentPage]);
 
   // Adjust current page if it becomes invalid after filtering or deletion
   useEffect(() => {
@@ -301,31 +313,31 @@ const Expenses: React.FC = () => {
   }, [nPages, currentPage]);
 
   const handleSubmit = useCallback(
-    async (data: ExpenseFormData) => {
+    async (data: IncomeFormData) => {
       try {
         setLoading(true);
-        if (editExpenseData) {
-          await axios.put(`/api/expenses/${editExpenseData._id}`, {
+        if (editIncomeData) {
+          await axios.put(`/api/incomes/${editIncomeData._id}`, {
             ...data,
             amount: data.amount || 0,
           });
         } else {
-          await axios.post("/api/expenses", data);
+          await axios.post("/api/incomes", data);
         }
-        await fetchExpenses();
+        await fetchIncomes();
       } catch (error) {
-        console.error("Error submitting expense:", error);
-        setError("Failed to submit expense");
+        console.error("Error submitting income:", error);
+        setError("Failed to submit income");
         if (axios.isAxiosError(error) && error.response) {
           console.error("Detailed error from server:", error.response.data);
         }
       } finally {
         setLoading(false);
         setIsAddModalOpen(false);
-        setEditExpenseData(null);
+        setEditIncomeData(null);
       }
     },
-    [editExpenseData, fetchExpenses]
+    [editIncomeData, fetchIncomes]
   );
 
   const handleSelect = (id: string) => {
@@ -339,7 +351,9 @@ const Expenses: React.FC = () => {
     if (e.target.checked) {
       setSelectedIds((prev) => [...new Set([...prev, ...currentPageIds])]);
     } else {
-      setSelectedIds((prev) => prev.filter((id) => !currentPageIds.includes(id)));
+      setSelectedIds((prev) =>
+        prev.filter((id) => !currentPageIds.includes(id))
+      );
     }
   };
 
@@ -348,15 +362,15 @@ const Expenses: React.FC = () => {
     setIsBulkDeleting(true);
     try {
       await Promise.all(
-        selectedIds.map((id) => axios.delete(`/api/expenses/${id}`))
+        selectedIds.map((id) => axios.delete(`/api/incomes/${id}`))
       );
-      setExpenses((prev) =>
+      setIncomes((prev) =>
         prev.filter((exp) => !selectedIds.includes(exp._id))
       );
       setSelectedIds([]);
       setError("");
-    } catch (_) {
-      setError("Failed to delete selected expenses");
+    } catch (err) {
+      setError("Failed to delete selected incomes");
     } finally {
       setIsBulkDeleteModalOpen(false);
       setIsBulkDeleting(false);
@@ -368,61 +382,65 @@ const Expenses: React.FC = () => {
 
     setIsBulkEditing(true);
 
+    // Prepare the update payload, parsing amount to a number if it exists
     const updatesToApply: { [key: string]: any } = { ...updates };
     if (updates.amount) {
-        updatesToApply.amount = parseFloat(updates.amount);
+      updatesToApply.amount = parseFloat(updates.amount);
     }
 
     try {
-        const updatePromises = selectedIds.map((id) => {
-            const expenseToUpdate = expenses.find((exp) => exp._id === id);
-            if (!expenseToUpdate) {
-                console.warn(`Expense with id ${id} not found for bulk update.`);
-                return Promise.resolve();
-            }
+      const updatePromises = selectedIds.map((id) => {
+        const incomeToUpdate = incomes.find((inc) => inc._id === id);
+        if (!incomeToUpdate) {
+          console.warn(`Income with id ${id} not found for bulk update.`);
+          return Promise.resolve();
+        }
 
-            const updatedData = {
-                description: updates.description ?? expenseToUpdate.description,
-                amount: updates.amount ? parseFloat(updates.amount) : expenseToUpdate.amount,
-                date: updates.date ?? expenseToUpdate.date,
-                category: updates.category ?? expenseToUpdate.category,
-                notes: expenseToUpdate.notes, // notes are not part of Edit
-            };
+        // Construct the new data by merging existing data with updates
+        const updatedData = {
+          description: updates.description ?? incomeToUpdate.description,
+          amount:
+            updates.amount
+              ? parseFloat(updates.amount)
+              : incomeToUpdate.amount,
+          date: updates.date ?? incomeToUpdate.date,
+          category: updates.category ?? incomeToUpdate.category,
+          notes: incomeToUpdate.notes, // notes are not part of Edit
+        };
 
-            return axios.put(`/api/expenses/${id}`, updatedData);
-        });
+        return axios.put(`/api/incomes/${id}`, updatedData);
+      });
 
-        await Promise.all(updatePromises);
+      await Promise.all(updatePromises);
 
-        setExpenses((prevExpenses) =>
-            prevExpenses.map((expense) => {
-                if (selectedIds.includes(expense._id)) {
-                    return { ...expense, ...updatesToApply };
-                }
-                return expense;
-            })
-        );
+      // Optimistically update local state
+      setIncomes((prevIncomes) =>
+        prevIncomes.map((income) => {
+          if (selectedIds.includes(income._id)) {
+            return { ...income, ...updatesToApply };
+          }
+          return income;
+        })
+      );
 
-        setSelectedIds([]);
-        setError("");
+      setSelectedIds([]);
+      setError("");
     } catch (err) {
-        setError("Failed to bulk update expenses. Please refresh and try again.");
-        console.error("Error during bulk update:", err);
-        fetchExpenses(); // Fallback to refetch all data on error
+      setError("Failed to bulk update incomes. Please refresh and try again.");
+      console.error("Error during bulk update:", err);
+      fetchIncomes(); // Fallback to refetch all data on error
     } finally {
-        setIsBulkEditing(false);
-        setIsBulkEditModalOpen(false);
+      setIsBulkEditing(false);
+      setIsBulkEditModalOpen(false);
     }
-};
+  };
 
-  if (loading && expenses.length === 0) {
+  if (loading && incomes.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600"></div>
-          <p className="text-slate-600 font-medium">
-            Loading your expenses...
-          </p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-sky-200 border-t-sky-600"></div>
+          <p className="text-slate-600 font-medium">Loading your incomes...</p>
         </div>
       </div>
     );
@@ -434,32 +452,32 @@ const Expenses: React.FC = () => {
       <header className="flex flex-col gap-4 sm:gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
-              <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-600 flex items-center justify-center shadow-lg">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                Expenses Management
+                Incomes Management
               </h1>
               <p className="text-slate-600 mt-1 text-sm sm:text-base">
-                Monitor and manage your daily spending habits
+                You are monitoring and managing your income sources
               </p>
             </div>
           </div>
 
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
+            className="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-600 text-white hover:from-sky-700 hover:to-cyan-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
           >
             <Plus className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-            Add New Expense
+            Add New Income
           </button>
         </div>
 
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
           <span className="text-slate-500">
-            {filteredExpenses.length} expenses
+            {filteredIncomes.length} incomes
           </span>
           <span className="text-slate-500 hidden sm:inline">•</span>
           <span className="text-slate-500">
@@ -481,7 +499,7 @@ const Expenses: React.FC = () => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search expenses..."
+            placeholder="Search incomes..."
             value={filters.searchTerm}
             onChange={(e) => {
               setFilters((prev) => ({
@@ -490,7 +508,7 @@ const Expenses: React.FC = () => {
               }));
               setCurrentPage(1);
             }}
-            className="w-full pl-12 pr-10 py-3 bg-slate-100 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition-all duration-300 shadow-sm"
+            className="w-full pl-12 pr-10 py-3 bg-slate-100 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition-all duration-300 shadow-sm"
           />
           {filters.searchTerm && (
             <button
@@ -499,7 +517,7 @@ const Expenses: React.FC = () => {
                 setFilters((prev) => ({ ...prev, searchTerm: "" }));
                 setCurrentPage(1);
               }}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-full p-1"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-full p-1"
               aria-label="Clear search"
             >
               <X className="w-4 h-4" />
@@ -553,7 +571,7 @@ const Expenses: React.FC = () => {
                   }));
                   setCurrentPage(1);
                 }}
-                className="w-full sm:w-40"
+                className="w-full sm:w-48"
               />
             </div>
           </div>
@@ -564,7 +582,11 @@ const Expenses: React.FC = () => {
               <CustomSelect
                 options={Array.from({ length: 12 }, (_, i) => ({
                   value: (i + 1).toString(),
-                  label: new Date(new Date().getFullYear(), i, 1).toLocaleString("default", {
+                  label: new Date(
+                    new Date().getFullYear(),
+                    i,
+                    1
+                  ).toLocaleString("default", {
                     month: "long",
                   }),
                 }))}
@@ -645,9 +667,9 @@ const Expenses: React.FC = () => {
               </button>
 
               <button
-                onClick={fetchExpenses}
+                onClick={fetchIncomes}
                 className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border rounded-md text-xs sm:text-sm text-gray-700 bg-white hover:bg-gray-50"
-                title="Refresh expenses"
+                title="Refresh incomes"
                 disabled={loading}
               >
                 <RefreshCw
@@ -725,27 +747,29 @@ const Expenses: React.FC = () => {
       </AnimatePresence>
 
       <div className="relative min-h-[600px]">
-        {/* Expenses Table or Empty State */}
-        {filteredExpenses.length === 0 && !loading && !error ? (
+        {/* Incomes Table or Empty State */}
+        {filteredIncomes.length === 0 && !loading && !error ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
             <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <DollarSign className="w-8 h-8 text-green-500" />
+              <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <DollarSign className="w-8 h-8 text-sky-500" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                {expenses.length === 0 ? "No Expenses to Display" : "No Matching Expenses Found"}
+                {incomes.length === 0
+                  ? "No Incomes to Display"
+                  : "No Matching Incomes Found"}
               </h3>
               <p className="text-gray-600 mb-6">
-                {expenses.length === 0
-                  ? "It looks like you haven't added any expenses yet. Let's get started!"
+                {incomes.length === 0
+                  ? "It looks like you haven't added any incomes yet. Let's get started!"
                   : "Your current filters returned no results. Try broadening your search or adjusting the criteria."}
               </p>
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm font-semibold transform hover:scale-[1.02]"
+                className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 text-white hover:from-sky-700 hover:to-cyan-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 text-sm font-semibold transform hover:scale-[1.02]"
               >
                 <Plus className="mr-2 w-4 h-4" />
-                Add New Expense
+                Add New Income
               </button>
             </div>
           </div>
@@ -756,12 +780,13 @@ const Expenses: React.FC = () => {
               {/* Mobile Card View */}
               <div className="block sm:hidden">
                 <div className="divide-y divide-gray-200">
-                  {currentRecords.map((expense) => (
+                  {currentRecords.map((income) => (
                     <div
-                      key={expense._id}
-                      className={`p-4 space-y-3 ${selectedIds.includes(expense._id) ? "bg-blue-50" : ""
-                        }`}
-                      onClick={() => handleSelect(expense._id)}
+                      key={income._id}
+                      className={`p-4 space-y-3 ${
+                        selectedIds.includes(income._id) ? "bg-blue-50" : ""
+                      }`}
+                      onClick={() => handleSelect(income._id)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
@@ -769,27 +794,27 @@ const Expenses: React.FC = () => {
                             <input
                               type="checkbox"
                               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
-                              checked={selectedIds.includes(expense._id)}
-                              onChange={() => handleSelect(expense._id)}
+                              checked={selectedIds.includes(income._id)}
+                              onChange={() => handleSelect(income._id)}
                               onClick={(e) => e.stopPropagation()}
                             />
                             <button
                               onClick={(e) =>
                                 handleActionClick(e, () =>
-                                  setEditExpenseData(expense)
+                                  setEditIncomeData(income)
                                 )
                               }
                               className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
                             >
                               <span className="truncate">
-                                {expense.description}
+                                {income.description}
                               </span>
                               <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                             </button>
                           </div>
                           <div className="mt-1 flex items-center space-x-2 ml-7">
                             <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
-                              {expense.category}
+                              {income.category}
                             </span>
                           </div>
                         </div>
@@ -798,27 +823,30 @@ const Expenses: React.FC = () => {
                       <div className="flex items-center justify-between text-sm ml-7">
                         <div>
                           <div className="text-gray-600">
-                            Date:{" "}
-                            {format(parseISO(expense.date), "MMM d, yyyy")}
+                            Date: {format(parseISO(income.date), "MMM d, yyyy")}
                           </div>
                           <div className="font-semibold text-gray-900">
                             {user?.preferences?.currency || "USD"}{" "}
-                            {typeof expense.amount === "number"
-                              ? expense.amount.toFixed(2)
+                            {typeof income.amount === "number"
+                              ? income.amount.toFixed(2)
                               : "0.00"}
                           </div>
                         </div>
                         <button
                           onClick={(e) =>
                             handleActionClick(e, () =>
-                              openConfirmModal(expense._id)
+                              openConfirmModal(income._id)
                             )
                           }
-                          className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${deletingId === expense._id ? 'opacity-60 cursor-not-allowed' : 'transform hover:scale-105'}`}
-                          title="Delete Expense"
-                          disabled={deletingId === expense._id}
+                          className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
+                            deletingId === income._id
+                              ? "opacity-60 cursor-not-allowed"
+                              : "transform hover:scale-105"
+                          }`}
+                          title="Delete Income"
+                          disabled={deletingId === income._id}
                         >
-                          {deletingId === expense._id ? (
+                          {deletingId === income._id ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
                           ) : (
                             <Trash2 className="w-4 h-4" />
@@ -835,7 +863,10 @@ const Expenses: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="p-4 flex items-center justify-center">
+                      <th
+                        scope="col"
+                        className="p-4 flex items-center justify-center"
+                      >
                         <input
                           type="checkbox"
                           className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -885,19 +916,20 @@ const Expenses: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {currentRecords.map((expense) => (
+                    {currentRecords.map((income) => (
                       <tr
-                        key={expense._id}
-                        className={`hover:bg-gray-50 ${selectedIds.includes(expense._id) ? "bg-blue-50" : ""
-                          }`}
-                        onClick={() => handleSelect(expense._id)}
+                        key={income._id}
+                        className={`hover:bg-gray-50 ${
+                          selectedIds.includes(income._id) ? "bg-blue-50" : ""
+                        }`}
+                        onClick={() => handleSelect(income._id)}
                       >
                         <td className="p-4 flex items-center justify-center">
                           <input
                             type="checkbox"
                             className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            checked={selectedIds.includes(expense._id)}
-                            onChange={() => handleSelect(expense._id)}
+                            checked={selectedIds.includes(income._id)}
+                            onChange={() => handleSelect(income._id)}
                             onClick={(e) => e.stopPropagation()}
                           />
                         </td>
@@ -905,28 +937,28 @@ const Expenses: React.FC = () => {
                           <button
                             onClick={(e) =>
                               handleActionClick(e, () =>
-                                setEditExpenseData(expense)
+                                setEditIncomeData(income)
                               )
                             }
                             className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
                           >
-                            <span>{expense.description}</span>
+                            <span>{income.description}</span>
                             <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
-                            {expense.category}
+                            {income.category}
                           </span>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {format(parseISO(expense.date), "MMM d, yyyy")}
+                          {format(parseISO(income.date), "MMM d, yyyy")}
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
                           <span className="text-sm font-semibold text-gray-900">
                             {user?.preferences?.currency || "USD"}{" "}
-                            {typeof expense.amount === "number"
-                              ? expense.amount.toFixed(2)
+                            {typeof income.amount === "number"
+                              ? income.amount.toFixed(2)
                               : "0.00"}
                           </span>
                         </td>
@@ -934,14 +966,18 @@ const Expenses: React.FC = () => {
                           <button
                             onClick={(e) =>
                               handleActionClick(e, () =>
-                                openConfirmModal(expense._id)
+                                openConfirmModal(income._id)
                               )
                             }
-                            className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${deletingId === expense._id ? 'opacity-60 cursor-not-allowed' : 'transform hover:scale-105'}`}
-                            title="Delete Expense"
-                            disabled={deletingId === expense._id}
+                            className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
+                              deletingId === income._id
+                                ? "opacity-60 cursor-not-allowed"
+                                : "transform hover:scale-105"
+                            }`}
+                            title="Delete Income"
+                            disabled={deletingId === income._id}
                           >
-                            {deletingId === expense._id ? (
+                            {deletingId === income._id ? (
                               <RefreshCw className="w-4 h-4 animate-spin" />
                             ) : (
                               <Trash2 className="w-4 h-4" />
@@ -974,9 +1010,16 @@ const Expenses: React.FC = () => {
             {(() => {
               const pageNumbers = [];
               const maxPagesToShow = 5; // Maximum number of page buttons to display
-              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500">...</li>;
+              const ellipsis = (
+                <li key="ellipsis" className="px-2 text-gray-500">
+                  ...
+                </li>
+              );
 
-              let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+              let startPage = Math.max(
+                1,
+                currentPage - Math.floor(maxPagesToShow / 2)
+              );
               let endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
 
               if (endPage - startPage + 1 < maxPagesToShow) {
@@ -990,7 +1033,7 @@ const Expenses: React.FC = () => {
                       onClick={() => setCurrentPage(1)}
                       className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
                         currentPage === 1
-                          ? "text-white bg-green-500 hover:bg-green-600"
+                          ? "text-white bg-sky-500 hover:bg-sky-600"
                           : "text-gray-700 bg-white hover:bg-gray-100"
                       }`}
                     >
@@ -1010,7 +1053,7 @@ const Expenses: React.FC = () => {
                       onClick={() => setCurrentPage(i)}
                       className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
                         currentPage === i
-                          ? "text-white bg-green-500 hover:bg-green-600"
+                          ? "text-white bg-sky-500 hover:bg-sky-600"
                           : "text-gray-700 bg-white hover:bg-gray-100"
                       }`}
                     >
@@ -1030,7 +1073,7 @@ const Expenses: React.FC = () => {
                       onClick={() => setCurrentPage(nPages)}
                       className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
                         currentPage === nPages
-                          ? "text-white bg-green-500 hover:bg-green-600"
+                          ? "text-white bg-sky-500 hover:bg-sky-600"
                           : "text-gray-700 bg-white hover:bg-gray-100"
                       }`}
                     >
@@ -1043,7 +1086,9 @@ const Expenses: React.FC = () => {
             })()}
             <li>
               <button
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, nPages))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, nPages))
+                }
                 disabled={currentPage === nPages}
                 className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
               >
@@ -1058,19 +1103,19 @@ const Expenses: React.FC = () => {
         isOpen={isModalOpen}
         onConfirm={handleDelete}
         onCancel={() => setIsModalOpen(false)}
-        title="Delete Expense?"
-        message="Are you sure you want to delete this expense?"
+        title="Delete Income?"
+        message="Are you sure you want to delete this income?"
       />
 
       <ConfirmModal
         isOpen={isBulkDeleteModalOpen}
         onConfirm={handleBulkDelete}
         onCancel={() => setIsBulkDeleteModalOpen(false)}
-        title="Delete Expenses?"
-        message={`Are you sure you want to delete ${selectedIds.length} expense(s)?`}
+        title="Delete Incomes?"
+        message={`Are you sure you want to delete ${selectedIds.length} income(s)?`}
       />
 
-      <ExpenseBulkEditModal
+      <IncomeBulkEditModal
         isOpen={isBulkEditModalOpen}
         onClose={() => setIsBulkEditModalOpen(false)}
         onConfirm={handleBulkEdit}
@@ -1079,29 +1124,29 @@ const Expenses: React.FC = () => {
         selectedCount={selectedIds.length}
       />
 
-      {(isAddModalOpen || editExpenseData) && (
-        <ExpenseModal
-          isOpen={isAddModalOpen || !!editExpenseData}
+      {(isAddModalOpen || editIncomeData) && (
+        <IncomeModal
+          isOpen={isAddModalOpen || !!editIncomeData}
           onClose={() => {
             setIsAddModalOpen(false);
-            setEditExpenseData(null);
+            setEditIncomeData(null);
           }}
           onSubmit={handleSubmit}
           initialData={
-            editExpenseData
+            editIncomeData
               ? {
-                description: editExpenseData.description,
-                amount: editExpenseData.amount,
-                date: editExpenseData.date,
-                category: editExpenseData.category,
-                notes: editExpenseData.notes,
-              }
+                  description: editIncomeData.description,
+                  amount: editIncomeData.amount,
+                  date: editIncomeData.date,
+                  category: editIncomeData.category,
+                  notes: editIncomeData.notes,
+                }
               : undefined
-          } 
+          }
         />
       )}
     </div>
   );
 };
 
-export default Expenses;
+export default Incomes;

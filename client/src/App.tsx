@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
+import Incomes from "./pages/Incomes";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Bills from "./pages/Bills";
 import MonthlyBreakdown from "./pages/MonthlyBreakdown";
@@ -14,6 +15,7 @@ import LoginRegister from "./pages/LoginRegister";
 import About from "./pages/About";
 import Warranties from "./pages/Warranties";
 import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
+import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 
 
 
@@ -30,6 +32,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <OnlineStatusIndicator />
       <Routes>
         {/* Public Routes */}
         <Route path="/warranty/:id" element={<PublicWarrantyDetails />} />
@@ -48,6 +51,7 @@ function App() {
         >
           <Route index element={<Dashboard />} />
           {/* Expense Routes */}
+          <Route path="incomes" element={<Incomes />} />
           <Route path="expenses" element={<Expenses />} />
 
           {/* Bill Routes */}

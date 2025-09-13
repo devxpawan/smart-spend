@@ -1,37 +1,44 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
 import axios, { AxiosResponse } from "axios";
 import {
-  Plus,
-  Trash2,
+  addDays,
+  endOfMonth,
+  format,
+  isPast,
+  isValid,
+  isWithinInterval,
+  parseISO,
+  startOfMonth,
+} from "date-fns";
+import { AnimatePresence, motion } from "framer-motion";
+import {
   AlertCircle,
-  CheckCircle,
-  Clock,
-  XCircle,
   ArrowDownAZ,
   ArrowUpZA,
-  Receipt,
-  Edit3,
   Calendar,
+  CheckCircle,
+  Clock,
   DollarSign,
+  Edit3,
   Filter,
-  Search,
+  Plus,
+  Receipt,
   RefreshCw,
+  Search,
+  Trash2,
+  X,
+  XCircle,
 } from "lucide-react";
-import {
-  format,
-  parseISO,
-  isPast,
-  addDays,
-  isValid,
-  startOfMonth,
-  endOfMonth,
-  isWithinInterval,
-} from "date-fns";
-import ConfirmModal from "../components/ConfirmModal";
-import BillInterface from "../types/BillInterface";
-import { useAuth } from "../contexts/AuthContext";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import BillBulkEditModal, { BulkEditUpdates } from "../components/BillBulkEditModal";
 import BillModal from "../components/BillModal";
+import ConfirmModal from "../components/ConfirmModal";
+import CustomSelect from "../components/CustomSelect";
+import { useAuth } from "../contexts/AuthContext";
+import { billCategories } from "../lib/billCategories";
 import BillFormData from "../types/BillFormData";
+import BillInterface from "../types/BillInterface";
+
+
 
 // Types
 interface SortConfig {
@@ -59,6 +66,8 @@ const Bills: React.FC = () => {
     open: false,
     id: null,
   });
+  const [deletingId, setDeletingId] = useState<string | null>(null); // For individual delete
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false); // For bulk delete
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editBillData, setEditBillData] = useState<BillInterface | null>(null);
 
@@ -77,22 +86,16 @@ const Bills: React.FC = () => {
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 12;
 
   const { user } = useAuth();
 
-  useEffect(() => {
-    fetchBills();
-  }, []);
-
-  // Auto-clear error after 5 seconds
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(""), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
-
-  const fetchBills = async () => {
+  const fetchBills = useCallback(async () => {
     try {
       setLoading(true);
       const response: AxiosResponse<{ bills: BillInterface[] }> =
@@ -113,19 +116,34 @@ const Bills: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchBills();
+  }, [fetchBills]);
+
+  // Auto-clear error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(""), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const handleDeleteConfirmed = async () => {
     if (!confirmModal.id) return;
+    const idToDelete = confirmModal.id;
+    setDeletingId(idToDelete);
     try {
-      await axios.delete(`/api/bills/${confirmModal.id}`);
-      setBills((prev) => prev.filter((bill) => bill._id !== confirmModal.id));
+      await axios.delete(`/api/bills/${idToDelete}`);
+      setBills((prev) => prev.filter((bill) => bill._id !== idToDelete));
       setError("");
-    } catch (err) {
+    } catch (_err) {
       setError("Failed to delete bill");
-      console.error("Error deleting bill:", err);
+      console.error("Error deleting bill:", _err);
     } finally {
       setConfirmModal({ open: false, id: null });
+      setDeletingId(null);
     }
   };
 
@@ -145,11 +163,12 @@ const Bills: React.FC = () => {
         );
       }
       setError("");
-    } catch (err: any) {
+    } catch (_err: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       const errorMessage =
-        err.response?.data?.message || "Failed to update bill status";
+        _err.response?.data?.message || "Failed to update bill status";
       setError(errorMessage);
-      console.error("Error updating bill status:", err);
+      console.error("Error updating bill status:", _err);
     } finally {
       setTogglingId(null);
     }
@@ -191,6 +210,7 @@ const Bills: React.FC = () => {
         priority: 3,
       };
     } catch (err) {
+      // eslint-disable-line @typescript-eslint/no-unused-vars
       console.error("Invalid dueDate:", dueDate);
       return {
         text: "Invalid Date",
@@ -202,143 +222,168 @@ const Bills: React.FC = () => {
   }, []);
 
   // Memoized filtered and sorted bills
-  const { filteredBills, totalAmount, overdueCount } = useMemo(() => {
-    let filtered = bills.filter((bill) => {
-      // Search filter
-      if (filters.searchTerm) {
-        const searchLower = filters.searchTerm.toLowerCase();
-        if (
-          !bill.name.toLowerCase().includes(searchLower) &&
-          !bill.category.toLowerCase().includes(searchLower)
-        ) {
-          return false;
+  // Memoized filtered and sorted bills
+  const { filteredBills, totalAmount, overdueCount, currentRecords, nPages, categories } =
+    useMemo(() => {
+      const filtered = bills.filter((bill) => {
+        // Search filter
+        if (filters.searchTerm) {
+          const searchLower = filters.searchTerm.toLowerCase();
+          if (!bill.name.toLowerCase().includes(searchLower)) {
+            return false;
+          }
         }
-      }
 
-      // Status filter
-      if (filters.status !== "all") {
-        const status = getBillStatus(bill.dueDate, bill.isPaid);
-        switch (filters.status) {
-          case "paid":
-            if (!bill.isPaid) return false;
-            break;
-          case "unpaid":
-            if (bill.isPaid) return false;
-            break;
-          case "overdue":
-            if (bill.isPaid || status.text !== "Overdue") return false;
-            break;
-          case "upcoming":
-            if (
-              bill.isPaid ||
-              (status.text !== "Upcoming" && status.text !== "Due Soon")
-            )
-              return false;
-            break;
+        // Status filter
+        if (filters.status !== "all") {
+          const status = getBillStatus(bill.dueDate, bill.isPaid);
+          switch (filters.status) {
+            case "paid": {
+              if (!bill.isPaid) return false;
+              break;
+            }
+            case "unpaid": {
+              if (bill.isPaid) return false;
+              break;
+            }
+            case "overdue": {
+              if (bill.isPaid || status.text !== "Overdue") return false;
+              break;
+            }
+            case "upcoming": {
+              if (
+                bill.isPaid ||
+                (status.text !== "Upcoming" && status.text !== "Due Soon")
+              )
+                return false;
+              break;
+            }
+          }
         }
-      }
 
-      // Date range filter
-      if (filters.dateRange !== "all") {
-        const billDate = parseISO(bill.dueDate);
-        if (!isValid(billDate)) return false;
+        // Date range filter
+        if (filters.dateRange !== "all") {
+          const billDate = parseISO(bill.dueDate);
+          if (!isValid(billDate)) return false;
 
-        const now = new Date();
-        let dateRange: { start: Date; end: Date };
+          const now = new Date();
+          let dateRange: { start: Date; end: Date };
 
-        switch (filters.dateRange) {
-          case "thisMonth":
-            dateRange = {
-              start: startOfMonth(now),
-              end: endOfMonth(now),
-            };
-            break;
-          case "lastMonth":
-            const lastMonth = new Date(
-              now.getFullYear(),
-              now.getMonth() - 1,
-              1
-            );
-            dateRange = {
-              start: startOfMonth(lastMonth),
-              end: endOfMonth(lastMonth),
-            };
-            break;
-          case "custom":
-            if (filters.customMonth && filters.customYear) {
-              const customDate = new Date(
-                filters.customYear,
-                filters.customMonth - 1,
+          switch (filters.dateRange) {
+            case "thisMonth": {
+              dateRange = {
+                start: startOfMonth(now),
+                end: endOfMonth(now),
+              };
+              break;
+            }
+            case "lastMonth": {
+              const lastMonth = new Date(
+                now.getFullYear(),
+                now.getMonth() - 1,
                 1
               );
               dateRange = {
-                start: startOfMonth(customDate),
-                end: endOfMonth(customDate),
+                start: startOfMonth(lastMonth),
+                end: endOfMonth(lastMonth),
               };
-            } else {
-              return true;
+              break;
             }
+            case "custom": {
+              if (filters.customMonth && filters.customYear) {
+                const customDate = new Date(
+                  filters.customYear,
+                  filters.customMonth - 1,
+                  1
+                );
+                dateRange = {
+                  start: startOfMonth(customDate),
+                  end: endOfMonth(customDate),
+                };
+              } else {
+                return true;
+              }
+              break;
+            }
+            default:
+              return true;
+          }
+
+          if (!isWithinInterval(billDate, dateRange)) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      // Sort bills
+      filtered.sort((a, b) => {
+        let valueA: number | string;
+        let valueB: number | string;
+
+        switch (sortConfig.key) {
+          case "dueDate":
+            valueA = new Date(a.dueDate).getTime();
+            valueB = new Date(b.dueDate).getTime();
+            break;
+          case "amount":
+            valueA = a.amount;
+            valueB = b.amount;
+            break;
+          case "status":
+            valueA = getBillStatus(a.dueDate, a.isPaid).priority;
+            valueB = getBillStatus(b.dueDate, b.isPaid).priority;
+            break;
+          case "name":
+            valueA = a.name.toLowerCase();
+            valueB = b.name.toLowerCase();
             break;
           default:
-            return true;
+            valueA = 0;
+            valueB = 0;
         }
 
-        if (!isWithinInterval(billDate, dateRange)) {
-          return false;
-        }
-      }
+        if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
+        if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
 
-      return true;
-    });
+      const total = filtered.reduce((sum, bill) => sum + (bill.amount || 0), 0);
+      const overdue = filtered.filter(
+        (bill) =>
+          !bill.isPaid &&
+          getBillStatus(bill.dueDate, bill.isPaid).text === "Overdue"
+      ).length;
+      const categories = billCategories;
 
-    // Sort bills
-    filtered.sort((a, b) => {
-      let valueA: any;
-      let valueB: any;
+      // Pagination logic
+      const indexOfLastRecord = currentPage * recordsPerPage;
+      const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+      const currentRecords = filtered.slice(
+        indexOfFirstRecord,
+        indexOfLastRecord
+      );
+      const nPages = Math.ceil(filtered.length / recordsPerPage);
 
-      switch (sortConfig.key) {
-        case "dueDate":
-          valueA = new Date(a.dueDate).getTime();
-          valueB = new Date(b.dueDate).getTime();
-          break;
-        case "amount":
-          valueA = a.amount;
-          valueB = b.amount;
-          break;
-        case "status":
-          valueA = getBillStatus(a.dueDate, a.isPaid).priority;
-          valueB = getBillStatus(b.dueDate, b.isPaid).priority;
-          break;
-        case "name":
-          valueA = a.name.toLowerCase();
-          valueB = b.name.toLowerCase();
-          break;
-        default:
-          valueA = 0;
-          valueB = 0;
-      }
+      return {
+        filteredBills: filtered,
+        totalAmount: total,
+        overdueCount: overdue,
+        currentRecords,
+        nPages,
+        categories,
+      };
+    }, [bills, filters, sortConfig, getBillStatus, currentPage]);
 
-      if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
-      if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    const total = filtered.reduce(
-      (sum, bill) => sum + (bill.amount || 0),
-      0
-    );
-    const overdue = filtered.filter(
-      (bill) =>
-        !bill.isPaid &&
-        getBillStatus(bill.dueDate, bill.isPaid).text === "Overdue"
-    ).length;
-
-    return {
-      filteredBills: filtered,
-      totalAmount: total,
-      overdueCount: overdue,
-    };
-  }, [bills, filters, sortConfig, getBillStatus]);
+  // Adjust current page if it becomes invalid after filtering or deletion
+  useEffect(() => {
+    if (nPages === 0 && currentPage !== 1) {
+      setCurrentPage(1); // If no records, ensure we are on page 1
+    } else if (currentPage > nPages && nPages > 0) {
+      setCurrentPage(nPages); // If current page is out of bounds, go to the last valid page
+    }
+  }, [nPages, currentPage]);
 
   const handleActionClick = (e: React.MouseEvent, action: () => void) => {
     e.preventDefault();
@@ -356,8 +401,8 @@ const Bills: React.FC = () => {
           await axios.post("/api/bills", data);
         }
         await fetchBills();
-      } catch (err) {
-        console.error("Error submitting bill:", err);
+      } catch (_err) {
+        console.error("Error submitting bill:", _err);
         setError("Failed to submit bill");
       } finally {
         setLoading(false);
@@ -375,61 +420,98 @@ const Bills: React.FC = () => {
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const currentPageIds = currentRecords.map((record) => record._id);
     if (e.target.checked) {
-      setSelectedIds(filteredBills.map((b) => b._id));
+      setSelectedIds((prev) => [...new Set([...prev, ...currentPageIds])]);
     } else {
-      setSelectedIds([]);
+      setSelectedIds((prev) =>
+        prev.filter((id) => !currentPageIds.includes(id))
+      );
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
+    setIsBulkDeleting(true);
     try {
       await Promise.all(
         selectedIds.map((id) => axios.delete(`/api/bills/${id}`))
       );
-      setBills((prev) => prev.filter((bill) => !selectedIds.includes(bill._id)));
+      setBills((prev) =>
+        prev.filter((bill) => !selectedIds.includes(bill._id))
+      );
       setSelectedIds([]);
+      setError("");
     } catch (err) {
+      // eslint-disable-line @typescript-eslint/no-unused-vars
       setError("Failed to delete selected bills");
     } finally {
       setIsBulkDeleteModalOpen(false);
+      setIsBulkDeleting(false);
     }
   };
 
-  const handleBulkMarkAsPaid = async () => {
-    if (selectedIds.length === 0) return;
+  const handleBulkEdit = async (updates: BulkEditUpdates) => {
+    if (selectedIds.length === 0 || Object.keys(updates).length === 0) return;
+
+    setIsBulkEditing(true);
+
     try {
-      await Promise.all(
-        selectedIds.map((id) => axios.put(`/api/bills/${id}/pay`))
+      const updatePromises = selectedIds.map((id) => {
+        const billToUpdate = bills.find((bill) => bill._id === id);
+        if (!billToUpdate) {
+          console.warn(`Bill with id ${id} not found for bulk update.`);
+          return Promise.resolve();
+        }
+
+        const finalData: { [key: string]: any } = {
+          amount: updates.amount ? parseFloat(updates.amount) : billToUpdate.amount,
+          dueDate: updates.dueDate ?? billToUpdate.dueDate,
+          category: updates.category ?? billToUpdate.category,
+          isPaid: updates.isPaid !== undefined ? updates.isPaid : billToUpdate.isPaid,
+        };
+
+        return axios.put(`/api/bills/${id}`, finalData);
+      });
+
+      await Promise.all(updatePromises);
+
+      // Optimistically update local state
+      setBills((prevBills) =>
+        prevBills.map((bill) => {
+          if (selectedIds.includes(bill._id)) {
+            const updatedBill: BillInterface = { ...bill };
+
+            if (updates.amount !== undefined) updatedBill.amount = parseFloat(updates.amount as string);
+            if (updates.dueDate !== undefined) updatedBill.dueDate = updates.dueDate;
+            if (updates.category !== undefined) updatedBill.category = updates.category;
+            if (updates.isPaid !== undefined) updatedBill.isPaid = updates.isPaid;
+
+            return updatedBill;
+          }
+          return bill;
+        })
       );
-      await fetchBills();
+
       setSelectedIds([]);
+      setError("");
     } catch (err) {
-      setError("Failed to mark bills as paid");
+      setError("Failed to bulk update bills. Please refresh and try again.");
+      console.error("Error during bulk update:", err);
+      fetchBills(); // Fallback to refetch all data on error
+    } finally {
+      setIsBulkEditing(false);
+      setIsBulkEditModalOpen(false);
     }
   };
 
-  const handleBulkMarkAsUnpaid = async () => {
-    if (selectedIds.length === 0) return;
-    try {
-      await Promise.all(
-        selectedIds.map((id) =>
-          axios.put(`/api/bills/${id}`, { isPaid: false })
-        )
-      );
-      await fetchBills();
-      setSelectedIds([]);
-    } catch (err) {
-      setError("Failed to mark bills as unpaid");
-    }
-  };
+  
 
   if (loading && bills.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-indigo-600"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-orange-500"></div>
           <p className="text-slate-600 font-medium">Loading your bills...</p>
         </div>
       </div>
@@ -450,7 +532,7 @@ const Bills: React.FC = () => {
                 Bills Management
               </h1>
               <p className="text-gray-600 mt-1 text-sm sm:text-base">
-                Track and manage your upcoming bills and payments
+                Manage your upcoming bills and payments
               </p>
             </div>
           </div>
@@ -487,19 +569,33 @@ const Bills: React.FC = () => {
       <div className="bg-white p-3 sm:p-4 rounded-lg border shadow-sm space-y-3 sm:space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
           <input
             type="text"
             placeholder="Search bills..."
             value={filters.searchTerm}
-            onChange={(e) =>
+            onChange={(e) => {
               setFilters((prev) => ({
                 ...prev,
                 searchTerm: e.target.value,
-              }))
-            }
-            className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+              }));
+              setCurrentPage(1);
+            }}
+            className="w-full pl-12 pr-10 py-3 bg-slate-100 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all duration-300 shadow-sm"
           />
+          {filters.searchTerm && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilters((prev) => ({ ...prev, searchTerm: "" }));
+                setCurrentPage(1);
+              }}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full p-1"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Filters and Sort */}
@@ -511,22 +607,24 @@ const Bills: React.FC = () => {
               <label className="text-xs sm:text-sm font-medium text-gray-700">
                 Status:
               </label>
-              <select
+              <CustomSelect
+                options={[
+                  { value: "all", label: "All Bills" },
+                  { value: "unpaid", label: "Unpaid" },
+                  { value: "paid", label: "Paid" },
+                  { value: "overdue", label: "Overdue" },
+                  { value: "upcoming", label: "Upcoming" },
+                ]}
                 value={filters.status}
-                onChange={(e) =>
+                onChange={(value) => {
                   setFilters((prev) => ({
                     ...prev,
-                    status: e.target.value as FilterConfig["status"],
-                  }))
-                }
-                className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-md focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              >
-                <option value="all">All Bills</option>
-                <option value="unpaid">Unpaid</option>
-                <option value="paid">Paid</option>
-                <option value="overdue">Overdue</option>
-                <option value="upcoming">Upcoming</option>
-              </select>
+                    status: value as FilterConfig["status"],
+                  }));
+                  setCurrentPage(1);
+                }}
+                className="w-full sm:w-40"
+              />
             </div>
 
             {/* Date Range Filter */}
@@ -534,64 +632,65 @@ const Bills: React.FC = () => {
               <label className="text-xs sm:text-sm font-medium text-gray-700">
                 Period:
               </label>
-              <select
+              <CustomSelect
+                options={[
+                  { value: "all", label: "All Time" },
+                  { value: "thisMonth", label: "This Month" },
+                  { value: "lastMonth", label: "Last Month" },
+                  { value: "custom", label: "Custom Month" },
+                ]}
                 value={filters.dateRange}
-                onChange={(e) =>
+                onChange={(value) => {
                   setFilters((prev) => ({
                     ...prev,
-                    dateRange: e.target.value as FilterConfig["dateRange"],
-                  }))
-                }
-                className="px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded-md focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-              >
-                <option value="all">All Time</option>
-                <option value="thisMonth">This Month</option>
-                <option value="lastMonth">Last Month</option>
-                <option value="custom">Custom Month</option>
-              </select>
+                    dateRange: value as FilterConfig["dateRange"],
+                  }));
+                  setCurrentPage(1);
+                }}
+                className="w-full sm:w-48"
+              />
             </div>
           </div>
 
           {/* Custom Month/Year Selection */}
           {filters.dateRange === "custom" && (
             <div className="flex gap-2">
-              <select
-                value={filters.customMonth}
-                onChange={(e) =>
+              <CustomSelect
+                options={Array.from({ length: 12 }, (_, i) => ({
+                  value: (i + 1).toString(),
+                  label: new Date(
+                    new Date().getFullYear(),
+                    i,
+                    1
+                  ).toLocaleString("default", {
+                    month: "long",
+                  }),
+                }))}
+                value={filters.customMonth?.toString() || ""}
+                onChange={(value) => {
                   setFilters((prev) => ({
                     ...prev,
-                    customMonth: parseInt(e.target.value),
-                  }))
-                }
-                className="form-select px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white flex-1"
-              >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {new Date(2025, i, 1).toLocaleString("default", {
-                      month: "long",
-                    })}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={filters.customYear}
-                onChange={(e) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    customYear: parseInt(e.target.value),
-                  }))
-                }
-                className="form-select px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white flex-1"
-              >
-                {Array.from({ length: 5 }, (_, i) => {
+                    customMonth: parseInt(value),
+                  }));
+                  setCurrentPage(1);
+                }}
+                className="flex-1"
+              />
+              <CustomSelect
+                options={Array.from({ length: 5 }, (_, i) => {
                   const year = new Date().getFullYear() - 2 + i;
-                  return (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  );
+                  return { value: year.toString(), label: year.toString() };
                 })}
-              </select>
+                value={filters.customYear?.toString() || ""}
+                onChange={(value) => {
+                  setFilters((prev) => ({
+                    ...prev,
+                    customYear: parseInt(value),
+                  }));
+                  setCurrentPage(1);
+                }}
+                className="flex-1"
+              />
             </div>
           )}
 
@@ -602,31 +701,34 @@ const Bills: React.FC = () => {
               <label className="text-xs sm:text-sm font-medium text-slate-700">
                 Sort by:
               </label>
-              <select
+              <CustomSelect
+                options={[
+                  { value: "dueDate", label: "Due Date" },
+                  { value: "amount", label: "Amount" },
+                  { value: "status", label: "Status" },
+                  { value: "name", label: "Name" },
+                ]}
                 value={sortConfig.key}
-                onChange={(e) =>
+                onChange={(value) => {
                   setSortConfig((prev) => ({
                     ...prev,
-                    key: e.target.value as SortConfig["key"],
-                  }))
-                }
-                className="form-select px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white flex-1 sm:flex-none"
-              >
-                <option value="dueDate">Due Date</option>
-                <option value="amount">Amount</option>
-                <option value="status">Status</option>
-                <option value="name">Name</option>
-              </select>
+                    key: value as SortConfig["key"],
+                  }));
+                  setCurrentPage(1);
+                }}
+                className="flex-1 sm:w-48"
+              />
             </div>
 
             <div className="flex gap-2">
               <button
-                onClick={() =>
+                onClick={() => {
                   setSortConfig((prev) => ({
                     ...prev,
                     direction: prev.direction === "asc" ? "desc" : "asc",
-                  }))
-                }
+                  }));
+                  setCurrentPage(1);
+                }}
                 className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex-1 sm:flex-none"
                 title="Toggle sort order"
               >
@@ -642,7 +744,7 @@ const Bills: React.FC = () => {
 
               <button
                 onClick={fetchBills}
-                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
                 title="Refresh bills"
                 disabled={loading}
               >
@@ -679,351 +781,483 @@ const Bills: React.FC = () => {
       )}
 
       {/* Bulk Actions Bar */}
-      {selectedIds.length > 0 && (
-        <div className="bg-slate-100 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="text-sm font-medium text-slate-700">
-            {selectedIds.length} item(s) selected
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleBulkMarkAsPaid}
-              className="px-3 py-2 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700"
-            >
-              Mark Paid
-            </button>
-            <button
-              onClick={handleBulkMarkAsUnpaid}
-              className="px-3 py-2 text-xs font-semibold text-white bg-yellow-600 rounded-md hover:bg-yellow-700"
-            >
-              Mark Unpaid
-            </button>
-            <button
-              onClick={() => setIsBulkDeleteModalOpen(true)}
-              className="px-3 py-2 text-xs font-semibold text-white bg-red-600 rounded-md hover:bg-red-700"
-            >
-              Delete
-            </button>
-            <button
-              onClick={() => setSelectedIds([])}
-              className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Bills Table or Empty State */}
-      {filteredBills.length === 0 && !loading && !error ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg border">
-          <div className="max-w-md mx-auto">
-            <div className="w-16 h-16 bg-orange-500 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Receipt className="w-8 h-8 text-white" />
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="bg-slate-100 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          >
+            <div className="text-sm font-medium text-slate-700">
+              {selectedIds.length} item(s) selected
             </div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              {bills.length === 0 ? "No Bills Yet" : "No Bills Found"}
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {bills.length === 0
-                ? "Start managing your finances by adding your first bill."
-                : "Try adjusting your search or filter criteria."}
-            </p>
-            {bills.length === 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsBulkEditModalOpen(true)}
+                className="px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => setIsBulkDeleteModalOpen(true)}
+                className="px-3 py-2 text-xs font-semibold text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isBulkDeleting}
+              >
+                {isBulkDeleting ? (
+                  <RefreshCw className="w-3 h-3 animate-spin mx-auto" />
+                ) : (
+                  "Delete"
+                )}
+              </button>
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="relative min-h-[600px]">
+        {/* Bills Table or Empty State */}
+        {filteredBills.length === 0 && !loading && !error ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+            <div className="max-w-md mx-auto">
+              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Receipt className="w-8 h-8 text-orange-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                {bills.length === 0 ? "No Bills to Display" : "No Matching Bills Found"}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {bills.length === 0
+                  ? "It looks like you haven't added any bills yet. Let's get started!"
+                  : "Your current filters returned no results. Try broadening your search or adjusting the criteria."}
+              </p>
               <button
                 onClick={() => setIsAddModalOpen(true)}
-                className="inline-flex items-center px-6 py-3 rounded-xl bg-orange-500 text-white  hover:bg-orange-600 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-sm font-semibold transform hover:scale-[1.02]"
+                className="inline-flex items-center px-6 py-3 rounded-xl bg-orange-500 text-white hover:bg-orange-600 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-sm font-semibold transform hover:scale-[1.02]"
               >
                 <Plus className="mr-2 w-5 h-5" />
-                Add Your First Bill
+                Add New Bill
               </button>
-            )}
-          </div>
-        </div>
-      ) : (
-        !loading &&
-        !error && (
-          <div className="bg-white rounded-lg shadow border overflow-hidden">
-            {/* Mobile Card View */}
-            <div className="block sm:hidden">
-              <div className="divide-y divide-gray-200">
-                {filteredBills.map((bill) => {
-                  const status = getBillStatus(bill.dueDate, bill.isPaid);
-                  return (
-                    <div
-                      key={bill._id}
-                      className={`p-4 space-y-3 ${
-                        selectedIds.includes(bill._id) ? "bg-blue-50" : ""
-                      }`}
-                      onClick={() => handleSelect(bill._id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
-                              checked={selectedIds.includes(bill._id)}
-                              onChange={() => handleSelect(bill._id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <button
-                              onClick={(e) =>
-                                handleActionClick(e, () => setEditBillData(bill))
-                              }
-                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
-                            >
-                              <span className="truncate">{bill.name}</span>
-                              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                            </button>
-                          </div>
-                          <div className="mt-1 flex items-center space-x-2 ml-7">
-                            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
-                              {bill.category}
-                            </span>
-                            <span
-                              className={`inline-flex items-center text-xs px-2 py-1 rounded-full font-semibold border ${status.color} shadow-sm`}
-                            >
-                              {status.icon}
-                              {status.text}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-sm ml-7">
-                        <div>
-                          <div className="text-gray-600">
-                            Due:{" "}
-                            {format(parseISO(bill.dueDate), "MMM d, yyyy")}
-                          </div>
-                          <div className="font-semibold text-gray-900">
-                            {user?.preferences?.currency || "USD"}{" "}
-                            {bill?.amount?.toFixed(2)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-2 pt-2 ml-7">
-                        <button
-                          onClick={(e) =>
-                            handleActionClick(e, () =>
-                              handleTogglePaid(bill._id, bill.isPaid)
-                            )
-                          }
-                          className={`flex-1 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${
-                            bill.isPaid
-                              ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400"
-                              : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
-                          } ${
-                            togglingId === bill._id
-                              ? "opacity-60 cursor-not-allowed"
-                              : ""
-                          }`}
-                          disabled={togglingId === bill._id}
-                        >
-                          {togglingId === bill._id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin mx-auto" />
-                          ) : bill.isPaid ? (
-                            "Mark Unpaid"
-                          ) : (
-                            "Mark Paid"
-                          )}
-                        </button>
-                        <button
-                          onClick={(e) =>
-                            handleActionClick(e, () =>
-                              setConfirmModal({
-                                open: true,
-                                id: bill._id,
-                              })
-                            )
-                          }
-                          className="text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500"
-                          title="Delete Bill"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
-
-            {/* Desktop Table View */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="p-4">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        onChange={handleSelectAll}
-                        checked={
-                          filteredBills.length > 0 &&
-                          selectedIds.length === filteredBills.length
-                        }
-                        //indeterminate={
-                        //  selectedIds.length > 0 &&
-                        //  selectedIds.length < filteredBills.length
-                        //}
-                      />
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <Receipt className="w-4 h-4" />
-                        <span>Bill Name</span>
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                    >
-                      Category
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-                    >
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>Due Date</span>
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider"
-                    >
-                      <div className="flex items-center justify-end space-x-2">
-                        <DollarSign className="w-4 h-4" />
-                        <span>Amount</span>
-                      </div>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
-                    >
-                      Status
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider"
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white/50 divide-y divide-slate-200">
-                  {filteredBills.map((bill) => {
+          </div>
+        ) : (
+          !loading &&
+          !error && (
+            <div className="bg-white rounded-lg shadow border overflow-hidden">
+              {/* Mobile Card View */}
+              <div className="block sm:hidden">
+                <div className="divide-y divide-gray-200">
+                  {currentRecords.map((bill) => {
                     const status = getBillStatus(bill.dueDate, bill.isPaid);
                     return (
-                      <tr
+                      <div
                         key={bill._id}
-                        className={`hover:bg-gray-50 ${
+                        className={`p-4 space-y-3 ${
                           selectedIds.includes(bill._id) ? "bg-blue-50" : ""
                         }`}
                         onClick={() => handleSelect(bill._id)}
                       >
-                        <td className="p-4">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            checked={selectedIds.includes(bill._id)}
-                            onChange={() => handleSelect(bill._id)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                                checked={selectedIds.includes(bill._id)}
+                                onChange={() => handleSelect(bill._id)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <button
+                                onClick={(e) =>
+                                  handleActionClick(e, () =>
+                                    setEditBillData(bill)
+                                  )
+                                }
+                                className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                              >
+                                <span className="truncate">{bill.name}</span>
+                                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                              </button>
+                            </div>
+                            <div className="mt-1 flex items-center space-x-2 ml-7">
+                              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                                {bill.category}
+                              </span>
+                              <span
+                                className={`inline-flex items-center text-xs px-2 py-1 rounded-full font-semibold border ${status.color} shadow-sm`}
+                              >
+                                {status.icon}
+                                {status.text}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-sm ml-7">
+                          <div>
+                            <div className="text-gray-600">
+                              Due:{" "}
+                              {format(parseISO(bill.dueDate), "MMM d, yyyy")}
+                            </div>
+                            <div className="font-semibold text-gray-900">
+                              {user?.preferences?.currency || "USD"}{" "}
+                              {bill?.amount?.toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 pt-2 ml-7">
                           <button
                             onClick={(e) =>
-                              handleActionClick(e, () => setEditBillData(bill))
+                              handleActionClick(e, () =>
+                                handleTogglePaid(bill._id, bill.isPaid)
+                              )
                             }
-                            className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                            className={`flex-1 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${
+                              bill.isPaid
+                                ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400"
+                                : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
+                            } ${
+                              togglingId === bill._id
+                                ? "opacity-60 cursor-not-allowed"
+                                : ""
+                            }`}
+                            disabled={togglingId === bill._id}
                           >
-                            <span>{bill.name}</span>
-                            <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {togglingId === bill._id ? (
+                              <RefreshCw className="w-4 h-4 animate-spin mx-auto" />
+                            ) : bill.isPaid ? (
+                              "Mark Unpaid"
+                            ) : (
+                              "Mark Paid"
+                            )}
                           </button>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
-                            {bill.category}
-                          </span>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {format(parseISO(bill.dueDate), "MMM d, yyyy")}
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
-                          <span className="text-sm font-semibold text-gray-900">
-                            {user?.preferences?.currency || "USD"}{" "}
-                            {bill?.amount?.toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full font-semibold border ${status.color} shadow-sm`}
+                          <button
+                            onClick={(e) =>
+                              handleActionClick(e, () =>
+                                setConfirmModal({
+                                  open: true,
+                                  id: bill._id,
+                                })
+                              )
+                            }
+                            className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${deletingId === bill._id ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            title="Delete Bill"
+                            disabled={deletingId === bill._id}
                           >
-                            {status.icon}
-                            {status.text}
-                          </span>
-                        </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <button
-                              onClick={(e) =>
-                                handleActionClick(e, () =>
-                                  handleTogglePaid(bill._id, bill.isPaid)
-                                )
-                              }
-                              className={`text-xs px-3 lg:px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${
-                                bill.isPaid
-                                  ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400"
-                                  : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
-                              } ${
-                                togglingId === bill._id
-                                  ? "opacity-60 cursor-not-allowed"
-                                  : "transform hover:scale-105"
-                              }`}
-                              disabled={togglingId === bill._id}
-                              title={
-                                bill.isPaid ? "Mark as Unpaid" : "Mark as Paid"
-                              }
-                            >
-                              {togglingId === bill._id ? (
-                                <RefreshCw className="w-4 h-4 animate-spin" />
-                              ) : bill.isPaid ? (
-                                "Mark Unpaid"
-                              ) : (
-                                "Mark Paid"
-                              )}
-                            </button>
-                            <button
-                              onClick={(e) =>
-                                handleActionClick(e, () =>
-                                  setConfirmModal({
-                                    open: true,
-                                    id: bill._id,
-                                  })
-                                )
-                              }
-                              className="text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 transform hover:scale-105"
-                              title="Delete Bill"
-                            >
+                            {deletingId === bill._id ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
                               <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="p-4 flex items-center justify-center"
+                      >
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          onChange={handleSelectAll}
+                          checked={
+                            currentRecords.length > 0 &&
+                            currentRecords.every((record) =>
+                              selectedIds.includes(record._id)
+                            )
+                          }
+                          ref={(el) =>
+                            el &&
+                            (el.indeterminate =
+                              currentRecords.some((record) =>
+                                selectedIds.includes(record._id)
+                              ) &&
+                              !currentRecords.every((record) =>
+                                selectedIds.includes(record._id)
+                              ))
+                          }
+                        />
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <Receipt className="w-4 h-4" />
+                          <span>Bill Name</span>
+                        </div>
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                      >
+                        Category
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                      >
+                        <div className="flex items-center space-x-1">
+                          <Calendar className="w-4 h-4" />
+                          <span>Due Date</span>
+                        </div>
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      >
+                        <div className="flex items-center justify-end space-x-2">
+                          <DollarSign className="w-4 h-4" />
+                          <span>Amount</span>
+                        </div>
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      >
+                        Status
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      >
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white/50 divide-y divide-slate-200">
+                    {currentRecords.map((bill) => {
+                      const status = getBillStatus(bill.dueDate, bill.isPaid);
+                      return (
+                        <tr
+                          key={bill._id}
+                          className={`hover:bg-gray-50 ${
+                            selectedIds.includes(bill._id) ? "bg-blue-50" : ""
+                          }`}
+                          onClick={() => handleSelect(bill._id)}
+                        >
+                          <td className="p-4 flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                              checked={selectedIds.includes(bill._id)}
+                              onChange={() => handleSelect(bill._id)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                            <button
+                              onClick={(e) =>
+                                handleActionClick(e, () =>
+                                  setEditBillData(bill)
+                                )
+                              }
+                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                            >
+                              <span>{bill.name}</span>
+                              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                            <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                              {bill.category}
+                            </span>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {format(parseISO(bill.dueDate), "MMM d, yyyy")}
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
+                            <span className="text-sm font-semibold text-gray-900">
+                              {user?.preferences?.currency || "USD"}{" "}
+                              {bill?.amount?.toFixed(2)}
+                            </span>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full font-semibold border ${status.color} shadow-sm`}
+                            >
+                              {status.icon}
+                              {status.text}
+                            </span>
+                          </td>
+                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end space-x-2">
+                              <button
+                                onClick={(e) =>
+                                  handleActionClick(e, () =>
+                                    handleTogglePaid(bill._id, bill.isPaid)
+                                  )
+                                }
+                                className={`text-xs px-3 lg:px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${
+                                  bill.isPaid
+                                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400"
+                                    : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
+                                } ${
+                                  togglingId === bill._id
+                                    ? "opacity-60 cursor-not-allowed"
+                                    : "transform hover:scale-105"
+                                }`}
+                                disabled={togglingId === bill._id}
+                                title={
+                                  bill.isPaid
+                                    ? "Mark as Unpaid"
+                                    : "Mark as Paid"
+                                }
+                              >
+                                {togglingId === bill._id ? (
+                                  <RefreshCw className="w-4 h-4 animate-spin" />
+                                ) : bill.isPaid ? (
+                                  "Mark Unpaid"
+                                ) : (
+                                  "Mark Paid"
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) =>
+                                  handleActionClick(e, () =>
+                                    setConfirmModal({
+                                      open: true,
+                                      id: bill._id,
+                                    })
+                                  )
+                                }
+                                className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${deletingId === bill._id ? 'opacity-60 cursor-not-allowed' : 'transform hover:scale-105'}`}
+                                title="Delete Bill"
+                                disabled={deletingId === bill._id}
+                              >
+                                {deletingId === bill._id ? (
+                                  <RefreshCw className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )
+          )
+        )}
+      </div>
+
+      {nPages > 1 && (
+        <nav className="flex justify-center mt-6 p-2 bg-white rounded-lg shadow-md">
+          <ul className="flex items-center space-x-1 h-10 text-base">
+            <li>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                Previous
+              </button>
+            </li>
+            {/* Page numbers */}
+            {(() => {
+              const pageNumbers = [];
+              const maxPagesToShow = 5; // Maximum number of page buttons to display
+              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500">...</li>;
+
+              let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+              let endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
+
+              if (endPage - startPage + 1 < maxPagesToShow) {
+                startPage = Math.max(1, endPage - maxPagesToShow + 1);
+              }
+
+              if (startPage > 1) {
+                pageNumbers.push(
+                  <li key={1}>
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                        currentPage === 1
+                          ? "text-white bg-orange-500 hover:bg-orange-600"
+                          : "text-gray-700 bg-white hover:bg-gray-100"
+                      }`}
+                    >
+                      1
+                    </button>
+                  </li>
+                );
+                if (startPage > 2) {
+                  pageNumbers.push(ellipsis);
+                }
+              }
+
+              for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(
+                  <li key={i}>
+                    <button
+                      onClick={() => setCurrentPage(i)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                        currentPage === i
+                          ? "text-white bg-orange-500 hover:bg-orange-600"
+                          : "text-gray-700 bg-white hover:bg-gray-100"
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  </li>
+                );
+              }
+
+              if (endPage < nPages) {
+                if (endPage < nPages - 1) {
+                  pageNumbers.push(ellipsis);
+                }
+                pageNumbers.push(
+                  <li key={nPages}>
+                    <button
+                      onClick={() => setCurrentPage(nPages)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                        currentPage === nPages
+                          ? "text-white bg-orange-500 hover:bg-orange-600"
+                          : "text-gray-700 bg-white hover:bg-gray-100"
+                      }`}
+                    >
+                      {nPages}
+                    </button>
+                  </li>
+                );
+              }
+              return pageNumbers;
+            })()}
+            <li>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, nPages))
+                }
+                disabled={currentPage === nPages}
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                Next
+              </button>
+            </li>
+          </ul>
+        </nav>
       )}
 
       <ConfirmModal
@@ -1038,6 +1272,15 @@ const Bills: React.FC = () => {
         onCancel={() => setIsBulkDeleteModalOpen(false)}
         onConfirm={handleBulkDelete}
         message={`This action cannot be undone. Do you really want to delete ${selectedIds.length} bill(s)?`}
+      />
+
+      <BillBulkEditModal
+        isOpen={isBulkEditModalOpen}
+        onClose={() => setIsBulkEditModalOpen(false)}
+        onConfirm={handleBulkEdit}
+        categories={categories}
+        isBulkEditing={isBulkEditing}
+        selectedCount={selectedIds.length}
       />
 
       {(isAddModalOpen || editBillData) && (
@@ -1058,7 +1301,7 @@ const Bills: React.FC = () => {
                   isPaid: editBillData.isPaid,
                 }
               : undefined
-          }
+          } 
         />
       )}
     </div>

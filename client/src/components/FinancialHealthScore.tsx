@@ -1,34 +1,19 @@
-import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { motion } from "framer-motion";
 import {
-  TrendingUp,
-  TrendingDown,
   AlertCircle,
   CheckCircle,
   Info,
   Target,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 
 interface ScoreBreakdown {
-  billPayment: {
-    score: number;
-    rate: number;
-    description: string;
-  };
-  spendingConsistency: {
-    score: number;
-    variation: number;
-    description: string;
-  };
-  expenseTrend: {
-    score: number;
-    description: string;
-  };
-  activity: {
-    score: number;
-    transactions: number;
+  monthlyBalance: {
+    amount: number;
     description: string;
   };
 }
@@ -51,6 +36,12 @@ interface MonthlyComparison {
     previous: number;
     change: number;
   };
+  incomes: {
+    current: number;
+    previous: number;
+    change: number;
+    changeType: string;
+  };
 }
 
 interface Suggestion {
@@ -61,7 +52,7 @@ interface Suggestion {
 }
 
 interface FinancialHealthData {
-  healthScore: number;
+  healthScore: number; // This will now be the surplus/deficit amount
   scoreBreakdown: ScoreBreakdown;
   monthlyComparison: MonthlyComparison;
   suggestions: Suggestion[];
@@ -80,7 +71,7 @@ const FinancialHealthScore: React.FC = () => {
     try {
       setLoading(true);
       setError("");
-      const response = await axios.get("/api/expenses/financial-health");
+      const response = await axios.get("/api/financial-health");
       setHealthData(response.data);
     } catch (error: any) {
       console.error("Financial health fetch error:", error);
@@ -103,15 +94,15 @@ const FinancialHealthScore: React.FC = () => {
     } ${amount.toLocaleString()}`;
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-emerald-600";
-    if (score >= 60) return "text-yellow-600";
+  const getScoreColor = (amount: number) => {
+    if (amount > 0) return "text-emerald-600";
+    if (amount === 0) return "text-yellow-600";
     return "text-red-600";
   };
 
-  const getScoreGradient = (score: number) => {
-    if (score >= 80) return "from-emerald-500 to-teal-600";
-    if (score >= 60) return "from-yellow-500 to-orange-600";
+  const getScoreGradient = (amount: number) => {
+    if (amount > 0) return "from-emerald-500 to-teal-600";
+    if (amount === 0) return "from-yellow-500 to-orange-600";
     return "from-red-500 to-pink-600";
   };
 
@@ -191,17 +182,17 @@ const FinancialHealthScore: React.FC = () => {
         {/* Score Circle */}
         <div className="lg:col-span-1 flex flex-col items-center justify-center">
           <div className="relative mb-4">
-            <div className="w-32 h-32 rounded-full bg-white shadow-lg flex items-center justify-center">
+            <div className="w-44 h-44 rounded-full bg-white shadow-lg flex items-center justify-center">
               <div className="text-center">
                 <div
                   className={`text-4xl font-bold ${getScoreColor(
                     healthData.healthScore
                   )}`}
                 >
-                  {healthData.healthScore}
+                  {formatCurrency(healthData.healthScore)}
                 </div>
                 <div className="text-sm text-slate-500 font-medium">
-                  / 100
+                  Monthly Balance
                 </div>
               </div>
             </div>
@@ -217,18 +208,18 @@ const FinancialHealthScore: React.FC = () => {
                 healthData.healthScore
               )}`}
             >
-              {healthData.healthScore >= 80
-                ? "Excellent!"
-                : healthData.healthScore >= 60
-                ? "Good"
-                : "Needs Work"}
+              {healthData.healthScore > 0
+                ? "Healthy Surplus!"
+                : healthData.healthScore === 0
+                ? "Breaking Even."
+                : "Running a Deficit."}
             </div>
             <div className="text-sm text-slate-600">
-              {healthData.healthScore >= 80
-                ? "Keep up the great work!"
-                : healthData.healthScore >= 60
-                ? "You're doing well"
-                : "Let's improve together"}
+              {healthData.healthScore > 0
+                ? "You're managing your money well."
+                : healthData.healthScore === 0
+                ? "Your income matches your expenses."
+                : "You're spending more than you earn."}
             </div>
           </div>
         </div>
@@ -238,7 +229,39 @@ const FinancialHealthScore: React.FC = () => {
           <h4 className="text-lg font-bold text-slate-800 mb-4">
             This Month vs Last Month
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+
+            <div className="bg-white/60 p-4 rounded-xl border border-emerald-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-700">
+                  Incomes
+                </span>
+                {healthData.monthlyComparison.incomes.changeType ===
+                "increase" ? (
+                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                ) : (
+                  <TrendingDown className="w-4 h-4 text-red-500" />
+                )}
+              </div>
+              <div className="text-xl font-bold text-slate-800">
+                {formatCurrency(
+                  healthData.monthlyComparison.incomes.current
+                )}
+              </div>
+              <div
+                className={`text-sm ${
+                  healthData.monthlyComparison.incomes.changeType ===
+                  "increase"
+                    ? "text-emerald-600"
+                    : "text-red-600"
+                }`}
+              >
+                {healthData.monthlyComparison.incomes.change > 0 ? "+" : ""}
+                {Math.round(healthData.monthlyComparison.incomes.change)}% vs
+                last month
+              </div>
+            </div>
+
             <div className="bg-white/60 p-4 rounded-xl border border-emerald-100">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-slate-700">
@@ -336,6 +359,8 @@ const FinancialHealthScore: React.FC = () => {
                 % vs last month
               </div>
             </div>
+
+            
           </div>
         </div>
       </div>

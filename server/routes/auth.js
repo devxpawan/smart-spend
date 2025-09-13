@@ -1,20 +1,21 @@
-import express from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
-import User from "../models/User.js";
-import Expense from "../models/Expense.js";
-import Bill from "../models/Bill.js";
-import Warranty from "../models/Warranty.js";
-import { authenticateToken } from "../middleware/auth.js";
-import { validate, authValidation } from "../middleware/validator.js";
-import multer from "multer";
-import path from "path";
+import express from "express";
 import fs from "fs";
 import { OAuth2Client } from "google-auth-library";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+import multer from "multer";
+import path from "path";
 import cloudinary from "../cloudinary.js";
-import sendEmail from "../utils/sendEmail.js";
+import { authenticateToken } from "../middleware/auth.js";
+import { authValidation, validate } from "../middleware/validator.js";
+import Bill from "../models/Bill.js";
+import Expense from "../models/Expense.js";
+import Income from "../models/Income.js";
+import User from "../models/User.js";
+import Warranty from "../models/Warranty.js";
 import generateOTP from "../utils/otpGenerator.js";
+import sendEmail from "../utils/sendEmail.js";
 
 /**
  * Google OAuth Configuration:
@@ -36,6 +37,129 @@ const upload = multer({
     cb(null, true);
   },
 });
+
+// Helper function to generate JWT
+const generateVerificationEmailHtml = (otp, expiresMinutes) => `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+      <div style="background-color: #4CAF50; color: #ffffff; padding: 25px 20px; text-align: center;">
+        <h1 style="font-size: 28px; margin: 0; font-weight: 600;">SmartSpend</h1>
+        <p style="font-size: 16px; margin: 5px 0 0;">Email Verification</p>
+      </div>
+      <div style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #555;">Dear User,</p>
+        <p style="font-size: 16px; color: #555;">Thank you for registering with SmartSpend. To complete your registration, please use the following One-Time Password (OTP):</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <span style="display: inline-block; background-color: #e0e0e0; color: #333; font-size: 32px; font-weight: bold; padding: 15px 30px; border-radius: 8px; letter-spacing: 2px;">${otp}</span>
+        </div>
+        <p style="font-size: 15px; color: #777;">This OTP is valid for <strong style="color: #333;">${expiresMinutes} minutes</strong>. Please do not share this code with anyone.</p>
+        <p style="font-size: 15px; color: #777;">If you did not request this, please ignore this email.</p>
+        <p style="font-size: 16px; color: #555; margin-top: 30px;">Best regards,</p>
+        <p style="font-size: 16px; color: #555; margin: 0;">The SmartSpend Team</p>
+      </div>
+      <div style="background-color: #f0f0f0; padding: 20px 25px; text-align: center; font-size: 12px; color: #777;">
+        <p style="margin: 0;">This is an automated email, please do not reply.</p>
+        <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} SmartSpend. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+`;
+
+const generatePasswordResetEmailHtml = (otp, expiresMinutes) => `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+      <div style="background-color: #FF6347; color: #ffffff; padding: 25px 20px; text-align: center;">
+        <h1 style="font-size: 28px; margin: 0; font-weight: 600;">SmartSpend</h1>
+        <p style="font-size: 16px; margin: 5px 0 0;">Password Reset Request</p>
+      </div>
+      <div style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #555;">Dear User,</p>
+        <p style="font-size: 16px; color: #555;">We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <span style="display: inline-block; background-color: #e0e0e0; color: #333; font-size: 32px; font-weight: bold; padding: 15px 30px; border-radius: 8px; letter-spacing: 2px;">${otp}</span>
+        </div>
+        <p style="font-size: 15px; color: #777;">This OTP is valid for <strong style="color: #333;">${expiresMinutes} minutes</strong>. Please do not share this code with anyone.</p>
+        <p style="font-size: 15px; color: #777;">If you did not request a password reset, please ignore this email.</p>
+        <p style="font-size: 16px; color: #555; margin-top: 30px;">Best regards,</p>
+        <p style="font-size: 16px; color: #555; margin: 0;">The SmartSpend Team</p>
+      </div>
+      <div style="background-color: #f0f0f0; padding: 20px 25px; text-align: center; font-size: 12px; color: #777;">
+        <p style="margin: 0;">This is an automated email, please do not reply.</p>
+        <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} SmartSpend. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+`;;
+
+const generateAccountCreatedEmailHtml = (userName) => `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+      <div style="background-color: #4CAF50; color: #ffffff; padding: 25px 20px; text-align: center;">
+        <h1 style="font-size: 28px; margin: 0; font-weight: 600;">SmartSpend</h1>
+        <p style="font-size: 16px; margin: 5px 0 0;">Account Created Successfully!</p>
+      </div>
+      <div style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #555;">Dear ${userName},</p>
+        <p style="font-size: 16px; color: #555;">Welcome to SmartSpend! Your account has been successfully created and verified.</p>
+        <p style="font-size: 16px; color: #555;">You can now log in and start managing your finances with ease.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${process.env.CLIENT_URL}/auth" style="display: inline-block; background-color: #4CAF50; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold;">Log In to Your Account</a>
+        </div>
+        <p style="font-size: 16px; color: #555; margin-top: 30px;">Thank you for joining SmartSpend!</p>
+        <p style="font-size: 16px; color: #555; margin: 0;">Best regards,</p>
+        <p style="font-size: 16px; color: #555; margin: 0;">The SmartSpend Team</p>
+      </div>
+      <div style="background-color: #f0f0f0; padding: 20px 25px; text-align: center; font-size: 12px; color: #777;">
+        <p style="margin: 0;">This is an automated email, please do not reply.</p>
+        <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} SmartSpend. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+`;
+
+const generateAccountDeletedEmailHtml = (userName) => `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+      <div style="background-color: #DC3545; color: #ffffff; padding: 25px 20px; text-align: center;">
+        <h1 style="font-size: 28px; margin: 0; font-weight: 600;">SmartSpend</h1>
+        <p style="font-size: 16px; margin: 5px 0 0;">Account Deletion Confirmation</p>
+      </div>
+      <div style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #555;">Dear ${userName},</p>
+        <p style="font-size: 16px; color: #555;">This email confirms that your SmartSpend account has been successfully deleted.</p>
+        <p style="font-size: 16px; color: #555;">We are sorry to see you go. If this was an error or you have any questions, please contact our support team.</p>
+        <p style="font-size: 16px; color: #555; margin-top: 30px;">Best regards,</p>
+        <p style="font-size: 16px; color: #555; margin: 0;">The SmartSpend Team</p>
+      </div>
+      <div style="background-color: #f0f0f0; padding: 20px 25px; text-align: center; font-size: 12px; color: #777;">
+        <p style="margin: 0;">This is an automated email, please do not reply.</p>
+        <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} SmartSpend. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+`;
+
+const generatePasswordResetConfirmationEmailHtml = (userName) => `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+      <div style="background-color: #4CAF50; color: #ffffff; padding: 25px 20px; text-align: center;">
+        <h1 style="font-size: 28px; margin: 0; font-weight: 600;">SmartSpend</h1>
+        <p style="font-size: 16px; margin: 5px 0 0;">Password Reset Successful</p>
+      </div>
+      <div style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #555;">Dear ${userName},</p>
+        <p style="font-size: 16px; color: #555;">Your password for your SmartSpend account has been successfully reset.</p>
+        <p style="font-size: 16px; color: #555;">If you did not initiate this change, please contact our support team immediately.</p>
+        <p style="font-size: 16px; color: #555; margin-top: 30px;">Best regards,</p>
+        <p style="font-size: 16px; color: #555; margin: 0;">The SmartSpend Team</p>
+      </div>
+      <div style="background-color: #f0f0f0; padding: 20px 25px; text-align: center; font-size: 12px; color: #777;">
+        <p style="margin: 0;">This is an automated email, please do not reply.</p>
+        <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} SmartSpend. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+`;
 
 // Helper function to generate JWT
 const generateToken = (user) => {
@@ -128,7 +252,8 @@ router.post(
       await sendEmail(
         email,
         "Verify your email",
-        `Your OTP is: ${otp}. It will expire in 10 minutes.`
+        null, // text content (optional)
+        generateVerificationEmailHtml(otp, 10) // html content
       );
 
       res.status(201).json({
@@ -162,6 +287,14 @@ router.post("/verify-otp", async (req, res) => {
     await user.save();
 
     const token = generateToken(user);
+
+    // Send account creation success email
+    await sendEmail(
+      user.email,
+      "Welcome to SmartSpend! Your Account is Ready",
+      null,
+      generateAccountCreatedEmailHtml(user.name)
+    );
 
     res.json({
       token,
@@ -199,7 +332,8 @@ router.post("/resend-otp", async (req, res) => {
     await sendEmail(
       email,
       "Verify your email",
-      `Your new OTP is: ${otp}. It will expire in 10 minutes.`
+      null, // text content (optional)
+      generateVerificationEmailHtml(otp, 10) // html content
     );
 
     res.json({ message: "New OTP sent to your email" });
@@ -218,7 +352,7 @@ router.post("/login", validate(authValidation.login), async (req, res) => {
     // Find user and check password
     const user = await User.findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ message: "Invalid email or password" });
     }
 
     if (!user.isVerified) {
@@ -256,7 +390,8 @@ router.post("/forgot-password", async (req, res) => {
     await sendEmail(
       user.email,
       "Password Reset OTP",
-      `Your OTP for password reset is: ${otp}. It will expire in 5 minutes.`
+      null, // text content (optional)
+      generatePasswordResetEmailHtml(otp, 5) // html content
     );
 
     res.json({ message: "OTP sent to your email." });
@@ -280,12 +415,26 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
+    // Check if the new password is the same as the current password
+    const isSamePassword = await bcrypt.compare(password, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: "New password cannot be the same as the old password." });
+    }
+
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
     user.passwordResetOTP = undefined;
     user.passwordResetExpires = undefined;
 
     await user.save();
+
+    // Send password reset confirmation email
+    await sendEmail(
+      user.email,
+      "SmartSpend Password Reset Successful",
+      null,
+      generatePasswordResetConfirmationEmailHtml(user.name)
+    );
 
     res.json({ message: "Password has been reset successfully." });
   } catch (error) {
@@ -575,6 +724,13 @@ router.delete("/profile", authenticateToken, async (req, res) => {
     }
 
     // Delete user
+    // Send account deletion confirmation email before deleting the user
+    await sendEmail(
+      user.email,
+      "SmartSpend Account Deletion Confirmation",
+      null,
+      generateAccountDeletedEmailHtml(user.name)
+    );
     await User.findByIdAndDelete(req.user.id);
     console.log(`User ${req.user.id} deleted successfully`);
 
@@ -593,11 +749,12 @@ router.get("/profile/stats", authenticateToken, async (req, res) => {
     const userId = new mongoose.Types.ObjectId(req.user.id);
 
     // Basic counts - only what the client uses
-    const [billsCount, expensesCount, warrantiesCount] = await Promise.all(
+    const [billsCount, expensesCount, warrantiesCount, incomesCount] = await Promise.all(
       [
         Bill.countDocuments({ user: userId }),
         Expense.countDocuments({ user: userId }),
         Warranty.countDocuments({ user: userId }),
+        Income.countDocuments({ user: userId }),
       ]
     );
 
@@ -606,7 +763,8 @@ router.get("/profile/stats", authenticateToken, async (req, res) => {
         bills: billsCount,
         expenses: expensesCount,
         warranties: warrantiesCount,
-        total: billsCount + expensesCount + warrantiesCount,
+        incomes: incomesCount,
+        total: billsCount + expensesCount + warrantiesCount + incomesCount,
       },
     });
   } catch (error) {

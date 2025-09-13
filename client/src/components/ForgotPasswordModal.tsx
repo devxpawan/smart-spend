@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 interface ForgotPasswordModalProps {
@@ -12,6 +13,25 @@ interface ForgotPasswordModalProps {
 const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClose, onEmailSubmitted }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setErrorMessage(''); // Clear error when modal opens
+      setEmail(''); // Clear email when modal opens
+      
+      // Focus the email input after a short delay to ensure modal is rendered
+      setTimeout(() => {
+        emailInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    setErrorMessage(''); // Clear error when email changes
+  };
 
   if (!isOpen) {
     return null;
@@ -20,32 +40,47 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(''); // Clear previous errors
     try {
       await axios.post('/api/auth/forgot-password', { email });
       toast.success('Password reset OTP sent to your email.');
       onEmailSubmitted(email);
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'An error occurred.');
+      const message = err.response?.data?.message || 'An error occurred.';
+      setErrorMessage(message); // Set error message to display in modal
+      
     }
     setLoading(false);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md relative">
+      <motion.div
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -50 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white p-8 rounded-lg shadow-md w-full max-w-md relative"
+      >
         <button onClick={onClose} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700">&times;</button>
         <h2 className="text-2xl font-bold text-center mb-6">Forgot Password</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
-            <input
+                        <input
+              ref={emailInputRef}
               type="email"
               id="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleEmailChange}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
               required
             />
+            {errorMessage && (
+              <div className="mt-3 p-2 bg-red-100 border border-red-400 text-red-700 rounded-md text-center text-sm">
+                {errorMessage}
+              </div>
+            )}
           </div>
           <button
             type="submit"
@@ -55,7 +90,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({ isOpen, onClo
             {loading ? 'Sending...' : 'Send OTP'}
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 };

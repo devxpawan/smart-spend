@@ -158,16 +158,16 @@ const PublicWarrantyDetails: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           {/* Status Banner */}
           <div
-            className={`px-6 py-4 border-b ${getStatusColor(
+            className={`px-8 py-5 border-b ${getStatusColor(
               warranty.isExpired,
               warranty.daysUntilExpiry,
               warranty.isLifetimeWarranty
             )}`}
           >
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
               {getStatusIcon(warranty.isExpired, warranty.daysUntilExpiry, warranty.isLifetimeWarranty)}
               <div>
-                <p className="font-semibold">
+                <p className="font-semibold text-lg">
                   {getStatusText(
                     warranty.isExpired,
                     warranty.daysUntilExpiry,
@@ -175,7 +175,7 @@ const PublicWarrantyDetails: React.FC = () => {
                   )}
                 </p>
                 {!warranty.isLifetimeWarranty && !warranty.isExpired && warranty.daysUntilExpiry && warranty.daysUntilExpiry <= 30 && (
-                  <p className="text-sm opacity-75">
+                  <p className="text-sm opacity-75 mt-1">
                     Consider renewing or extending your warranty soon
                   </p>
                 )}
@@ -184,100 +184,94 @@ const PublicWarrantyDetails: React.FC = () => {
           </div>
 
           {/* Product Information */}
-          <div className="p-6">
+          <div className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Product Details */}
+              {/* Product Details + Image */}
               <div className="space-y-4">
+                {/* Product Image Placeholder */}
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-32 h-32 bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200">
+                    {/* Replace with actual image if available */}
+                    <Package className="w-16 h-16 text-gray-300" />
+                  </div>
+                </div>
                 <div className="flex items-start space-x-3">
                   <Package className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Product
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {warranty.productName}
-                    </p>
+                    <p className="text-sm font-medium text-gray-500">Product</p>
+                    <p className="text-lg font-semibold text-gray-900">{warranty.productName}</p>
                   </div>
                 </div>
-
                 <div className="flex items-start space-x-3">
                   <Store className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Retailer
-                    </p>
-                    <p className="text-gray-900">
-                      {warranty.retailer || "Not specified"}
-                    </p>
+                    <p className="text-sm font-medium text-gray-500">Retailer</p>
+                    <p className="text-gray-900">{warranty.retailer || "Not specified"}</p>
                   </div>
                 </div>
-
                 <div className="flex items-start space-x-3">
                   <ShieldCheck className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Category
-                    </p>
+                    <p className="text-sm font-medium text-gray-500">Category</p>
                     <p className="text-gray-900">{warranty.category}</p>
                   </div>
                 </div>
               </div>
-
-              {/* Date Information */}
+              {/* Date Information + Download Button */}
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <Calendar className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Purchase Date
-                    </p>
-                    <p className="text-gray-900">
-                      {warranty.purchaseDate
-                        ? format(parseISO(warranty.purchaseDate), "PPP")
-                        : "Not specified"}
-                    </p>
+                    <p className="text-sm font-medium text-gray-500">Purchase Date</p>
+                    <p className="text-gray-900">{warranty.purchaseDate ? format(parseISO(warranty.purchaseDate), "PPP") : "Not specified"}</p>
                   </div>
                 </div>
-
                 <div className="flex items-start space-x-3">
                   <Calendar className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Warranty Expires
-                    </p>
-                    <p className="text-gray-900">
-                      {warranty.isLifetimeWarranty 
-                        ? "Never Expires" 
-                        : warranty.expirationDate
-                        ? format(parseISO(warranty.expirationDate), "PPP")
-                        : "N/A"}
-                    </p>
+                    <p className="text-sm font-medium text-gray-500">Warranty Expires</p>
+                    <p className="text-gray-900">{warranty.isLifetimeWarranty ? "Never Expires" : warranty.expirationDate ? format(parseISO(warranty.expirationDate), "PPP") : "N/A"}</p>
                   </div>
                 </div>
-
                 <div className="flex items-start space-x-3">
                   <Clock className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      Added to System
-                    </p>
-                    <p className="text-gray-900">
-                      {format(parseISO(warranty.createdAt), "PPP")}
-                    </p>
+                    <p className="text-sm font-medium text-gray-500">Added to System</p>
+                    <p className="text-gray-900">{format(parseISO(warranty.createdAt), "PPP")}</p>
                   </div>
+                </div>
+                {/* Warranty Terms Section */}
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Warranty Terms</h3>
+                  <p className="text-gray-900 text-sm">This warranty covers defects in materials and workmanship under normal use. Please refer to your product documentation for full terms and conditions.</p>
+                </div>
+                {/* Download Button */}
+                <div className="mt-4">
+                  <button
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold shadow"
+                    onClick={() => {
+                      const details = `Product: ${warranty.productName}\nRetailer: ${warranty.retailer}\nCategory: ${warranty.category}\nPurchase Date: ${warranty.purchaseDate}\nExpires: ${warranty.isLifetimeWarranty ? "Never Expires" : warranty.expirationDate}\nAdded: ${warranty.createdAt}`;
+                      const blob = new Blob([details], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${warranty.productName}_warranty.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    Download Details
+                  </button>
                 </div>
               </div>
             </div>
-
             {/* Notes */}
             {warranty.notes && (
               <div className="mt-6 pt-6 border-t">
-                <h3 className="text-sm font-medium text-gray-500 mb-2">
-                  Notes
-                </h3>
-                <p className="text-gray-900 whitespace-pre-wrap">
-                  {warranty.notes}
-                </p>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Notes</h3>
+                <p className="text-gray-900 whitespace-pre-wrap">{warranty.notes}</p>
               </div>
             )}
           </div>

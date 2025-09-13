@@ -1,6 +1,6 @@
 # Smart Spend
 
-A web application for managing personal finances, including bills, expenses, and warranties. This project is a full-stack application built with React, Node.js, and MongoDB. It provides a secure and user-friendly way to track and manage your financial data.
+A web application for managing personal finances, including bills, expenses, income, and warranties. This project is a full-stack application built with React, Node.js, and MongoDB. It provides a secure and user-friendly way to track and manage your financial data.
 
 ## Features
 
@@ -10,17 +10,23 @@ A web application for managing personal finances, including bills, expenses, and
   - Google OAuth integration
   - Protected routes
 
+**Income Management**
+
+  - Record and categorize income
+  - Track income sources
+  - Analyze income trends
+
+**Expense Management**
+
+  - Record and categorize expenses
+  - Visual expense analytics
+  - Track spending patterns
+
 **Bills Management**
 
   - Track recurring bills
   - Set due dates and payment reminders
   - View bill history and payment status
-
-**Expense Tracking**
-
-  - Record and categorize expenses
-  - Visual expense analytics
-  - Track spending patterns
 
 **Warranty Management**
 
@@ -89,9 +95,10 @@ A web application for managing personal finances, including bills, expenses, and
 
 ### Data Analytics
 
-- Expense tracking with visual charts
+- Expense manage with visual charts
 - Monthly spending analysis
-- Bill payment tracking
+- Income trend analysis and reporting
+- Bill payment managing
 - Warranty expiration monitoring
 
 ### Security Features

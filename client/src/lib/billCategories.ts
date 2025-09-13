@@ -1,0 +1,17 @@
+export const billCategories: string[] = [
+  "Rent / Mortgage",
+      "Electricity",
+      "Water",
+      "Internet",
+      "Mobile Phone",
+      "Streaming Services",
+      "Credit Card Payments",
+      "Loan Payments",
+      "Insurance (Health/Auto/Home)",
+      "Gym Membership",
+      "School Tuition / Fees",
+      "Cloud / SaaS Services",
+      "Taxes",
+      "Security / Alarm Services",
+      "Other Utilities",
+];

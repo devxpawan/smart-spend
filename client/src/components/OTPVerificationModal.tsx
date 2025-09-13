@@ -1,6 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface OTPVerificationModalProps {
@@ -70,7 +71,13 @@ const OTPVerificationModal: React.FC<OTPVerificationModalProps> = ({ isOpen, onC
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md relative">
+      <motion.div
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -50 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white p-8 rounded-lg shadow-md w-full max-w-md relative"
+      >
         <button onClick={onClose} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700">&times;</button>
         <h2 className="text-2xl font-bold text-center mb-6">Verify Your Email</h2>
         <p className="text-center mb-4">An OTP has been sent to <strong>{email}</strong>. Please enter it below to verify your account.</p>
@@ -99,7 +106,7 @@ const OTPVerificationModal: React.FC<OTPVerificationModalProps> = ({ isOpen, onC
         <div className="mt-4 text-center">
           <button onClick={handleResendOTP} className="text-sm text-indigo-600 hover:underline">Didn't receive OTP? Resend</button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

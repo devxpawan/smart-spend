@@ -3,13 +3,13 @@ import ExpenseFormData from "../types/ExpenseFormData";
 import { AnimatePresence, motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/AuthContext";
+import CustomSelect from "./CustomSelect";
 import {
   X,
   AlertCircle,
   DollarSign,
   Calendar,
   Receipt,
-  Tag,
   FileText,
   TrendingDown,
 } from "lucide-react";
@@ -40,7 +40,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     description: "",
     amount: "",
     date: new Date().toISOString().split("T")[0],
-    category: "Groceries",
+    category: "",
     notes: "",
   });
   const [loading, setLoading] = useState(false);
@@ -86,7 +86,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
         description: "",
         amount: "",
         date: new Date().toISOString().split("T")[0],
-        category: "Groceries",
+        category: "",
         notes: "",
       });
     }
@@ -419,40 +419,31 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 </div>
 
                 {/* Category */}
-                <div>
+                <div className="md:col-span-2">
                   <label
                     htmlFor="category"
                     className="block text-sm font-semibold text-slate-700 mb-2"
                   >
                     Category *
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Tag className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <select
-                      id="category"
-                      name="category"
-                      value={formData.category}
-                      onChange={handleChange}
-                      className={`form-select block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
-                        errors.category
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-green-500"
-                      }`}
-                      required
-                      aria-invalid={errors.category ? "true" : "false"}
-                      aria-describedby={
-                        errors.category ? "category-error" : undefined
-                      }
-                    >
-                      {categories.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <CustomSelect
+                    options={categories.map((cat) => ({
+                      value: cat,
+                      label: cat,
+                    }))}
+                    value={formData.category}
+                    onChange={(value) =>
+                      handleChange({
+                        target: { name: "category", value },
+                      } as React.ChangeEvent<HTMLSelectElement>)
+                    }
+                    className={`${
+                      errors.category
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 focus:ring-green-500"
+                    }`}
+                    openDirection="top"
+                  />
                   {errors.category && (
                     <div
                       id="category-error"
@@ -465,7 +456,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 </div>
 
                 {/* Notes */}
-                <div>
+                <div className="md:col-span-2">
                   <label
                     htmlFor="notes"
                     className="block text-sm font-semibold text-slate-700 mb-2"

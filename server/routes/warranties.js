@@ -116,6 +116,19 @@ router.get("/expiring/soon", async (req, res) => {
   }
 });
 
+// @route   GET /api/warranties/categories
+// @desc    Get all distinct categories for a user's warranties
+// @access  Private
+router.get("/categories", async (req, res) => {
+  try {
+    const categories = await Warranty.distinct("category", { user: req.user.id });
+    res.json(categories);
+  } catch (error) {
+    console.error("Error fetching distinct categories:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @route   GET /api/warranties
 // @desc    Get all warranties for a user
 // @access  Private

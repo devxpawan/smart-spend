@@ -4,6 +4,7 @@ import {
   Calendar,
   Receipt,
   TrendingDown,
+  TrendingUp,
   ChevronLeft,
   ChevronRight,
   BarChart3,
@@ -17,6 +18,10 @@ import { format, parseISO, isValid } from "date-fns";
 import { useAuth } from "../contexts/AuthContext";
 import ExpenseInterface from "../types/ExpenseInterface";
 import BillInterface from "../types/BillInterface";
+import IncomeInterface from "../types/IncomeInterface";
+import ExportButton from "../components/ExportButton";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface MonthlyData {
   expenses: {
@@ -43,6 +48,19 @@ interface MonthlyData {
       unpaidCount: number;
     };
   };
+  incomes: {
+    incomes: IncomeInterface[];
+    summary: {
+      totalAmount: number;
+      totalCount: number;
+      categoryBreakdown: Array<{
+        category: string;
+        total: number;
+        count: number;
+      }>;
+      averageAmount: number;
+    };
+  };
 }
 
 const MonthlyBreakdown: React.FC = () => {
@@ -51,8 +69,8 @@ const MonthlyBreakdown: React.FC = () => {
   const [error, setError] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
-  const [activeTab, setActiveTab] = useState<"expenses" | "bills">(
-    "expenses"
+  const [activeTab, setActiveTab] = useState<"incomes" | "expenses" | "bills">(
+    "incomes"
   );
 
   const currentYear = selectedDate.getFullYear();
@@ -78,14 +96,16 @@ const MonthlyBreakdown: React.FC = () => {
       setLoading(true);
       setError("");
 
-      const [expensesRes, billsRes] = await Promise.all([
+      const [expensesRes, billsRes, incomesRes] = await Promise.all([
         axios.get(`/api/expenses/monthly/${currentYear}/${currentMonth}`),
         axios.get(`/api/bills/monthly/${currentYear}/${currentMonth}`),
+        axios.get(`/api/incomes/monthly/${currentYear}/${currentMonth}`),
       ]);
 
       setMonthlyData({
         expenses: expensesRes.data,
         bills: billsRes.data,
+        incomes: incomesRes.data,
       });
     } catch (err: any) {
       console.error("Error fetching monthly data:", err);
@@ -109,6 +129,327 @@ const MonthlyBreakdown: React.FC = () => {
       newDate.setMonth(newDate.getMonth() + 1);
     }
     setSelectedDate(newDate);
+  };
+
+  const handleExportCsv = () => {
+    if (!monthlyData) return;
+
+    const { incomes, expenses, bills } = monthlyData;
+
+    const incomeHeader = "Type,Date,Description,Category,Amount,Status\n";
+    const incomeRows = incomes.incomes
+      .map((row) =>
+        [
+          "Income",
+          format(parseISO(row.date), "yyyy-MM-dd"),
+          `"${row.description.replace(/"/g, '""')}"`,
+          row.category,
+          row.amount,
+          "N/A",
+        ].join(",")
+      )
+      .join("\n");
+    const incomeTotal = incomes.incomes.reduce((sum, item) => sum + item.amount, 0);
+
+    const expenseHeader = "Type,Date,Description,Category,Amount,Status\n";
+    const expenseRows = expenses.expenses
+      .map((row) =>
+        [
+          "Expense",
+          format(parseISO(row.date), "yyyy-MM-dd"),
+          `"${row.description.replace(/"/g, '""')}"`,
+          row.category,
+          row.amount,
+          "N/A",
+        ].join(",")
+      )
+      .join("\n");
+    const expenseTotal = expenses.expenses.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    const paidBills = bills.bills.filter((bill) => bill.isPaid);
+    const unpaidBills = bills.bills.filter((bill) => !bill.isPaid);
+
+    const billHeader = "Type,Date,Description,Category,Amount,Status\n";
+
+    const paidBillRows = paidBills
+      .map((row) =>
+        [
+          "Bill",
+          format(parseISO(row.dueDate), "yyyy-MM-dd"),
+          `"${row.name.replace(/"/g, '""')}"`,
+          row.category,
+          row.amount,
+          "Paid",
+        ].join(",")
+      )
+      .join("\n");
+    const paidBillsTotal = paidBills.reduce((sum, item) => sum + item.amount, 0);
+
+    const unpaidBillRows = unpaidBills
+      .map((row) =>
+        [
+          "Bill",
+          format(parseISO(row.dueDate), "yyyy-MM-dd"),
+          `"${row.name.replace(/"/g, '""')}"`,
+          row.category,
+          row.amount,
+          "Unpaid",
+        ].join(",")
+      )
+      .join("\n");
+    const unpaidBillsTotal = unpaidBills.reduce(
+      (sum, item) => sum + item.amount,
+      0
+    );
+
+    let csvString = "";
+    if (incomes.incomes.length > 0) {
+      const incomeTotalRow = `\n,,Total,,${incomeTotal.toFixed(2)},\n\n`;
+      csvString +=
+        "Incomes\n" + incomeHeader + incomeRows + incomeTotalRow;
+    }
+    if (expenses.expenses.length > 0) {
+      const expenseTotalRow = `\n,,Total,,${expenseTotal.toFixed(2)},\n\n`;
+      csvString +=
+        "Expenses\n" + expenseHeader + expenseRows + expenseTotalRow;
+    }
+    if (paidBills.length > 0) {
+      const paidBillsTotalRow = `\n,,Total,,${paidBillsTotal.toFixed(
+        2
+      )},\n\n`;
+      csvString +=
+        "Paid Bills\n" + billHeader + paidBillRows + paidBillsTotalRow;
+    }
+    if (unpaidBills.length > 0) {
+      const unpaidBillsTotalRow = `\n,,Total,,${unpaidBillsTotal.toFixed(
+        2
+      )},\n\n`;
+      csvString +=
+        "Unpaid Bills\n" + billHeader + unpaidBillRows + unpaidBillsTotalRow;
+    }
+
+    if (csvString.length === 0) {
+      console.log("No data to export");
+      return;
+    }
+
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    const monthName = monthNames[currentMonth - 1];
+    link.setAttribute(
+      "download",
+      `Monthly_Breakdown_${currentYear}_${monthName}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPdf = () => {
+    if (!monthlyData) return;
+
+    const { incomes, expenses, bills } = monthlyData;
+    const doc = new jsPDF();
+
+    const monthName = monthNames[currentMonth - 1];
+
+    // Header
+    const pageWidth = doc.internal.pageSize.getWidth();
+    doc.setFontSize(22);
+    doc.setFont("helvetica", "bold");
+    doc.text("SmartSpend", pageWidth / 2, 22, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `Monthly Breakdown for ${monthName} ${currentYear}`,
+      pageWidth / 2,
+      30,
+      { align: "center" }
+    );
+
+    doc.setFontSize(10);
+    doc.setTextColor(150);
+    doc.text(
+      `Generated on: ${format(new Date(), "yyyy-MM-dd")}`,
+      pageWidth / 2,
+      36,
+      { align: "center" }
+    );
+
+    // Summary Info
+    let summaryY = 45;
+    doc.setFontSize(12);
+    doc.setTextColor(40);
+    doc.text(
+      `Total Income: ${formatCurrency(incomes.summary.totalAmount)}`,
+      14,
+      summaryY
+    );
+    summaryY += 7;
+    doc.text(
+      `Total Expenses: ${formatCurrency(expenses.summary.totalAmount)}`,
+      14,
+      summaryY
+    );
+    summaryY += 7;
+    doc.text(
+      `Total Bills: ${formatCurrency(bills.summary.totalAmount)}`,
+      14,
+      summaryY
+    );
+
+    let startY = summaryY + 10;
+
+    const drawTable = (
+      title: string,
+      head: string[],
+      body: string[][],
+      foot: string[],
+      color: [number, number, number],
+      currentY: number,
+      recordCount: number
+    ): number => {
+      const tableTitle = `${title} (${recordCount})`;
+      doc.setFontSize(14);
+      doc.setTextColor(40);
+      doc.text(tableTitle, 14, currentY);
+      currentY += 8;
+      autoTable(doc, {
+        head: [head],
+        body: body,
+        foot: [foot],
+        startY: currentY,
+        headStyles: { fillColor: color, textColor: [255, 255, 255] },
+        footStyles: {
+          fontStyle: "bold",
+          fillColor: [230, 230, 230],
+          textColor: [0, 0, 0],
+        },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        tableLineColor: [189, 195, 199],
+        tableLineWidth: 0.1,
+      });
+      return (doc as any).lastAutoTable.finalY + 10;
+    };
+
+    if (incomes.incomes.length > 0) {
+      const total = incomes.incomes.reduce((sum, item) => sum + item.amount, 0);
+      startY = drawTable(
+        "Incomes",
+        ["Date", "Description", "Category", "Amount"],
+        incomes.incomes.map((item) => [
+          format(parseISO(item.date), "yyyy-MM-dd"),
+          item.description.toString(),
+          item.category.toString(),
+          formatCurrency(item.amount),
+        ]),
+        ["", "", "Total", formatCurrency(total)],
+        [0, 150, 199], // Cyan
+        startY,
+        incomes.incomes.length
+      );
+    }
+
+    if (expenses.expenses.length > 0) {
+      const total = expenses.expenses.reduce(
+        (sum, item) => sum + item.amount,
+        0
+      );
+      startY = drawTable(
+        "Expenses",
+        ["Date", "Description", "Category", "Amount"],
+        expenses.expenses.map((item) => [
+          format(parseISO(item.date), "yyyy-MM-dd"),
+          item.description.toString(),
+          item.category.toString(),
+          formatCurrency(item.amount),
+        ]),
+        ["", "", "Total", formatCurrency(total)],
+        [34, 139, 34], // Green
+        startY,
+        expenses.expenses.length
+      );
+    }
+
+    const paidBills = bills.bills.filter((bill) => bill.isPaid);
+    const unpaidBills = bills.bills.filter((bill) => !bill.isPaid);
+
+    if (paidBills.length > 0) {
+      const total = paidBills.reduce((sum, item) => sum + item.amount, 0);
+      startY = drawTable(
+        "Paid Bills",
+        ["Due Date", "Name", "Category", "Amount"],
+        paidBills.map((item) => [
+          format(parseISO(item.dueDate), "yyyy-MM-dd"),
+          item.name.toString(),
+          item.category.toString(),
+          formatCurrency(item.amount),
+        ]),
+        ["", "", "Total", formatCurrency(total)],
+        [46, 139, 87], // SeaGreen
+        startY,
+        paidBills.length
+      );
+    }
+
+    if (unpaidBills.length > 0) {
+      const total = unpaidBills.reduce((sum, item) => sum + item.amount, 0);
+      startY = drawTable(
+        "Unpaid Bills",
+        ["Due Date", "Name", "Category", "Amount"],
+        unpaidBills.map((item) => [
+          format(parseISO(item.dueDate), "yyyy-MM-dd"),
+          item.name.toString(),
+          item.category.toString(),
+          formatCurrency(item.amount),
+        ]),
+        ["", "", "Total", formatCurrency(total)],
+        [220, 20, 60], // Crimson
+        startY,
+        unpaidBills.length
+      );
+    }
+
+    if (
+      incomes.incomes.length === 0 &&
+      expenses.expenses.length === 0 &&
+      bills.bills.length === 0
+    ) {
+      doc.text("No data to export for this month.", 14, startY);
+    }
+
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+
+      // Page Border
+      doc.setDrawColor(0);
+      doc.rect(
+        10,
+        10,
+        doc.internal.pageSize.width - 20,
+        doc.internal.pageSize.height - 20
+      );
+
+      // Footer
+      doc.setFontSize(10);
+      doc.setTextColor(150);
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        doc.internal.pageSize.width / 2,
+        doc.internal.pageSize.height - 15,
+        { align: "center" }
+      );
+    }
+
+    doc.save(`Monthly_Breakdown_${currentYear}_${monthName}.pdf`);
   };
 
   const formatCurrency = (amount: number) => {
@@ -150,6 +491,8 @@ const MonthlyBreakdown: React.FC = () => {
     }
   };
 
+  const isDataEmpty = !monthlyData || (monthlyData.incomes.incomes.length === 0 && monthlyData.expenses.expenses.length === 0 && monthlyData.bills.bills.length === 0);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64 sm:min-h-96">
@@ -185,7 +528,7 @@ const MonthlyBreakdown: React.FC = () => {
               Monthly Breakdown
             </h1>
             <p className="text-slate-600 mt-0.5 sm:mt-1 text-sm sm:text-base">
-              Detailed view of your monthly expenses and bills
+              Detailed view of your monthly incomes, expenses and bills
             </p>
           </div>
         </div>
@@ -214,12 +557,38 @@ const MonthlyBreakdown: React.FC = () => {
           >
             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
+
+          <ExportButton
+            onExportCsv={handleExportCsv}
+            onExportPdf={handleExportPdf}
+            disabled={isDataEmpty}
+          />
         </div>
       </header>
 
       {/* Mobile-optimized Summary Cards */}
       {monthlyData && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
+          {/* Incomes Summary */}
+          <div className="bg-gradient-to-br from-cyan-50 to-sky-50 p-4 sm:p-5 lg:p-6 rounded-xl sm:rounded-2xl border border-cyan-200 shadow-lg">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-gradient-to-r from-cyan-500 to-sky-600">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              </div>
+              <span className="text-xs sm:text-sm font-medium text-cyan-700">
+                Incomes
+              </span>
+            </div>
+            <div className="space-y-1 sm:space-y-2">
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-cyan-800 break-words">
+                {formatCurrency(monthlyData.incomes.summary.totalAmount)}
+              </p>
+              <p className="text-xs sm:text-sm text-cyan-600">
+                {monthlyData.incomes.summary.totalCount} transactions
+              </p>
+            </div>
+          </div>
+
           {/* Expenses Summary */}
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 sm:p-5 lg:p-6 rounded-xl sm:rounded-2xl border border-green-200 shadow-lg">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -306,6 +675,19 @@ const MonthlyBreakdown: React.FC = () => {
       <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-white/50 shadow-lg">
         <div className="flex border-b border-slate-200">
           <button
+            onClick={() => setActiveTab("incomes")}
+            className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors min-h-[44px] ${
+              activeTab === "incomes"
+                ? "text-cyan-600 border-b-2 border-cyan-600 bg-cyan-50"
+                : "text-slate-600 hover:text-slate-800"
+            }`}
+          >
+            <div className="flex items-center justify-center space-x-1 sm:space-x-2">
+              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>Incomes</span>
+            </div>
+          </button>
+          <button
             onClick={() => setActiveTab("expenses")}
             className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors min-h-[44px] ${
               activeTab === "expenses"
@@ -334,11 +716,151 @@ const MonthlyBreakdown: React.FC = () => {
         </div>
 
         <div className="p-3 sm:p-4 lg:p-6">
+          {activeTab === "incomes" && monthlyData && (
+            <div className="space-y-4 sm:space-y-6">
+              {/* Mobile-optimized Category Breakdown */}
+              {monthlyData.incomes.summary.categoryBreakdown.length > 0 && (
+                <div className="bg-gradient-to-br from-cyan-50 to-sky-50 p-4 sm:p-5 lg:p-6 rounded-lg sm:rounded-xl border border-cyan-200">
+                  <h3 className="text-base sm:text-lg font-semibold text-cyan-800 mb-3 sm:mb-4 flex items-center">
+                    <PieChart className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    Category Breakdown
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {monthlyData.incomes.summary.categoryBreakdown.map(
+                      (category, index) => (
+                        <div
+                          key={index}
+                          className="bg-white p-3 sm:p-4 rounded-lg border border-cyan-200"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 space-y-1 sm:space-y-0">
+                            <span className="font-medium text-slate-800 text-sm sm:text-base">
+                              {category.category}
+                            </span>
+                            <span className="text-xs sm:text-sm text-slate-600">
+                              {category.count} items
+                            </span>
+                          </div>
+                          <p className="text-base sm:text-lg font-bold text-cyan-600 break-words">
+                            {formatCurrency(category.total)}
+                          </p>
+                          <div className="mt-2 bg-cyan-100 rounded-full h-1.5 sm:h-2">
+                            <div
+                              className="bg-cyan-500 h-1.5 sm:h-2 rounded-full"
+                              style={{
+                                width: `${(category.total /monthlyData.incomes.summary.totalAmount) * 100}%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Mobile-optimized Incomes List */}
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-slate-800 mb-3 sm:mb-4 flex items-center">
+                  <ArrowUpDown className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  Income Transactions
+                </h3>
+                {monthlyData.incomes.incomes.length > 0 ? (
+                  <div className="bg-white rounded-lg sm:rounded-xl border border-slate-200 overflow-hidden">
+                    {/* Mobile Card View */}
+                    <div className="block sm:hidden">
+                      <div className="divide-y divide-slate-200">
+                        {monthlyData.incomes.incomes.map((income) => (
+                          <div
+                            key={income._id}
+                            className="p-4 hover:bg-slate-50"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-800 truncate">
+                                  {income.description}
+                                </p>
+                                <p className="text-xs text-slate-600 mt-1">
+                                  {format(
+                                    parseISO(income.date),
+                                    "MMM d, yyyy"
+                                  )}
+                                </p>
+                              </div>
+                              <p className="text-sm font-bold text-slate-800 ml-2">
+                                {formatCurrency(income.amount)}
+                              </p>
+                            </div>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                              {income.category}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Desktop Table View */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50">
+                          <tr>
+                            <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Description
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Category
+                            </th>
+                            <th className="px-4 sm:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                              Amount
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-slate-200">
+                          {monthlyData.incomes.incomes.map((income) => (
+                            <tr
+                              key={income._id}
+                              className="hover:bg-slate-50"
+                            >
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                {format(
+                                  parseISO(income.date),
+                                  "MMM d, yyyy"
+                                )}
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 text-sm text-slate-800">
+                                {income.description}
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">
+                                  {income.category}
+                                </span>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-slate-800">
+                                {formatCurrency(income.amount)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg sm:rounded-xl border border-slate-200 p-6 sm:p-8 text-center">
+                    <TrendingUp className="w-10 h-10 sm:w-12 sm:h-12 text-slate-400 mx-auto mb-3 sm:mb-4" />
+                    <p className="text-slate-600 text-sm sm:text-base">
+                      No incomes found for this month
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           {activeTab === "expenses" && monthlyData && (
             <div className="space-y-4 sm:space-y-6">
               {/* Mobile-optimized Category Breakdown */}
-              {monthlyData.expenses.summary.categoryBreakdown.length >
-                0 && (
+              {monthlyData.expenses.summary.categoryBreakdown.length > 0 && (
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 sm:p-5 lg:p-6 rounded-lg sm:rounded-xl border border-green-200">
                   <h3 className="text-base sm:text-lg font-semibold text-green-800 mb-3 sm:mb-4 flex items-center">
                     <PieChart className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -366,12 +888,7 @@ const MonthlyBreakdown: React.FC = () => {
                             <div
                               className="bg-green-500 h-1.5 sm:h-2 rounded-full"
                               style={{
-                                width: `${
-                                  (category.total /
-                                    monthlyData.expenses.summary
-                                      .totalAmount) *
-                                  100
-                                }%`,
+                                width: `${(category.total /monthlyData.expenses.summary.totalAmount) * 100}%`,
                               }}
                             ></div>
                           </div>
@@ -493,7 +1010,7 @@ const MonthlyBreakdown: React.FC = () => {
                 {monthlyData.bills.bills.length > 0 ? (
                   <div className="bg-white rounded-lg sm:rounded-xl border border-slate-200 overflow-hidden">
                     {/* Mobile Card View */}
-                    <div className="block lg:hidden">
+                    <div className="block sm:hidden">
                       <div className="divide-y divide-slate-200">
                         {monthlyData.bills.bills.map((bill) => {
                           const status = getBillStatus(
@@ -540,7 +1057,7 @@ const MonthlyBreakdown: React.FC = () => {
                     </div>
 
                     {/* Desktop Table View */}
-                    <div className="hidden lg:block overflow-x-auto">
+                    <div className="hidden sm:block overflow-x-auto">
                       <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                           <tr>

@@ -1,158 +1,101 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import BillFormData from "../types/BillFormData";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertCircle,
+  Calendar,
+  DollarSign,
+  FileText,
+  Receipt,
+  TrendingUp,
+  X,
+} from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/AuthContext";
+import IncomeFormData from "../types/IncomeFormData";
 import CustomSelect from "./CustomSelect";
-import {
-  X,
-  AlertCircle,
-  DollarSign,
-  Calendar,
-  Receipt,
-} from "lucide-react";
+import { incomeCategories } from "../lib/incomeCategories";
 
-interface BillModalProps {
+
+interface IncomeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: BillFormData & { _id?: string }) => void;
-  initialData?: BillFormData & { _id?: string };
+  onSubmit: (data: IncomeFormData) => void;
+  initialData?: IncomeFormData;
 }
 
 interface FormErrors {
-  name?: string;
+  description?: string;
   amount?: string;
-  dueDate?: string;
+  date?: string;
   category?: string;
-  duplicateName?: string;
+  notes?: string;
 }
 
-const BillModal: React.FC<BillModalProps> = ({
+const IncomeModal: React.FC<IncomeModalProps> = ({
   isOpen,
   onClose,
   onSubmit,
   initialData,
 }) => {
   const { user } = useAuth();
-  const [formData, setFormData] = useState<BillFormData>({
-    name: "",
+  const [formData, setFormData] = useState<IncomeFormData>({
+    description: "",
     amount: "",
-    dueDate: new Date().toISOString().split("T")[0],
+    date: new Date().toISOString().split("T")[0],
     category: "",
+    notes: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
-  const [isDuplicateCheckComplete, setIsDuplicateCheckComplete] =
-    useState(false);
-  const [markAsPaid, setMarkAsPaid] = useState(false);
-
-  // Function to check for duplicate bill names
-  const checkForDuplicateName = useCallback(
-    async (name: string) => {
-      if (!user || !name.trim()) return false;
-
-      setIsCheckingDuplicate(true);
-      try {
-        const response = await fetch("/api/bills/check-name", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            name: name.trim(),
-            userId: user.id,
-            billId: initialData?._id,
-          }),
-        });
-
-        const data = await response.json();
-        return data.error === "Duplicate bill name";
-      } catch (error) {
-        console.error("Error checking for duplicate bill name:", error);
-        return false;
-      } finally {
-        setIsCheckingDuplicate(false);
-      }
-    },
-    [user, initialData?._id]
-  );
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
-
-  const categories = [
-    "Rent / Mortgage",
-    "Electricity",
-    "Water",
-    "Internet",
-    "Mobile Phone",
-    "Streaming Services",
-    "Credit Card Payments",
-    "Loan Payments",
-    "Insurance (Health/Auto/Home)",
-    "Gym Membership",
-    "School Tuition / Fees",
-    "Cloud / SaaS Services",
-    "Taxes",
-    "Security / Alarm Services",
-    "Other Utilities",
-  ];
 
   // Initialize form data
   useEffect(() => {
     if (initialData) {
       setFormData({
-        name: initialData.name,
+        description: initialData.description,
         amount: initialData.amount,
-        dueDate: initialData.dueDate
-          ? new Date(initialData.dueDate).toISOString().split("T")[0]
+        date: initialData.date
+          ? new Date(initialData.date).toISOString().split("T")[0]
           : new Date().toISOString().split("T")[0],
         category: initialData.category,
-        isPaid: initialData.isPaid,
+        notes: initialData.notes || "",
       });
     } else {
       setFormData({
-        name: "",
+        description: "",
         amount: "",
-        dueDate: new Date().toISOString().split("T")[0],
+        date: new Date().toISOString().split("T")[0],
         category: "",
+        notes: "",
       });
     }
     setErrors({});
   }, [initialData, isOpen]);
 
   // Form validation
-  const validateForm = useCallback(async (): Promise<boolean> => {
+  const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Bill name is required";
-    } else if (!initialData) {
-      // Only check for duplicates when creating a new bill, not when editing
-      const isDuplicate = await checkForDuplicateName(formData.name);
-      if (isDuplicate) {
-        newErrors.duplicateName = "A bill with this name already exists";
-      }
-    }
-
-    // Validate that the bill name contains at least one alphabetic character and no symbols
-    const nameRegex = /^(?=.*[a-zA-Z])[a-zA-Z0-9\s]*$/;
-    if (!nameRegex.test(formData.name)) {
-      newErrors.name = "Bill name must contain at least one alphabetic character and no symbols";
+    if (!formData.description.trim()) {
+      newErrors.description = "Description is required";
     }
 
     if (!formData.amount || parseFloat(formData.amount as string) <= 0) {
       newErrors.amount = "Please enter a valid amount";
     }
 
-    if (!formData.dueDate) {
-      newErrors.dueDate = "Due date is required";
+    if (!formData.date) {
+      newErrors.date = "Date is required";
     } else {
-      const dueDate = new Date(formData.dueDate);
-      if (isNaN(dueDate.getTime())) {
-        newErrors.dueDate = "Please enter a valid date";
+      const incomeDate = new Date(formData.date);
+      const today = new Date();
+      if (isNaN(incomeDate.getTime())) {
+        newErrors.date = "Please enter a valid date";
+      } else if (incomeDate > today) {
+        newErrors.date = "Income date cannot be in the future";
       }
     }
 
@@ -160,13 +103,19 @@ const BillModal: React.FC<BillModalProps> = ({
       newErrors.category = "Please select a category";
     }
 
+    if (formData.notes && formData.notes.length > 500) {
+      newErrors.notes = "Notes must be less than 500 characters";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData, checkForDuplicateName]);
+  }, [formData]);
 
   // Handle input changes
-  const handleChange = async (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -181,61 +130,28 @@ const BillModal: React.FC<BillModalProps> = ({
         [name]: undefined,
       }));
     }
-
-    // If name field is changed, check for duplicates after a short delay
-    if (name === "name" && value.trim()) {
-      setIsDuplicateCheckComplete(false);
-      // Debounce the duplicate check
-      const timer = setTimeout(async () => {
-        const isDuplicate = await checkForDuplicateName(value);
-        if (isDuplicate) {
-          setErrors((prev) => ({
-            ...prev,
-            duplicateName: "A bill with this name already exists",
-          }));
-        } else {
-          setErrors((prev) => ({
-            ...prev,
-            duplicateName: undefined,
-          }));
-        }
-        setIsDuplicateCheckComplete(true);
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const isValid = await validateForm();
-    if (!isValid) {
+    if (!validateForm()) {
       return;
     }
 
     try {
       setLoading(true);
-      const submissionData = {
+      await onSubmit({
         ...formData,
         amount: parseFloat(formData.amount as string),
-        _id: initialData?._id,
-      };
-      if (!initialData) {
-        submissionData.isPaid = markAsPaid;
-      }
-      await onSubmit(submissionData);
+      });
       onClose();
-    } catch (err: any) {
-      console.error("Error submitting bill:", err);
-      if (err.message.includes("Duplicate bill name")) {
-        setErrors({
-          duplicateName: "A bill with this name already exists",
-        });
-      } else {
-        setErrors({ name: "Failed to submit bill. Please try again." });
-      }
+    } catch (err) {
+      console.error("Error submitting income:", err);
+      setErrors({
+        description: "Failed to submit income. Please try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -289,11 +205,6 @@ const BillModal: React.FC<BillModalProps> = ({
       setTimeout(() => {
         if (firstInputRef.current) {
           firstInputRef.current.focus();
-
-          // If editing, check for duplicate name when opening
-          if (initialData && formData.name.trim()) {
-            checkForDuplicateName(formData.name);
-          }
         }
       }, 100);
     }
@@ -330,21 +241,21 @@ const BillModal: React.FC<BillModalProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-orange-50">
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-sky-50 to-cyan-50">
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
-                <Receipt className="w-5 h-5 text-white" />
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-600 flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <h2
                 id="modal-title"
                 className="text-xl font-bold text-slate-800"
               >
-                {initialData ? "Edit Bill" : "Add New Bill"}
+                {initialData ? "Edit Income" : "Add New Income"}
               </h2>
             </div>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-white/50 focus:outline-none focus:ring-2 focus:ring-sky-500"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -355,13 +266,13 @@ const BillModal: React.FC<BillModalProps> = ({
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Bill Name */}
+                {/* Description */}
                 <div className="md:col-span-2">
                   <label
-                    htmlFor="name"
+                    htmlFor="description"
                     className="block text-sm font-semibold text-slate-700 mb-2"
                   >
-                    Bill Name *
+                    Income Description *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -369,42 +280,33 @@ const BillModal: React.FC<BillModalProps> = ({
                     </div>
                     <input
                       type="text"
-                      name="name"
-                      id="name"
-                      value={formData.name}
+                      name="description"
+                      id="description"
+                      value={formData.description}
                       onChange={handleChange}
-                      placeholder="e.g., Monthly Electricity Bill"
+                      placeholder="e.g., Monthly salary, Project payment"
                       className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
-                        errors.name
+                        errors.description
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-amber-500"
+                          : "border-slate-300 focus:ring-sky-500"
                       }`}
                       required
                       ref={firstInputRef}
-                      aria-invalid={errors.name ? "true" : "false"}
+                      aria-invalid={errors.description ? "true" : "false"}
                       aria-describedby={
-                        errors.name ? "name-error" : undefined
+                        errors.description
+                          ? "description-error"
+                          : undefined
                       }
                     />
                   </div>
-                  {errors.name && (
+                  {errors.description && (
                     <div
-                      id="name-error"
+                      id="description-error"
                       className="mt-1 flex items-center space-x-1 text-red-600"
                     >
                       <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">{errors.name}</span>
-                    </div>
-                  )}
-                  {errors.duplicateName && (
-                    <div
-                      id="duplicate-name-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">
-                        {errors.duplicateName}
-                      </span>
+                      <span className="text-sm">{errors.description}</span>
                     </div>
                   )}
                 </div>
@@ -433,14 +335,13 @@ const BillModal: React.FC<BillModalProps> = ({
                       className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
                         errors.amount
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-amber-500"
+                          : "border-slate-300 focus:ring-sky-500"
                       }`}
                       required
                       aria-invalid={errors.amount ? "true" : "false"}
                       aria-describedby={
                         errors.amount ? "amount-error" : undefined
                       }
-                      disabled={!!errors.duplicateName}
                     />
                   </div>
                   {errors.amount && (
@@ -457,13 +358,13 @@ const BillModal: React.FC<BillModalProps> = ({
                   </p>
                 </div>
 
-                {/* Due Date */}
+                {/* Date */}
                 <div>
                   <label
-                    htmlFor="dueDate"
+                    htmlFor="date"
                     className="block text-sm font-semibold text-slate-700 mb-2"
                   >
-                    Due Date *
+                    Date *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -471,30 +372,30 @@ const BillModal: React.FC<BillModalProps> = ({
                     </div>
                     <input
                       type="date"
-                      name="dueDate"
-                      id="dueDate"
-                      value={formData.dueDate}
+                      name="date"
+                      id="date"
+                      value={formData.date}
                       onChange={handleChange}
+                      max={new Date().toISOString().split("T")[0]}
                       className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
-                        errors.dueDate
+                        errors.date
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-amber-500"
+                          : "border-slate-300 focus:ring-sky-500"
                       }`}
                       required
-                      aria-invalid={errors.dueDate ? "true" : "false"}
+                      aria-invalid={errors.date ? "true" : "false"}
                       aria-describedby={
-                        errors.dueDate ? "dueDate-error" : undefined
+                        errors.date ? "date-error" : undefined
                       }
-                      disabled={!!errors.duplicateName}
                     />
                   </div>
-                  {errors.dueDate && (
+                  {errors.date && (
                     <div
-                      id="dueDate-error"
+                      id="date-error"
                       className="mt-1 flex items-center space-x-1 text-red-600"
                     >
                       <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">{errors.dueDate}</span>
+                      <span className="text-sm">{errors.date}</span>
                     </div>
                   )}
                 </div>
@@ -508,7 +409,7 @@ const BillModal: React.FC<BillModalProps> = ({
                     Category *
                   </label>
                   <CustomSelect
-                    options={categories.map((cat) => ({
+                    options={incomeCategories.map((cat) => ({
                       value: cat,
                       label: cat,
                     }))}
@@ -521,9 +422,8 @@ const BillModal: React.FC<BillModalProps> = ({
                     className={`${
                       errors.category
                         ? "border-red-300 focus:ring-red-500"
-                        : "border-slate-300 focus:ring-amber-500"
+                        : "border-slate-300 focus:ring-sky-500"
                     }`}
-                    disabled={!!errors.duplicateName}
                     openDirection="top"
                   />
                   {errors.category && (
@@ -536,26 +436,54 @@ const BillModal: React.FC<BillModalProps> = ({
                     </div>
                   )}
                 </div>
-                {!initialData && (
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="markAsPaid"
-                      className="flex items-center space-x-2"
-                    >
-                      <input
-                        type="checkbox"
-                        id="markAsPaid"
-                        name="markAsPaid"
-                        checked={markAsPaid}
-                        onChange={(e) => setMarkAsPaid(e.target.checked)}
-                        className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-                      />
-                      <span className="text-sm font-semibold text-slate-700">
-                        Mark as Paid
-                      </span>
-                    </label>
+
+                {/* Notes */}
+                <div className="md:col-span-2">
+                  <label
+                    htmlFor="notes"
+                    className="block text-sm font-semibold text-slate-700 mb-2"
+                  >
+                    Notes (Optional)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute top-3 left-3 pointer-events-none">
+                      <FileText className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <textarea
+                      id="notes"
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleChange}
+                      rows={3}
+                      maxLength={500}
+                      className={`form-textarea block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out resize-none ${
+                        errors.notes
+                          ? "border-red-300 focus:ring-red-500"
+                          : "border-slate-300 focus:ring-sky-500"
+                      }`}
+                      placeholder="Additional details about this income..."
+                      aria-invalid={errors.notes ? "true" : "false"}
+                      aria-describedby={
+                        errors.notes ? "notes-error" : "notes-help"
+                      }
+                    />
                   </div>
-                )}
+                  {errors.notes && (
+                    <div
+                      id="notes-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{errors.notes}</span>
+                    </div>
+                  )}
+                  <p
+                    id="notes-help"
+                    className="mt-1 text-xs text-slate-500"
+                  >
+                    {formData.notes?.length || 0}/500 characters
+                  </p>
+                </div>
               </div>
 
               {/* Action Buttons */}
@@ -563,19 +491,14 @@ const BillModal: React.FC<BillModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors duration-150 ease-in-out shadow-sm"
+                  className="px-6 py-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors duration-150 ease-in-out shadow-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={
-                    loading ||
-                    !!errors.duplicateName ||
-                    (isCheckingDuplicate && !isDuplicateCheckComplete) ||
-                    !!errors.duplicateName
-                  }
-                  className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold rounded-lg hover:from-amber-700 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed text-sm transform hover:scale-[1.02]"
+                  disabled={loading}
+                  className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-sky-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-sky-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed text-sm transform hover:scale-[1.02]"
                 >
                   {loading ? (
                     <>
@@ -584,8 +507,8 @@ const BillModal: React.FC<BillModalProps> = ({
                     </>
                   ) : (
                     <>
-                      <Receipt className="w-4 h-4 mr-2" />
-                      {initialData ? "Update Bill" : "Create Bill"}
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      {initialData ? "Update Income" : "Create Income"}
                     </>
                   )}
                 </button>
@@ -599,4 +522,4 @@ const BillModal: React.FC<BillModalProps> = ({
   );
 };
 
-export default BillModal;
+export default IncomeModal;

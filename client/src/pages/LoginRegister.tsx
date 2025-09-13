@@ -11,7 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import { validatePassword } from "../utils/passwordValidation";
@@ -32,7 +32,7 @@ const LoginRegister: React.FC = () => {
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
-  const { login, register, googleLogin, loading, error, user } = useAuth();
+  const { login, register, googleLogin, loading, error, user, clearError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -49,6 +49,7 @@ const LoginRegister: React.FC = () => {
     setPassword("");
     setShowPassword(false);
     setPasswordValidation(validatePassword(""));
+    clearError(); // Clear any existing errors when changing tabs
   };
 
   // Handle password change with validation
@@ -231,34 +232,111 @@ const LoginRegister: React.FC = () => {
 
                 {/* Form */}
                 <form
-                  key={tab}
                   onSubmit={handleSubmit}
                   className="space-y-4"
                 >
-                  {/* Mobile-optimized form layout for register */}
-                  {tab === "register" ? (
-                    <>
-                      {/* Name and Email - Stack on mobile, side by side on larger screens */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                        <div>
-                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-                            Full Name
-                          </label>
-                          <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                              type="text"
-                              required
-                              value={name}
-                              onChange={(e) => setName(e.target.value)}
-                              className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                              placeholder="Your name"
-                            />
+                  <AnimatePresence mode="wait">
+                    {tab === "register" ? (
+                      <motion.div
+                        key="register"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-4"
+                      >
+                        {/* Name and Email - Stack on mobile, side by side on larger screens */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                          <div>
+                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+                              Full Name
+                            </label>
+                            <div className="relative">
+                              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                              <input
+                                type="text"
+                                required
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                                placeholder="Your name"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+                              Email Address
+                            </label>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                              <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                                placeholder="Your email"
+                              />
+                            </div>
                           </div>
                         </div>
 
+                        {/* Password field */}
                         <div>
                           <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
+                            Password
+                          </label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <input
+                              type={showPassword ? "text" : "password"}
+                              required
+                              minLength={8}
+                              value={password}
+                              onChange={(e) =>
+                                handlePasswordChange(e.target.value)
+                              }
+                              className={`w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm ${
+                                password && !passwordValidation.isValid
+                                  ? "border-red-300 focus:ring-red-500"
+                                  : "border-gray-200 focus:ring-indigo-500"
+                              }`}
+                              placeholder="Create password"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                          {/* Password Strength Indicator */}
+                          {password && (
+                            <PasswordStrengthIndicator
+                              password={password}
+                              showRequirements={true}
+                            />
+                          )}
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="login"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-4"
+                      >
+                        {/* Login form - Mobile optimized */}
+                        <div>
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                             Email Address
                           </label>
                           <div className="relative">
@@ -268,113 +346,50 @@ const LoginRegister: React.FC = () => {
                               required
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
-                              className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                              placeholder="Your email"
+                              className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                              placeholder="Enter your email"
                             />
                           </div>
                         </div>
-                      </div>
 
-                      {/* Password field */}
-                      <div>
-                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5">
-                          Password
-                        </label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            required
-                            minLength={8}
-                            value={password}
-                            onChange={(e) =>
-                              handlePasswordChange(e.target.value)
-                            }
-                            className={`w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm ${
-                              password && !passwordValidation.isValid
-                                ? "border-red-300 focus:ring-red-500"
-                                : "border-gray-200 focus:ring-indigo-500"
-                            }`}
-                            placeholder="Create password"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
+                        <div>
+                          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                            Password
+                          </label>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <input
+                              type={showPassword ? "text" : "password"}
+                              required
+                              minLength={6}
+                              value={password}
+                              onChange={(e) => setPassword(e.target.value)}
+                              className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
+                              placeholder="Enter your password"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                              ) : (
+                                <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                              )}
+                            </button>
+                          </div>
+                          <div className="text-right mt-2">
+                            <Link to="#" onClick={() => setIsForgotPasswordModalOpen(true)}>
+                              <span className="text-xs sm:text-sm text-indigo-600 hover:underline">
+                                Forgot Password?
+                              </span>
+                            </Link>
+                          </div>
                         </div>
-                        {/* Password Strength Indicator */}
-                        {password && (
-                          <PasswordStrengthIndicator
-                            password={password}
-                            showRequirements={true}
-                          />
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Login form - Mobile optimized */}
-                      <div>
-                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
-                          Email Address
-                        </label>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                          <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                            placeholder="Enter your email"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
-                          Password
-                        </label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            required
-                            minLength={6}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-9 pr-10 py-2.5 sm:py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-500 text-sm"
-                            placeholder="Enter your password"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
-                            ) : (
-                              <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                            )}
-                          </button>
-                        </div>
-                        <div className="text-right mt-2">
-                          <Link to="#" onClick={() => setIsForgotPasswordModalOpen(true)}>
-                            <span className="text-xs sm:text-sm text-indigo-600 hover:underline">
-                              Forgot Password?
-                            </span>
-                          </Link>
-                        </div>
-                      </div>
-                    </>
-                  )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Error message - Mobile optimized */}
                   {error && (
@@ -386,7 +401,8 @@ const LoginRegister: React.FC = () => {
                       <div className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0"></div>
                       <span>{error}</span>
                     </motion.div>
-                  )}
+                  )
+                  }
 
                   {/* Submit button - Mobile optimized */}
                   <button
@@ -471,27 +487,33 @@ const LoginRegister: React.FC = () => {
           </div>
         </div>
 
-        <OTPVerificationModal
-          isOpen={showOtpModal}
-          onClose={() => navigate("/auth", { state: { showOtpModal: false } })}
-          email={otpEmail}
-        />
-
-        <ForgotPasswordModal
-          isOpen={isForgotPasswordModalOpen}
-          onClose={() => setIsForgotPasswordModalOpen(false)}
-          onEmailSubmitted={(email) => {
-            setResetEmail(email);
-            setIsForgotPasswordModalOpen(false);
-            setIsResetPasswordModalOpen(true);
-          }}
-        />
-
-        <ResetPasswordModal
-          isOpen={isResetPasswordModalOpen}
-          onClose={() => setIsResetPasswordModalOpen(false)}
-          email={resetEmail}
-        />
+        <AnimatePresence>
+          {showOtpModal && (
+            <OTPVerificationModal
+              isOpen={showOtpModal}
+              onClose={() => navigate("/auth", { state: { showOtpModal: false } })}
+              email={otpEmail}
+            />
+          )}
+          {isForgotPasswordModalOpen && (
+            <ForgotPasswordModal
+              isOpen={isForgotPasswordModalOpen}
+              onClose={() => setIsForgotPasswordModalOpen(false)}
+              onEmailSubmitted={(email) => {
+                setResetEmail(email);
+                setIsForgotPasswordModalOpen(false);
+                setIsResetPasswordModalOpen(true);
+              }}
+            />
+          )}
+          {isResetPasswordModalOpen && (
+            <ResetPasswordModal
+              isOpen={isResetPasswordModalOpen}
+              onClose={() => setIsResetPasswordModalOpen(false)}
+              email={resetEmail}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </GoogleOAuthProvider>
   );

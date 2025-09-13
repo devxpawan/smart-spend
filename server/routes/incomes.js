@@ -1,12 +1,11 @@
 import express from "express";
+import Income from "../models/Income.js";
 import mongoose from "mongoose";
-import Bill from "../models/Bill.js";
-import Expense from "../models/Expense.js";
 
 const router = express.Router();
 
-// @route   GET /api/expenses
-// @desc    Get all expenses for a user
+// @route   GET /api/incomes
+// @desc    Get all incomes for a user
 // @access  Private
 router.get("/", async (req, res) => {
   try {
@@ -40,16 +39,16 @@ router.get("/", async (req, res) => {
     }
 
     // Get total count for pagination
-    const total = await Expense.countDocuments(filter);
+    const total = await Income.countDocuments(filter);
 
-    // Get expenses
-    const expenses = await Expense.find(filter)
+    // Get incomes
+    const incomes = await Income.find(filter)
       .sort({ date: -1 })
       .limit(parseInt(limit))
       .skip(skip);
 
     res.json({
-      expenses,
+      incomes,
       pagination: {
         total,
         page: parseInt(page),
@@ -57,98 +56,96 @@ router.get("/", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get expenses error:", error);
+    console.error("Get incomes error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// @route   POST /api/expenses
-// @desc    Create a new expense
+// @route   POST /api/incomes
+// @desc    Create a new income
 // @access  Private
 router.post("/", async (req, res) => {
   try {
-    const { amount, description, category, date, paymentMethod, notes } =
+    const { amount, description, category, date, notes } =
       req.body;
 
-    const newExpense = new Expense({
+    const newIncome = new Income({
       user: req.user.id,
       amount,
       description,
       category,
       date: date || Date.now(),
-      paymentMethod,
       notes,
     });
 
-    const expense = await newExpense.save();
-    res.status(201).json(expense);
+    const income = await newIncome.save();
+    res.status(201).json(income);
   } catch (error) {
-    console.error("Create expense error:", error);
+    console.error("Create income error:", error);
     res
       .status(500)
       .json({ message: "Server error", error: error.message });
   }
 });
 
-// @route   PUT /api/expenses/:id
-// @desc    Update expense
+// @route   PUT /api/incomes/:id
+// @desc    Update income
 // @access  Private
 router.put("/:id", async (req, res) => {
   try {
-    const { amount, description, category, date, paymentMethod, notes } =
+    const { amount, description, category, date, notes } =
       req.body;
 
-    const expense = await Expense.findOne({
+    const income = await Income.findOne({
       _id: req.params.id,
       user: req.user.id,
     });
 
-    if (!expense) {
-      return res.status(404).json({ message: "Expense not found" });
+    if (!income) {
+      return res.status(404).json({ message: "Income not found" });
     }
 
     // Update fields
-    expense.amount = amount || expense.amount;
-    expense.description = description || expense.description;
-    expense.category = category || expense.category;
-    expense.date = date || expense.date;
-    expense.paymentMethod = paymentMethod || expense.paymentMethod;
-    expense.notes = notes !== undefined ? notes : expense.notes;
+    income.amount = amount || income.amount;
+    income.description = description || income.description;
+    income.category = category || income.category;
+    income.date = date || income.date;
+    income.notes = notes !== undefined ? notes : income.notes;
 
-    const updatedExpense = await expense.save();
-    res.json(updatedExpense);
+    const updatedIncome = await income.save();
+    res.json(updatedIncome);
   } catch (error) {
-    console.error("Update expense error:", error);
+    console.error("Update income error:", error);
     res
       .status(500)
       .json({ message: "Server error", error: error.message });
   }
 });
 
-// @route   DELETE /api/expenses/:id
-// @desc    Delete expense
+// @route   DELETE /api/incomes/:id
+// @desc    Delete income
 // @access  Private
 router.delete("/:id", async (req, res) => {
   try {
-    const expense = await Expense.findOne({
+    const income = await Income.findOne({
       _id: req.params.id,
       user: req.user.id,
     });
 
-    if (!expense) {
-      return res.status(404).json({ message: "Expense not found" });
+    if (!income) {
+      return res.status(404).json({ message: "Income not found" });
     }
 
-    await expense.deleteOne();
-    res.json({ message: "Expense removed" });
+    await income.deleteOne();
+    res.json({ message: "Income removed" });
   } catch (error) {
-    console.error("Delete expense error:", error);
+    console.error("Delete income error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// @route   GET /api/expenses/summary/monthly
-// @desc    Get monthly expense summary
+// @route   GET /api/incomes/summary/monthly
+// @desc    Get monthly income summary
 // @access  Private
 router.get("/summary/monthly", async (req, res) => {
   try {
@@ -164,7 +161,7 @@ router.get("/summary/monthly", async (req, res) => {
 
     const userId = new mongoose.Types.ObjectId(req.user.id);
 
-    const summary = await Expense.aggregate([
+    const summary = await Income.aggregate([
       {
         $match: {
           user: userId,
@@ -206,8 +203,8 @@ router.get("/summary/monthly", async (req, res) => {
   }
 });
 
-// @route   GET /api/expenses/summary/category
-// @desc    Get expense summary by category
+// @route   GET /api/incomes/summary/category
+// @desc    Get income summary by category
 // @access  Private
 router.get("/summary/category", async (req, res) => {
   try {
@@ -224,7 +221,7 @@ router.get("/summary/category", async (req, res) => {
       };
     }
 
-    const summary = await Expense.aggregate([
+    const summary = await Income.aggregate([
       { $match: filter },
       {
         $group: {
@@ -243,13 +240,13 @@ router.get("/summary/category", async (req, res) => {
   }
 });
 
-// @route   GET /api/expenses/monthly/:year/:month
-// @desc    Get expenses for a specific month
+// @route   GET /api/incomes/monthly/:year/:month
+// @desc    Get incomes for a specific month
 // @access  Private
 router.get("/monthly/:year/:month", async (req, res) => {
   try {
     const { year, month } = req.params;
-    const { limit = 50, page = 1, category, search } = req.query;
+    const { limit = 50, page = 1 } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
@@ -262,61 +259,44 @@ router.get("/monthly/:year/:month", async (req, res) => {
       59
     );
 
-    // Build filter object
     const filter = {
       user: req.user.id,
       date: { $gte: startDate, $lte: endDate },
     };
 
-    if (category) {
-      filter.category = category;
-    }
-
-    if (search) {
-      filter.description = { $regex: search, $options: "i" };
-    }
-
-    const total = await Expense.countDocuments(filter);
-    const expenses = await Expense.find(filter)
+    const total = await Income.countDocuments(filter);
+    const incomes = await Income.find(filter)
       .sort({ date: -1 })
       .limit(parseInt(limit))
       .skip(skip);
 
     // Calculate summary for the month
-    const totalAmount = expenses.reduce(
-      (sum, expense) => sum + expense.amount,
-      0
-    );
-    const categories = [
-      ...new Set(expenses.map((expense) => expense.category)),
-    ];
+    const totalAmount = incomes.reduce((sum, income) => sum + income.amount, 0);
+    const totalCount = incomes.length;
+    const averageAmount = totalCount > 0 ? totalAmount / totalCount : 0;
 
-    const categoryBreakdown = categories
-      .map((cat) => {
-        const categoryExpenses = expenses.filter(
-          (expense) => expense.category === cat
-        );
-        return {
-          category: cat,
-          total: categoryExpenses.reduce(
-            (sum, expense) => sum + expense.amount,
-            0
-          ),
-          count: categoryExpenses.length,
-        };
-      })
-      .sort((a, b) => b.total - a.total);
+    const categoryBreakdown = await Income.aggregate([
+      { $match: { ...filter, user: new mongoose.Types.ObjectId(req.user.id) } },
+      {
+        $group: {
+          _id: "$category",
+          total: { $sum: "$amount" },
+          count: { $sum: 1 },
+        },
+      },
+      { $project: { _id: 0, category: "$_id", total: 1, count: 1 } },
+      { $sort: { total: -1 } },
+    ]);
 
     const summary = {
       totalAmount,
-      totalCount: expenses.length,
+      totalCount,
       categoryBreakdown,
-      averageAmount:
-        expenses.length > 0 ? totalAmount / expenses.length : 0,
+      averageAmount,
     };
 
     res.json({
-      expenses,
+      incomes,
       summary,
       pagination: {
         total,
@@ -325,11 +305,9 @@ router.get("/monthly/:year/:month", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get monthly expenses error:", error);
+    console.error("Get monthly incomes error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
 
 export default router;

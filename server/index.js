@@ -9,6 +9,9 @@ import authRoutes from "./routes/auth.js";
 import expenseRoutes from "./routes/expenses.js";
 import billRoutes from "./routes/bills.js";
 import warrantyRoutes from "./routes/warranties.js";
+import incomeRoutes from "./routes/incomes.js";
+import financialHealthRoutes from "./routes/financialHealth.js";
+import userRoutes from "./routes/user.js";
 
 // Middleware
 import { authenticateToken } from "./middleware/auth.js";
@@ -102,6 +105,9 @@ app.use("/api/warranties/public", warrantyRoutes);
 app.use("/api/expenses", authenticateToken, expenseRoutes);
 app.use("/api/bills", authenticateToken, billRoutes);
 app.use("/api/warranties", authenticateToken, warrantyRoutes);
+app.use("/api/incomes", authenticateToken, incomeRoutes);
+app.use("/api/financial-health", authenticateToken, financialHealthRoutes);
+app.use("/api/user", authenticateToken, userRoutes);
 
 // Default route
 app.get("/", (req, res) => {
