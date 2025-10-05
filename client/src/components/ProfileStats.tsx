@@ -8,7 +8,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import axios from "axios";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/auth-exports";
 
 interface ProfileStatsData {
   bills: number;
@@ -106,33 +106,33 @@ const ProfileStats: React.FC = () => {
       title: "Bills",
       count: stats.bills,
       color: "from-blue-500 to-blue-600",
-      bgColor: "from-blue-50 to-blue-100",
-      borderColor: "border-blue-200",
+      bgColor: "from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-slate-800/50",
+      borderColor: "border-blue-200 dark:border-blue-800",
     },
     {
       icon: <FileText className="w-8 h-8" />,
       title: "Expenses",
       count: stats.expenses,
       color: "from-green-500 to-green-600",
-      bgColor: "from-green-50 to-green-100",
-      borderColor: "border-green-200",
+      bgColor: "from-green-50 to-green-100 dark:from-green-900/50 dark:to-slate-800/50",
+      borderColor: "border-green-200 dark:border-green-800",
     },
     {
       icon: <ShieldCheck className="w-8 h-8" />,
       title: "Warranties",
       count: stats.warranties,
       color: "from-purple-500 to-purple-600",
-      bgColor: "from-purple-50 to-purple-100",
-      borderColor: "border-purple-200",
+      bgColor: "from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-slate-800/50",
+      borderColor: "border-purple-200 dark:border-purple-800",
     },
   ];
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-8">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-8">
         <div className="flex flex-col items-center justify-center py-12">
           <LoadingSpinner size="md" />
-          <p className="mt-3 text-slate-600 text-sm">
+          <p className="mt-3 text-slate-600 dark:text-slate-400 text-sm">
             Loading statistics...
           </p>
         </div>
@@ -142,8 +142,8 @@ const ProfileStats: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl shadow-xl border border-red-200 p-8">
-        <div className="text-red-600 text-center">{error}</div>
+      <div className="bg-white dark:bg-red-900/10 rounded-xl shadow-xl border border-red-200 dark:border-red-800 p-8">
+        <div className="text-red-600 dark:text-red-400 text-center">{error}</div>
       </div>
     );
   }
@@ -153,22 +153,22 @@ const ProfileStats: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 p-8 space-y-8"
+      className="bg-white/80 dark:bg-slate-800/50 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 dark:border-slate-700/50 p-8 space-y-8"
     >
       {/* Account Created Date */}
-      <div className="text-center pb-6 border-b border-slate-100">
+      <div className="text-center pb-6 border-b border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-center space-x-3 mb-4">
           <div className="p-3 rounded-lg bg-gradient-to-r from-indigo-500 to-indigo-600">
             <Calendar className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
               Account Created
             </h2>
-            <p className="text-lg text-slate-600">
+            <p className="text-lg text-slate-600 dark:text-slate-300">
               {user?.createdAt ? formatDate(user.createdAt) : "Unknown"}
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               {user?.createdAt ? getTimeAgo(user.createdAt) : ""}
             </p>
           </div>
@@ -191,13 +191,13 @@ const ProfileStats: React.FC = () => {
               >
                 <div className="text-white">{card.icon}</div>
               </div>
-              <h3 className="text-lg font-semibold text-slate-700 mb-2">
+              <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
                 {card.title}
               </h3>
-              <p className="text-3xl font-bold text-slate-800">
+              <p className="text-3xl font-bold text-slate-800 dark:text-slate-100">
                 {card.count.toLocaleString()}
               </p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Total {card.title.toLowerCase()} managed
               </p>
             </div>

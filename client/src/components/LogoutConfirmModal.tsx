@@ -1,7 +1,7 @@
 // components/LogoutConfirmModal.tsx
-import React, { useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { LogOut, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { LogOut } from "lucide-react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
 interface LogoutConfirmModalProps {
@@ -89,62 +89,58 @@ const LogoutConfirmModal: React.FC<LogoutConfirmModalProps> = ({
           onClick={!loading ? onCancel : undefined}
         >
           <motion.div
-            className="bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-2xl w-full max-w-sm border border-white/10 overflow-hidden relative"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 overflow-hidden"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             ref={modalRef}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-red-500/10 sm:mx-0">
-                  <LogOut
-                    className="h-5 w-5 text-red-400"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h2
-                    id="logout-modal-title"
-                    className="text-lg font-bold text-slate-100"
-                  >
-                    Sign Out
-                  </h2>
+            <div className="p-8 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+                <LogOut className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
+              </div>
+              <div className="mt-5">
+                <h2
+                  id="logout-modal-title"
+                  className="text-xl font-semibold text-slate-50"
+                >
+                  Sign Out
+                </h2>
+                <div className="mt-2">
                   <p
                     id="logout-modal-description"
-                    className="text-sm text-slate-400 mt-1"
+                    className="text-sm text-slate-400"
                   >
                     Are you sure you want to sign out of your account?
                   </p>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  ref={cancelButtonRef}
-                  onClick={onCancel}
-                  className="px-4 py-2 text-sm font-semibold text-slate-300 bg-white/5 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white/50 transition-colors duration-150 disabled:opacity-50"
-                  disabled={loading}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={onConfirm}
-                  disabled={loading}
-                  className="inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-red-500 transition-colors duration-150 text-sm disabled:opacity-60"
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Signing out...
-                    </>                  
-                  ) : (
-                    'Sign Out'
-                  )}
-                </button>
-              </div>
+            </div>
+            <div className="bg-slate-900/50 px-6 py-4 grid grid-cols-2 gap-4">
+              <button
+                ref={cancelButtonRef}
+                onClick={onCancel}
+                className="w-full px-4 py-2.5 text-sm font-semibold text-slate-200 dark:text-gray-300 bg-slate-700/50 dark:bg-gray-700 rounded-lg hover:bg-slate-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-white/50 transition-colors duration-150 disabled:opacity-50"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={onConfirm}
+                disabled={loading}
+                className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-red-500 transition-colors duration-150 text-sm disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-3"></div>
+                    Signing out...
+                  </>
+                ) : (
+                  "Sign Out"
+                )}
+              </button>
             </div>
           </motion.div>
         </motion.div>

@@ -111,7 +111,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
         productName: "",
         expirationDate: "",
         category: "",
-        purchaseDate: "",
+        purchaseDate: new Date().toISOString().split("T")[0],
         retailer: "",
         notes: "",
         purchasePrice: undefined,
@@ -128,6 +128,8 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
 
     if (!formData.productName?.trim()) {
       newErrors.productName = "Product name is required";
+    } else if (!/[a-zA-Z]/.test(formData.productName)) {
+      newErrors.productName = "Product name must contain at least one alphabetic character";
     }
 
     if (!formData.isLifetimeWarranty && !formData.expirationDate) {
@@ -359,9 +361,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
 
       await onSubmit(cleanedData);
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error submitting warranty:", err);
-      setErrors({ productName: err.message || "Failed to save warranty" });
+      const error = err as Error;
+      setErrors({ productName: error.message || "Failed to save warranty" });
     } finally {
       setLoading(false);
     }
@@ -446,19 +449,19 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-3xl max-h-[90vh] overflow-hidden"
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-violet-50">
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-gray-800 dark:to-gray-700">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-purple-500 to-violet-600 flex items-center justify-center shadow-lg">
                 <ShieldCheck className="w-5 h-5 text-white" />
               </div>
               <h2
                 id="modal-title"
-                className="text-xl font-bold text-slate-800"
+                className="text-xl font-bold text-slate-800 dark:text-white"
               >
                 {title ||
                   (initialData ? "Edit Warranty" : "Add New Warranty")}
@@ -466,7 +469,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-white transition-colors p-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-600/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -481,13 +484,13 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                 <div className="md:col-span-2">
                   <label
                     htmlFor="productName"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2"
                   >
                     Product Name *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Package className="h-5 w-5 text-slate-400" />
+                      <Package className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="text"
@@ -496,10 +499,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       value={formData.productName}
                       onChange={handleInputChange}
                       placeholder="e.g., iPhone 15 Pro, Samsung TV 55 inch"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
                         errors.productName
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-purple-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-purple-500"
                       }`}
                       required
                       ref={firstInputRef}
@@ -514,7 +517,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   {errors.productName && (
                     <div
                       id="productName-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.productName}</span>
@@ -526,7 +529,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                 <div>
                   <label
                     htmlFor="category"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2"
                   >
                     Category *
                   </label>
@@ -550,7 +553,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   {errors.category && (
                     <div
                       id="category-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.category}</span>
@@ -562,13 +565,13 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                 <div>
                   <label
                     htmlFor="purchaseDate"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2"
                   >
                     Purchase Date *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-slate-400" />
+                      <Calendar className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="date"
@@ -577,10 +580,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       value={formData.purchaseDate}
                       onChange={handleInputChange}
                       max={new Date().toISOString().split("T")[0]}
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
                         errors.purchaseDate
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-purple-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-purple-500"
                       }`}
                       required
                       aria-invalid={errors.purchaseDate ? "true" : "false"}
@@ -594,7 +597,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   {errors.purchaseDate && (
                     <div
                       id="purchaseDate-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">
@@ -606,7 +609,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
 
                 {/* Lifetime Warranty Checkbox */}
                 <div className="md:col-span-2">
-                  <div className="flex items-center space-x-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center space-x-3 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-700 border border-green-200 dark:border-gray-700 rounded-lg">
                     <input
                       type="checkbox"
                       name="isLifetimeWarranty"
@@ -617,10 +620,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       aria-describedby="lifetimeWarranty-help"
                     />
                     <div className="flex items-center space-x-2">
-                      <ShieldCheck className="h-5 w-5 text-green-600" />
+                      <ShieldCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
                       <label
                         htmlFor="isLifetimeWarranty"
-                        className="text-sm font-semibold text-green-800 cursor-pointer"
+                        className="text-sm font-semibold text-green-800 dark:text-green-300 cursor-pointer"
                       >
                         Lifetime Warranty
                       </label>
@@ -628,7 +631,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   </div>
                   <p
                     id="lifetimeWarranty-help"
-                    className="mt-2 text-xs text-green-600"
+                    className="mt-2 text-xs text-green-600 dark:text-green-400"
                   >
                     Check this if your product has a lifetime warranty. You won't need to specify an expiration date.
                   </p>
@@ -638,13 +641,13 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                 <div>
                   <label
                     htmlFor="expirationDate"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2"
                   >
                     Expiration Date {!formData.isLifetimeWarranty && "*"}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-slate-400" />
+                      <Calendar className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="date"
@@ -653,12 +656,12 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       value={formData.expirationDate}
                       onChange={handleInputChange}
                       disabled={formData.isLifetimeWarranty}
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
                         formData.isLifetimeWarranty
-                          ? "bg-slate-100 text-slate-500 cursor-not-allowed"
+                          ? "bg-slate-100 dark:bg-gray-700 text-slate-500 dark:text-gray-500 cursor-not-allowed"
                           : errors.expirationDate
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-purple-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-purple-500"
                       }`}
                       required={!formData.isLifetimeWarranty}
                       aria-invalid={
@@ -674,7 +677,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   {errors.expirationDate && (
                     <div
                       id="expirationDate-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">
@@ -693,7 +696,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                 <div>
                   <label
                     htmlFor="retailer"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-gray-300 mb-2"
                   >
                     Retailer
                   </label>
@@ -779,7 +782,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   )}
                   <p
                     id="purchasePrice-help"
-                    className="mt-1 text-xs text-slate-500"
+                    className="mt-1 text-xs text-slate-500 dark:text-slate-400"
                   >
                     Currency: {currency}
                   </p>
@@ -827,7 +830,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   )}
                   <p
                     id="notes-help"
-                    className="mt-1 text-xs text-slate-500"
+                    className="mt-1 text-xs text-slate-500 dark:text-slate-400"
                   >
                     {formData.notes?.length || 0}/1000 characters
                   </p>
@@ -843,20 +846,20 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   <div
                     className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
                       dragActive
-                        ? "border-purple-400 bg-purple-50"
-                        : "border-slate-300 hover:border-purple-400"
+                        ? "border-purple-400 bg-purple-50 dark:bg-purple-900/20"
+                        : "border-slate-300 dark:border-gray-600 hover:border-purple-400"
                     }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                   >
                     <div className="text-center">
-                      <Upload className="mx-auto h-12 w-12 text-slate-400" />
+                      <Upload className="mx-auto h-12 w-12 text-slate-400 dark:text-gray-500" />
                       <div className="mt-4">
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:bg-purple-900/50 dark:text-purple-300 dark:hover:bg-purple-900"
                           disabled={uploadingImage}
                         >
                           {uploadingImage ? (
@@ -871,7 +874,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                             </>
                           )}
                         </button>
-                        <p className="mt-2 text-sm text-slate-500">
+                        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                           or drag and drop images here
                         </p>
                       </div>
@@ -903,7 +906,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   {formData.warrantyCardImages &&
                     formData.warrantyCardImages.length > 0 && (
                       <div className="mt-4">
-                        <h4 className="text-sm font-medium text-slate-700 mb-2">
+                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                           Uploaded Images (
                           {formData.warrantyCardImages.length})
                         </h4>
@@ -917,7 +920,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                                 <img
                                   src={image.url}
                                   alt={`Warranty card ${index + 1}`}
-                                  className="w-full h-24 object-cover rounded-lg border border-slate-200"
+                                  className="w-full h-24 object-cover rounded-lg border border-slate-200 dark:border-gray-700"
                                 />
                                 <button
                                   type="button"
@@ -954,11 +957,11 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
+              <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-150 ease-in-out shadow-sm"
+                  className="px-6 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-150 ease-in-out shadow-sm"
                 >
                   Cancel
                 </button>

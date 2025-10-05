@@ -33,7 +33,7 @@ import BillBulkEditModal, { BulkEditUpdates } from "../components/BillBulkEditMo
 import BillModal from "../components/BillModal";
 import ConfirmModal from "../components/ConfirmModal";
 import CustomSelect from "../components/CustomSelect";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/auth-exports";
 import { billCategories } from "../lib/billCategories";
 import BillFormData from "../types/BillFormData";
 import BillInterface from "../types/BillInterface";
@@ -138,9 +138,8 @@ const Bills: React.FC = () => {
       await axios.delete(`/api/bills/${idToDelete}`);
       setBills((prev) => prev.filter((bill) => bill._id !== idToDelete));
       setError("");
-    } catch (_err) {
+    } catch {
       setError("Failed to delete bill");
-      console.error("Error deleting bill:", _err);
     } finally {
       setConfirmModal({ open: false, id: null });
       setDeletingId(null);
@@ -163,10 +162,10 @@ const Bills: React.FC = () => {
         );
       }
       setError("");
-    } catch (_err: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (_err: unknown) {
+      const axiosError = _err as { response?: { data?: { message?: string } } };
       const errorMessage =
-        _err.response?.data?.message || "Failed to update bill status";
+        axiosError.response?.data?.message || "Failed to update bill status";
       setError(errorMessage);
       console.error("Error updating bill status:", _err);
     } finally {
@@ -178,7 +177,7 @@ const Bills: React.FC = () => {
     if (isPaid) {
       return {
         text: "Paid",
-        color: "bg-emerald-100 text-emerald-800 border-emerald-200",
+        color: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-700",
         icon: <CheckCircle className="w-4 h-4 mr-1.5" />,
         priority: 4,
       };
@@ -190,7 +189,7 @@ const Bills: React.FC = () => {
       if (isPast(parsedDate)) {
         return {
           text: "Overdue",
-          color: "bg-red-100 text-red-800 border-red-200",
+          color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700",
           icon: <XCircle className="w-4 h-4 mr-1.5" />,
           priority: 1,
         };
@@ -198,23 +197,22 @@ const Bills: React.FC = () => {
       if (isPast(addDays(parsedDate, -3))) {
         return {
           text: "Due Soon",
-          color: "bg-amber-100 text-amber-800 border-amber-200",
+          color: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700",
           icon: <Clock className="w-4 h-4 mr-1.5" />,
           priority: 2,
         };
       }
       return {
         text: "Upcoming",
-        color: "bg-blue-100 text-blue-800 border-blue-200",
+        color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700",
         icon: <Clock className="w-4 h-4 mr-1.5" />,
         priority: 3,
       };
-    } catch (err) {
-      // eslint-disable-line @typescript-eslint/no-unused-vars
+    } catch {
       console.error("Invalid dueDate:", dueDate);
       return {
         text: "Invalid Date",
-        color: "bg-gray-100 text-gray-800 border-gray-200",
+        color: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
         icon: <AlertCircle className="w-4 h-4 mr-1.5" />,
         priority: 0,
       };
@@ -442,8 +440,7 @@ const Bills: React.FC = () => {
       );
       setSelectedIds([]);
       setError("");
-    } catch (err) {
-      // eslint-disable-line @typescript-eslint/no-unused-vars
+    } catch {
       setError("Failed to delete selected bills");
     } finally {
       setIsBulkDeleteModalOpen(false);
@@ -464,7 +461,7 @@ const Bills: React.FC = () => {
           return Promise.resolve();
         }
 
-        const finalData: { [key: string]: any } = {
+        const finalData: Partial<BillInterface> = {
           amount: updates.amount ? parseFloat(updates.amount) : billToUpdate.amount,
           dueDate: updates.dueDate ?? billToUpdate.dueDate,
           category: updates.category ?? billToUpdate.category,
@@ -512,7 +509,7 @@ const Bills: React.FC = () => {
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-orange-500"></div>
-          <p className="text-slate-600 font-medium">Loading your bills...</p>
+          <p className="text-slate-600 dark:text-gray-300 font-medium">Loading your bills...</p>
         </div>
       </div>
     );
@@ -528,10 +525,10 @@ const Bills: React.FC = () => {
               <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 Bills Management
               </h1>
-              <p className="text-gray-600 mt-1 text-sm sm:text-base">
+              <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
                 Manage your upcoming bills and payments
               </p>
             </div>
@@ -548,15 +545,15 @@ const Bills: React.FC = () => {
 
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-          <span className="text-gray-500">{filteredBills.length} bills</span>
-          <span className="text-gray-500 hidden sm:inline">•</span>
-          <span className="text-gray-500">
+          <span className="text-gray-500 dark:text-gray-400">{filteredBills.length} bills</span>
+          <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">•</span>
+          <span className="text-gray-500 dark:text-gray-400">
             Total: {user?.preferences?.currency || "USD"}{" "}
             {totalAmount.toFixed(2)}
           </span>
           {overdueCount > 0 && (
             <>
-              <span className="text-gray-500 hidden sm:inline">•</span>
+              <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">•</span>
               <span className="text-red-600 font-medium">
                 {overdueCount} overdue
               </span>
@@ -566,10 +563,10 @@ const Bills: React.FC = () => {
       </header>
 
       {/* Simplified Filters */}
-      <div className="bg-white p-3 sm:p-4 rounded-lg border shadow-sm space-y-3 sm:space-y-4">
+      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg border dark:border-gray-700 shadow-sm space-y-3 sm:space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 w-5 h-5" />
           <input
             type="text"
             placeholder="Search bills..."
@@ -581,7 +578,7 @@ const Bills: React.FC = () => {
               }));
               setCurrentPage(1);
             }}
-            className="w-full pl-12 pr-10 py-3 bg-slate-100 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all duration-300 shadow-sm"
+            className="w-full pl-12 pr-10 py-3 bg-slate-100 dark:bg-gray-700 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white dark:focus:bg-gray-800 transition-all duration-300 shadow-sm dark:text-white"
           />
           {filters.searchTerm && (
             <button
@@ -590,7 +587,7 @@ const Bills: React.FC = () => {
                 setFilters((prev) => ({ ...prev, searchTerm: "" }));
                 setCurrentPage(1);
               }}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full p-1"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-full p-1"
               aria-label="Clear search"
             >
               <X className="w-4 h-4" />
@@ -604,7 +601,7 @@ const Bills: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             {/* Status Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <label className="text-xs sm:text-sm font-medium text-gray-700">
+              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Status:
               </label>
               <CustomSelect
@@ -629,7 +626,7 @@ const Bills: React.FC = () => {
 
             {/* Date Range Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <label className="text-xs sm:text-sm font-medium text-gray-700">
+              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Period:
               </label>
               <CustomSelect
@@ -697,8 +694,8 @@ const Bills: React.FC = () => {
           {/* Sort Controls */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 sm:ml-auto">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-slate-500" />
-              <label className="text-xs sm:text-sm font-medium text-slate-700">
+              <Filter className="w-4 h-4 text-slate-500 dark:text-gray-400" />
+              <label className="text-xs sm:text-sm font-medium text-slate-700 dark:text-gray-300">
                 Sort by:
               </label>
               <CustomSelect
@@ -729,7 +726,7 @@ const Bills: React.FC = () => {
                   }));
                   setCurrentPage(1);
                 }}
-                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex-1 sm:flex-none"
+                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex-1 sm:flex-none"
                 title="Toggle sort order"
               >
                 {sortConfig.direction === "asc" ? (
@@ -744,7 +741,7 @@ const Bills: React.FC = () => {
 
               <button
                 onClick={fetchBills}
-                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
                 title="Refresh bills"
                 disabled={loading}
               >
@@ -759,20 +756,20 @@ const Bills: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 p-4 rounded-md">
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-700 p-4 rounded-md">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-2">
-              <AlertCircle className="text-red-500 w-5 h-5 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="text-red-500 dark:text-red-400 w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                   Error Occurred
                 </h3>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
               </div>
             </div>
             <button
               onClick={() => setError("")}
-              className="text-red-400 hover:text-red-600"
+              className="text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-300"
             >
               <XCircle className="w-5 h-5" />
             </button>
@@ -788,9 +785,9 @@ const Bills: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="bg-slate-100 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            className="bg-slate-100 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border dark:border-gray-700 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
           >
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-sm font-medium text-slate-700 dark:text-gray-200">
               {selectedIds.length} item(s) selected
             </div>
             <div className="flex items-center gap-2">
@@ -813,7 +810,7 @@ const Bills: React.FC = () => {
               </button>
               <button
                 onClick={() => setSelectedIds([])}
-                className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300"
+                className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-slate-200 dark:bg-gray-700 rounded-md hover:bg-slate-300 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
@@ -825,15 +822,15 @@ const Bills: React.FC = () => {
       <div className="relative min-h-[600px]">
         {/* Bills Table or Empty State */}
         {filteredBills.length === 0 && !loading && !error ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Receipt className="w-8 h-8 text-orange-500" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 {bills.length === 0 ? "No Bills to Display" : "No Matching Bills Found"}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 {bills.length === 0
                   ? "It looks like you haven't added any bills yet. Let's get started!"
                   : "Your current filters returned no results. Try broadening your search or adjusting the criteria."}
@@ -850,17 +847,17 @@ const Bills: React.FC = () => {
         ) : (
           !loading &&
           !error && (
-            <div className="bg-white rounded-lg shadow border overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 dark:border-gray-700 rounded-lg shadow border overflow-hidden">
               {/* Mobile Card View */}
               <div className="block sm:hidden">
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {currentRecords.map((bill) => {
                     const status = getBillStatus(bill.dueDate, bill.isPaid);
                     return (
                       <div
                         key={bill._id}
                         className={`p-4 space-y-3 ${
-                          selectedIds.includes(bill._id) ? "bg-blue-50" : ""
+                          selectedIds.includes(bill._id) ? "bg-blue-50 dark:bg-blue-900/20" : ""
                         }`}
                         onClick={() => handleSelect(bill._id)}
                       >
@@ -880,14 +877,14 @@ const Bills: React.FC = () => {
                                     setEditBillData(bill)
                                   )
                                 }
-                                className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                                className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 flex items-center space-x-1 group"
                               >
                                 <span className="truncate">{bill.name}</span>
                                 <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
                               </button>
                             </div>
                             <div className="mt-1 flex items-center space-x-2 ml-7">
-                              <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                              <span className="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
                                 {bill.category}
                               </span>
                               <span
@@ -902,11 +899,11 @@ const Bills: React.FC = () => {
 
                         <div className="flex items-center justify-between text-sm ml-7">
                           <div>
-                            <div className="text-gray-600">
+                            <div className="text-gray-600 dark:text-gray-400">
                               Due:{" "}
                               {format(parseISO(bill.dueDate), "MMM d, yyyy")}
                             </div>
-                            <div className="font-semibold text-gray-900">
+                            <div className="font-semibold text-gray-900 dark:text-gray-100">
                               {user?.preferences?.currency || "USD"}{" "}
                               {bill?.amount?.toFixed(2)}
                             </div>
@@ -922,7 +919,7 @@ const Bills: React.FC = () => {
                             }
                             className={`flex-1 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${
                               bill.isPaid
-                                ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400"
+                                ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:border-gray-600"
                                 : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
                             } ${
                               togglingId === bill._id
@@ -967,8 +964,8 @@ const Bills: React.FC = () => {
 
               {/* Desktop Table View */}
               <div className="hidden sm:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
                       <th
                         scope="col"
@@ -998,7 +995,7 @@ const Bills: React.FC = () => {
                       </th>
                       <th
                         scope="col"
-                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase"
                       >
                         <div className="flex items-center space-x-1">
                           <Receipt className="w-4 h-4" />
@@ -1007,13 +1004,13 @@ const Bills: React.FC = () => {
                       </th>
                       <th
                         scope="col"
-                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase"
                       >
                         Category
                       </th>
                       <th
                         scope="col"
-                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                        className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase"
                       >
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
@@ -1022,7 +1019,7 @@ const Bills: React.FC = () => {
                       </th>
                       <th
                         scope="col"
-                        className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider"
+                        className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                       >
                         <div className="flex items-center justify-end space-x-2">
                           <DollarSign className="w-4 h-4" />
@@ -1031,26 +1028,26 @@ const Bills: React.FC = () => {
                       </th>
                       <th
                         scope="col"
-                        className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                        className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                       >
                         Status
                       </th>
                       <th
                         scope="col"
-                        className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 uppercase tracking-wider"
+                        className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                       >
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white/50 divide-y divide-slate-200">
+                  <tbody className="bg-white/50 dark:bg-gray-800/50 divide-y divide-slate-200 dark:divide-slate-700">
                     {currentRecords.map((bill) => {
                       const status = getBillStatus(bill.dueDate, bill.isPaid);
                       return (
                         <tr
                           key={bill._id}
-                          className={`hover:bg-gray-50 ${
-                            selectedIds.includes(bill._id) ? "bg-blue-50" : ""
+                          className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                            selectedIds.includes(bill._id) ? "bg-blue-50 dark:bg-blue-900/20" : ""
                           }`}
                           onClick={() => handleSelect(bill._id)}
                         >
@@ -1070,22 +1067,22 @@ const Bills: React.FC = () => {
                                   setEditBillData(bill)
                                 )
                               }
-                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                              className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 flex items-center space-x-1 group"
                             >
                               <span>{bill.name}</span>
                               <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
                           </td>
                           <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                            <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
                               {bill.category}
                             </span>
                           </td>
-                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                             {format(parseISO(bill.dueDate), "MMM d, yyyy")}
                           </td>
                           <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
-                            <span className="text-sm font-semibold text-gray-900">
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                               {user?.preferences?.currency || "USD"}{" "}
                               {bill?.amount?.toFixed(2)}
                             </span>
@@ -1108,7 +1105,7 @@ const Bills: React.FC = () => {
                                 }
                                 className={`text-xs px-3 lg:px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${
                                   bill.isPaid
-                                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400"
+                                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:border-gray-600"
                                     : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
                                 } ${
                                   togglingId === bill._id
@@ -1163,13 +1160,13 @@ const Bills: React.FC = () => {
       </div>
 
       {nPages > 1 && (
-        <nav className="flex justify-center mt-6 p-2 bg-white rounded-lg shadow-md">
+        <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <ul className="flex items-center space-x-1 h-10 text-base">
             <li>
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
               >
                 Previous
               </button>
@@ -1178,10 +1175,10 @@ const Bills: React.FC = () => {
             {(() => {
               const pageNumbers = [];
               const maxPagesToShow = 5; // Maximum number of page buttons to display
-              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500">...</li>;
+              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500 dark:text-gray-400">...</li>;
 
               let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-              let endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
+              const endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
 
               if (endPage - startPage + 1 < maxPagesToShow) {
                 startPage = Math.max(1, endPage - maxPagesToShow + 1);
@@ -1192,10 +1189,10 @@ const Bills: React.FC = () => {
                   <li key={1}>
                     <button
                       onClick={() => setCurrentPage(1)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === 1
                           ? "text-white bg-orange-500 hover:bg-orange-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       1
@@ -1212,10 +1209,10 @@ const Bills: React.FC = () => {
                   <li key={i}>
                     <button
                       onClick={() => setCurrentPage(i)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === i
                           ? "text-white bg-orange-500 hover:bg-orange-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       {i}
@@ -1232,10 +1229,10 @@ const Bills: React.FC = () => {
                   <li key={nPages}>
                     <button
                       onClick={() => setCurrentPage(nPages)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === nPages
                           ? "text-white bg-orange-500 hover:bg-orange-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       {nPages}
@@ -1251,7 +1248,7 @@ const Bills: React.FC = () => {
                   setCurrentPage((prev) => Math.min(prev + 1, nPages))
                 }
                 disabled={currentPage === nPages}
-                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
               >
                 Next
               </button>

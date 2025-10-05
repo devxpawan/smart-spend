@@ -94,22 +94,22 @@ const BillBulkEditModal: React.FC<BillBulkEditModalProps> = ({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="bg-white rounded-2xl p-6 sm:p-8 shadow-xl w-full max-w-lg"
+          className="bg-white dark:bg-gray-800 rounded-2xl p-6 sm:p-8 shadow-xl w-full max-w-lg"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-800">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">
                 Edit Bills
               </h2>
-              <p className="text-slate-600 mt-1 text-sm">
+              <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">
                 Update fields for {selectedCount} selected item(s). Leave fields
                 blank to keep original values.
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors rounded-full p-1 -mt-2 -mr-2"
+              className="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-white transition-colors rounded-full p-1 -mt-2 -mr-2"
             >
               <X className="w-6 h-6" />
             </button>
@@ -121,19 +121,19 @@ const BillBulkEditModal: React.FC<BillBulkEditModalProps> = ({
 
               {/* Amount */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   New Amount
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <DollarSign className="h-5 w-5 text-slate-400" />
+                    <DollarSign className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                   </div>
                   <input
                     type="number"
                     name="amount"
                     value={formData.amount || ""}
                     onChange={handleChange}
-                    className="form-input block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm transition duration-150 ease-in-out"
+                    className="form-input block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm transition duration-150 ease-in-out"
                     placeholder="0.00"
                   />
                 </div>
@@ -141,26 +141,26 @@ const BillBulkEditModal: React.FC<BillBulkEditModalProps> = ({
 
               {/* Due Date */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   New Due Date
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Calendar className="h-5 w-5 text-slate-400" />
+                    <Calendar className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                   </div>
                   <input
                     type="date"
                     name="dueDate"
                     value={formData.dueDate || ""}
                     onChange={handleChange}
-                    className="form-input block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm transition duration-150 ease-in-out"
+                    className="form-input block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 sm:text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
 
               {/* Category */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   New Category
                 </label>
                 <CustomSelect
@@ -176,7 +176,7 @@ const BillBulkEditModal: React.FC<BillBulkEditModalProps> = ({
 
               {/* Is Paid */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                   Mark as
                 </label>
                 <CustomSelect
@@ -196,7 +196,7 @@ const BillBulkEditModal: React.FC<BillBulkEditModalProps> = ({
           <div className="flex justify-end gap-3 sm:gap-4 mt-8">
             <button
               onClick={onClose}
-              className="px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-all"
+              className="px-4 sm:px-6 py-2.5 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 transition-all"
             >
               Cancel
             </button>

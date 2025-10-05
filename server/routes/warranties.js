@@ -183,7 +183,7 @@ router.get("/", async (req, res) => {
 router.post(
   "/",
   [
-    check("productName", "Product name is required").trim().notEmpty(),
+    check("productName", "Product name is required").trim().notEmpty().matches(/[a-zA-Z]/).withMessage("Product name must contain at least one alphabetic character"),
     check("expirationDate", "Expiration date is required when not lifetime warranty").custom((value, { req }) => {
       if (!req.body.isLifetimeWarranty && !value) {
         throw new Error('Expiration date is required when not lifetime warranty');
@@ -315,7 +315,9 @@ router.put(
     check("productName", "Product name is required")
       .optional()
       .trim()
-      .notEmpty(),
+      .notEmpty()
+      .matches(/[a-zA-Z]/)
+      .withMessage("Product name must contain at least one alphabetic character"),
     check("expirationDate", "Invalid expiration date")
       .optional()
       .custom((value, { req }) => {

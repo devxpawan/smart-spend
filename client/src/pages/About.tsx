@@ -49,16 +49,16 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg p-4 sm:p-6 lg:p-8 border border-indigo-200">
+    <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 sm:p-6 lg:p-8 border border-indigo-200 dark:border-gray-700">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6 sm:mb-8">
           <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
             <Mail className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">
+          <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white mb-2">
             Contact Developers
           </h3>
-          <p className="text-sm sm:text-base text-slate-600">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-gray-300">
             Have questions, suggestions, or feedback? We'd love to hear
             from you!
           </p>
@@ -68,7 +68,7 @@ const Contact: React.FC = () => {
           <div>
             <label
               htmlFor="name"
-              className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2"
+              className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5 sm:mb-2"
             >
               Name
             </label>
@@ -77,7 +77,7 @@ const Contact: React.FC = () => {
               id="name"
               name="name"
               required
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white dark:bg-gray-700 text-sm sm:text-base dark:text-white"
               placeholder="Your full name"
             />
           </div>
@@ -85,7 +85,7 @@ const Contact: React.FC = () => {
           <div>
             <label
               htmlFor="email"
-              className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2"
+              className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5 sm:mb-2"
             >
               Email
             </label>
@@ -94,7 +94,7 @@ const Contact: React.FC = () => {
               id="email"
               name="email"
               required
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white dark:bg-gray-700 text-sm sm:text-base dark:text-white"
               placeholder="your.email@example.com"
             />
           </div>
@@ -102,7 +102,7 @@ const Contact: React.FC = () => {
           <div>
             <label
               htmlFor="message"
-              className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2"
+              className="block text-xs sm:text-sm font-medium text-slate-700 dark:text-gray-300 mb-1.5 sm:mb-2"
             >
               Message
             </label>
@@ -111,7 +111,7 @@ const Contact: React.FC = () => {
               name="message"
               required
               rows={4}
-              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white resize-none text-sm sm:text-base"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors bg-white dark:bg-gray-700 resize-none text-sm sm:text-base dark:text-white"
               placeholder="Tell us about your experience, suggestions, or any issues you've encountered..."
             />
           </div>
@@ -129,10 +129,10 @@ const Contact: React.FC = () => {
           <div
             className={`mt-6 p-4 rounded-lg text-center font-medium ${
               result === "Form Submitted Successfully"
-                ? "bg-green-100 text-green-800 border border-green-200"
+                ? "bg-green-100 text-green-800 border border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-700"
                 : result === "Sending...."
-                ? "bg-blue-100 text-blue-800 border border-blue-200"
-                : "bg-red-100 text-red-800 border border-red-200"
+                ? "bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-700"
+                : "bg-red-100 text-red-800 border border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700"
             }`}
           >
             {result}
@@ -173,41 +173,41 @@ const About: React.FC = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Mobile-optimized Header */}
-      <header className="text-center py-4 sm:py-6 lg:py-8 flex-shrink-0 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-blue-50">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2 sm:mb-3 px-4">
+      <header className="text-center py-4 sm:py-6 lg:py-8 flex-shrink-0 border-b border-slate-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-700">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white mb-2 sm:mb-3 px-4">
           About SmartSpend
         </h1>
-        <p className="text-sm sm:text-base lg:text-lg text-slate-600 max-w-3xl mx-auto px-4">
+        <p className="text-sm sm:text-base lg:text-lg text-slate-600 dark:text-gray-300 max-w-3xl mx-auto px-4">
           Empowering individuals to take control of their financial future
           with intelligent tools and insights
         </p>
       </header>
 
       {/* Main Content - Mobile optimized scrollable */}
-      <div className="flex-1 bg-white rounded-lg shadow-sm border border-slate-200 m-2 sm:m-4 p-3 sm:p-4 lg:p-6 overflow-y-auto">
+      <div className="flex-1 dark:bg-gray-900 rounded-lg shadow-sm border border-slate-200 dark:border-gray-700 m-2 sm:m-4 p-3 sm:p-4 lg:p-6 overflow-y-auto">
         <div className="space-y-6 sm:space-y-8 max-w-4xl mx-auto">
           {/* Mission Section - Mobile optimized */}
           <section>
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-white mb-3 sm:mb-4 border-b border-slate-200 dark:border-gray-700 pb-2">
               Our Mission
             </h2>
             <div className="space-y-4 sm:space-y-6">
-              <p className="text-slate-700 leading-relaxed text-base sm:text-lg">
+              <p className="text-slate-700 dark:text-gray-300 leading-relaxed text-base sm:text-lg">
                 At SmartSpend, we believe that everyone deserves access to
                 powerful financial tools that make managing money simple,
                 secure, and stress-free.
               </p>
-              <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
+              <p className="text-slate-600 dark:text-gray-400 leading-relaxed text-sm sm:text-base">
                 Our mission is to provide a user-friendly and comprehensive platform for managing finances.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg p-4 sm:p-6 border border-indigo-200">
-                  <h3 className="font-semibold text-slate-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 sm:p-6 border border-indigo-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-slate-800 dark:text-white mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
                     <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 mr-2" />
                     Our Values
                   </h3>
-                  <ul className="text-slate-600 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                  <ul className="text-slate-600 dark:text-gray-400 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 mr-2 flex-shrink-0" />
                       Privacy and security first
@@ -227,12 +227,12 @@ const About: React.FC = () => {
                   </ul>
                 </div>
 
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 sm:p-6 border border-green-200">
-                  <h3 className="font-semibold text-slate-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 sm:p-6 border border-green-200 dark:border-gray-700">
+                  <h3 className="font-semibold text-slate-800 dark:text-white mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
                     <Award className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mr-2" />
                     Why Choose SmartSpend?
                   </h3>
-                  <ul className="text-slate-600 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
+                  <ul className="text-slate-600 dark:text-gray-300 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 mr-2 flex-shrink-0" />
                       100% free with no hidden costs
@@ -257,10 +257,10 @@ const About: React.FC = () => {
 
           {/* Key Features - Mobile optimized */}
           <section>
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-white mb-3 sm:mb-4 border-b border-slate-200 dark:border-gray-700 pb-2">
               Key Features
             </h2>
-            <p className="text-slate-600 mb-4 sm:mb-6 text-sm sm:text-base">
+            <p className="text-slate-600 dark:text-gray-400 mb-4 sm:mb-6 text-sm sm:text-base">
               Discover the powerful tools that make SmartSpend your
               ultimate financial companion
             </p>
@@ -268,9 +268,9 @@ const About: React.FC = () => {
               {features.map((feature) => (
                 <div
                   key={feature.name}
-                  className="p-4 sm:p-6 border border-slate-200 rounded-lg hover:shadow-lg hover:border-indigo-300 transition-all duration-300 bg-gradient-to-br from-white to-slate-50"
+                  className="p-4 sm:p-6 border border-slate-200 dark:border-gray-700 rounded-lg hover:shadow-lg hover:border-indigo-300 transition-all duration-300 bg-gradient-to-br from-white to-slate-50 dark:from-gray-800 dark:to-gray-700"
                 >
-                  <h3 className="font-semibold text-slate-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+                  <h3 className="font-semibold text-slate-800 dark:text-white mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
                     <span
                       className="text-xl sm:text-2xl mr-2 sm:mr-3"
                       aria-hidden="true"
@@ -279,7 +279,7 @@ const About: React.FC = () => {
                     </span>
                     {feature.name}
                   </h3>
-                  <p className="text-slate-600 leading-relaxed text-xs sm:text-sm">
+                  <p className="text-slate-600 dark:text-gray-400 leading-relaxed text-xs sm:text-sm">
                     {feature.description}
                   </p>
                 </div>
@@ -289,44 +289,44 @@ const About: React.FC = () => {
 
           {/* Technology & Security - Mobile optimized */}
           <section>
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-white mb-3 sm:mb-4 border-b border-slate-200 dark:border-gray-700 pb-2">
               Technology & Security
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-blue-200 dark:border-gray-700">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                   <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <h3 className="font-semibold text-slate-800 mb-2 text-sm sm:text-base">
+                <h3 className="font-semibold text-slate-800 dark:text-white mb-2 text-sm sm:text-base">
                   Secure by Design
                 </h3>
-                <p className="text-slate-600 text-xs sm:text-sm">
+                <p className="text-slate-600 dark:text-gray-400 text-xs sm:text-sm">
                   End-to-end encryption and secure data storage ensure your
                   financial information stays private
                 </p>
               </div>
 
-              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-green-200 dark:border-gray-700">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                   <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <h3 className="font-semibold text-slate-800 mb-2 text-sm sm:text-base">
+                <h3 className="font-semibold text-slate-800 dark:text-white mb-2 text-sm sm:text-base">
                   Smart Analytics
                 </h3>
-                <p className="text-slate-600 text-xs sm:text-sm">
+                <p className="text-slate-600 dark:text-gray-400 text-xs sm:text-sm">
                   Advanced algorithms provide insights and trends to help
                   you make better financial decisions
                 </p>
               </div>
 
-              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg border border-purple-200 sm:col-span-2 lg:col-span-1">
+              <div className="text-center p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-purple-200 dark:border-gray-700 sm:col-span-2 lg:col-span-1">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                   <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <h3 className="font-semibold text-slate-800 mb-2 text-sm sm:text-base">
+                <h3 className="font-semibold text-slate-800 dark:text-white mb-2 text-sm sm:text-base">
                   User-Focused
                 </h3>
-                <p className="text-slate-600 text-xs sm:text-sm">
+                <p className="text-slate-600 dark:text-gray-400 text-xs sm:text-sm">
                   Built with user feedback and designed for simplicity
                   without compromising functionality
                 </p>
@@ -336,49 +336,49 @@ const About: React.FC = () => {
 
           {/* Getting Started - Mobile optimized */}
           <section>
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 mb-3 sm:mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-white mb-3 sm:mb-4 border-b border-slate-200 dark:border-gray-700 pb-2">
               Getting Started
             </h2>
-            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-4 sm:p-6 lg:p-8 border border-indigo-200">
-              <h3 className="text-base sm:text-lg font-semibold text-slate-800 mb-3 sm:mb-4 text-center">
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 rounded-lg p-4 sm:p-6 lg:p-8 border border-indigo-200 dark:border-gray-700">
+              <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-white mb-3 sm:mb-4 text-center">
                 Ready to take control of your finances?
               </h3>
-              <p className="text-slate-600 text-center mb-4 sm:mb-6 max-w-2xl mx-auto text-sm sm:text-base">
+              <p className="text-slate-600 dark:text-gray-400 text-center mb-4 sm:mb-6 max-w-2xl mx-auto text-sm sm:text-base">
                 Join thousands of users who have already transformed their
                 financial habits with SmartSpend. Start your journey
                 towards better financial health today.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
-                <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                <div className="bg-transparent dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow-sm">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xs sm:text-sm font-bold">
                     1
                   </div>
-                  <h4 className="font-semibold text-slate-800 text-xs sm:text-sm mb-1">
+                  <h4 className="font-semibold text-slate-800 dark:text-white text-xs sm:text-sm mb-1">
                     Create Account
                   </h4>
-                  <p className="text-slate-600 text-xs">
+                  <p className="text-slate-600 dark:text-gray-400 text-xs">
                     Sign up in seconds with just your email
                   </p>
                 </div>
-                <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                <div className="bg-transparent dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow-sm">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xs sm:text-sm font-bold">
                     2
                   </div>
-                  <h4 className="font-semibold text-slate-800 text-xs sm:text-sm mb-1">
+                  <h4 className="font-semibold text-slate-800 dark:text-white text-xs sm:text-sm mb-1">
                     Add Your Data
                   </h4>
-                  <p className="text-slate-600 text-xs">
+                  <p className="text-slate-600 dark:text-gray-400 text-xs">
                     Add your financial information and start managing
                   </p>
                 </div>
-                <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
+                <div className="bg-transparent dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow-sm">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center mx-auto mb-2 text-xs sm:text-sm font-bold">
                     3
                   </div>
-                  <h4 className="font-semibold text-slate-800 text-xs sm:text-sm mb-1">
+                  <h4 className="font-semibold text-slate-800 dark:text-white text-xs sm:text-sm mb-1">
                     Start Managing
                   </h4>
-                  <p className="text-slate-600 text-xs">
+                  <p className="text-slate-600 dark:text-gray-400 text-xs">
                     Analyze, and optimize your finances
                   </p>
                 </div>
@@ -388,23 +388,23 @@ const About: React.FC = () => {
 
           {/* Contact Developers Section */}
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-4 border-b border-slate-200 pb-2">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-4 border-b border-slate-200 dark:border-gray-700 pb-2">
               Contact Developers
             </h2>
             <Contact />
           </section>
 
           {/* Enhanced Footer */}
-          <footer className="text-center py-8 border-t border-slate-200 mt-8 bg-gradient-to-r from-slate-50 to-gray-50">
+          <footer className="text-center py-8 border-t border-slate-200 dark:border-gray-700 mt-8 bg-gradient-to-r from-slate-50 to-gray-50 dark:from-gray-800 dark:to-gray-700">
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-800">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
                 SmartSpend
               </h3>
-              <p className="text-slate-600 max-w-md mx-auto">
+              <p className="text-slate-600 dark:text-gray-400 max-w-md mx-auto">
                   Empowering smarter financial decisions through intelligent
                   expense, income, bill, and warranty management.
               </p>
-              <div className="flex justify-center space-x-6 text-sm text-slate-500">
+              <div className="flex justify-center space-x-6 text-sm text-slate-500 dark:text-gray-500">
                 <span>© 2025 SmartSpend</span>
                 <span>•</span>
                 <span>Privacy First</span>

@@ -96,13 +96,12 @@ const ClearRecordsModal: React.FC<ClearRecordsModalProps> = ({
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
-          <motion.div
-            ref={modalRef}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+                      <motion.div
+                        ref={modalRef}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-sm sm:max-w-md shadow-xl"            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3
@@ -114,7 +113,7 @@ const ClearRecordsModal: React.FC<ClearRecordsModalProps> = ({
               </h3>
               <button
                 onClick={onClose}
-                className="text-slate-400 hover:text-slate-600 focus:outline-none focus:ring-2 focus:ring-slate-500 rounded p-1"
+                className="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-500 rounded p-1"
                 aria-label="Close dialog"
               >
                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -134,7 +133,7 @@ const ClearRecordsModal: React.FC<ClearRecordsModalProps> = ({
               {availableRecordTypes.length > 0 ? (
                 <>
                   <div>
-                    <label className="block text-xs sm:text-sm text-slate-700 mb-1.5 sm:mb-2">
+                    <label className="block text-xs sm:text-sm text-slate-700 dark:text-gray-300 mb-1.5 sm:mb-2">
                       Select the records you want to clear:
                     </label>
                     <div className="space-y-2">
@@ -146,7 +145,7 @@ const ClearRecordsModal: React.FC<ClearRecordsModalProps> = ({
                           onChange={handleSelectAll}
                           className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                         />
-                        <label htmlFor="select-all" className="ml-2 block text-sm text-gray-900">
+                        <label htmlFor="select-all" className="ml-2 block text-sm text-gray-900 dark:text-white">
                           Select All
                         </label>
                       </div>
@@ -159,7 +158,7 @@ const ClearRecordsModal: React.FC<ClearRecordsModalProps> = ({
                             onChange={() => handleRecordTypeChange(recordType)}
                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                           />
-                          <label htmlFor={recordType} className="ml-2 block text-sm text-gray-900 capitalize">
+                          <label htmlFor={recordType} className="ml-2 block text-sm text-gray-900 dark:text-white capitalize">
                             {recordType}
                           </label>
                         </div>
@@ -168,22 +167,22 @@ const ClearRecordsModal: React.FC<ClearRecordsModalProps> = ({
                   </div>
 
                   <div>
-                    <p className="text-xs sm:text-sm text-slate-700 mb-1.5">
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-gray-300 mb-1.5">
                       To confirm, please type '''clear my records''' in the box below.
                     </p>
                     <input
                       type="text"
                       value={confirmText}
                       onChange={(e) => setConfirmText(e.target.value)}
-                      className="block w-full px-3 py-2 text-slate-900 placeholder-slate-400 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 sm:text-sm"
+                      className="block w-full px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 bg-slate-50 dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-gray-500 sm:text-sm"
                       placeholder="clear my records"
                     />
                   </div>
                 </>
               ) : (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center">
-                  <Info className="w-5 h-5 mr-2 text-blue-600" />
-                  <p className="text-sm text-blue-800">
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-700 rounded-lg p-3 flex items-center">
+                  <Info className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                  <p className="text-sm text-blue-800 dark:text-blue-300">
                     You have no records to clear.
                   </p>
                 </div>
@@ -194,7 +193,7 @@ const ClearRecordsModal: React.FC<ClearRecordsModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors text-sm min-h-[44px] sm:min-h-0 mr-2"
+                className="px-4 py-2.5 bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-slate-500 transition-colors text-sm min-h-[44px] sm:min-h-0 mr-2"
               >
                 Cancel
               </button>

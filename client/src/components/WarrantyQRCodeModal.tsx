@@ -40,27 +40,27 @@ const WarrantyQRCodeModal: React.FC<WarrantyQRCodeModalProps> = ({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-xl shadow-xl max-w-md w-full p-5"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-5"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 text-green-600" />
+              <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-gray-900">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   Warranty Created!
                 </h3>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   QR code for {productName}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -81,11 +81,11 @@ const WarrantyQRCodeModal: React.FC<WarrantyQRCodeModalProps> = ({
           </div>
 
           {/* Usage Instructions */}
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="text-xs font-medium text-blue-800 mb-1">
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 className="text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">
               Quick tips:
             </h4>
-            <ul className="text-xs text-blue-700 space-y-0.5">
+            <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-0.5">
               <li>• Print and attach to product</li>
               <li>• Share with repair shops</li>
               <li>• Works on any smartphone</li>
@@ -96,7 +96,7 @@ const WarrantyQRCodeModal: React.FC<WarrantyQRCodeModalProps> = ({
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
+              className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm font-medium"
             >
               Close
             </button>

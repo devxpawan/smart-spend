@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
   ArcElement,
   CategoryScale,
@@ -21,16 +20,18 @@ import {
   TrendingUp,
   User,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Doughnut, Line } from "react-chartjs-2";
 import { Link } from "react-router-dom";
+import api from "../api/api";
 import FinancialHealthScore from "../components/FinancialHealthScore";
 import {
   SkeletonCard,
   SkeletonChart,
   SkeletonDoughnut,
 } from "../components/SkeletonLoaders";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/auth-exports";
+import { useTheme } from "../contexts/ThemeContext";
 import { retryWithBackoff } from "../utils/retry";
 
 ChartJS.register(
@@ -65,6 +66,12 @@ interface WarrantyInterface {
   category: string;
 }
 
+interface MonthlyData {
+  total: number;
+  month: number;
+  year: number;
+}
+
 interface DashboardData {
   totalExpenses: number;
   totalIncomes: number;
@@ -72,8 +79,8 @@ interface DashboardData {
   expiringWarranties: WarrantyInterface[];
   categoryData: ExpenseSummary[];
   incomeCategoryData: ExpenseSummary[];
-  monthlyExpenseData: any[];
-  monthlyIncomeData: any[];
+  monthlyExpenseData: MonthlyData[];
+  monthlyIncomeData: MonthlyData[];
 }
 
 interface ErrorState {
@@ -83,6 +90,7 @@ interface ErrorState {
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingCharts, setLoadingCharts] = useState(true);
   const [errors, setErrors] = useState<ErrorState>({ stats: "", charts: "" });
@@ -112,8 +120,8 @@ const Dashboard: React.FC = () => {
 
       const fetchData = () =>
         Promise.all([
-          axios.get("/api/bills/upcoming/reminders"),
-          axios.get("/api/warranties/expiring/soon"),
+          api.get("/bills/upcoming/reminders"),
+          api.get("/warranties/expiring/soon"),
         ]);
 
       const [billsRes, warrantiesRes] = await retryWithBackoff(fetchData);
@@ -123,11 +131,15 @@ const Dashboard: React.FC = () => {
         upcomingBills: billsRes.data,
         expiringWarranties: warrantiesRes.data,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Dashboard stats fetch error:", error);
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
       setErrors((prev) => ({
         ...prev,
-        stats: error.response?.data?.message || "Failed to load key stats.",
+        stats:
+          axiosError.response?.data?.message || "Failed to load key stats.",
       }));
     } finally {
       setLoadingStats(false);
@@ -141,10 +153,10 @@ const Dashboard: React.FC = () => {
 
       const fetchData = () =>
         Promise.all([
-          axios.get("/api/expenses/summary/monthly"),
-          axios.get("/api/incomes/summary/monthly"),
-          axios.get("/api/expenses/summary/category"),
-          axios.get("/api/incomes/summary/category"),
+          api.get("/expenses/summary/monthly"),
+          api.get("/incomes/summary/monthly"),
+          api.get("/expenses/summary/category"),
+          api.get("/incomes/summary/category"),
         ]);
 
       const [
@@ -155,12 +167,12 @@ const Dashboard: React.FC = () => {
       ] = await retryWithBackoff(fetchData);
 
       const currentYearTotalExpenses = monthlyExpensesRes.data.reduce(
-        (sum: number, month: any) => sum + month.total,
+        (sum: number, month: MonthlyData) => sum + month.total,
         0
       );
 
       const currentYearTotalIncomes = monthlyIncomesRes.data.reduce(
-        (sum: number, month: any) => sum + month.total,
+        (sum: number, month: MonthlyData) => sum + month.total,
         0
       );
 
@@ -173,11 +185,15 @@ const Dashboard: React.FC = () => {
         monthlyExpenseData: monthlyExpensesRes.data,
         monthlyIncomeData: monthlyIncomesRes.data,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Dashboard charts fetch error:", error);
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
       setErrors((prev) => ({
         ...prev,
-        charts: error.response?.data?.message || "Failed to load chart data.",
+        charts:
+          axiosError.response?.data?.message || "Failed to load chart data.",
       }));
     } finally {
       setLoadingCharts(false);
@@ -188,6 +204,15 @@ const Dashboard: React.FC = () => {
     fetchStatsData();
     fetchChartsData();
   }, []);
+
+  const formatCurrency = useCallback(
+    (amount: number) => {
+      return `${
+        user?.preferences?.currency || "USD"
+      } ${amount.toLocaleString()}`;
+    },
+    [user?.preferences?.currency]
+  );
 
   const expenseCategoryChartData = useMemo(
     () => ({
@@ -268,7 +293,9 @@ const Dashboard: React.FC = () => {
       datasets: [
         {
           label: "Monthly Expenses",
-          data: dashboardData.monthlyExpenseData.map((month) => month.total),
+          data: dashboardData.monthlyExpenseData.map(
+            (month: MonthlyData) => month.total
+          ),
           borderColor: "#3B82F6", // Keep original blue color
           backgroundColor: "rgba(59, 130, 246, 0.1)", // Keep original blue fill
           pointBackgroundColor: "#3B82F6",
@@ -285,7 +312,9 @@ const Dashboard: React.FC = () => {
         },
         {
           label: "Monthly Incomes",
-          data: dashboardData.monthlyIncomeData.map((month) => month.total),
+          data: dashboardData.monthlyIncomeData.map(
+            (month: MonthlyData) => month.total
+          ),
           borderColor: "#10B981",
           backgroundColor: "rgba(16, 185, 129, 0.1)",
           pointBackgroundColor: "#10B981",
@@ -305,10 +334,6 @@ const Dashboard: React.FC = () => {
     [dashboardData.monthlyExpenseData, dashboardData.monthlyIncomeData]
   );
 
-  const formatCurrency = (amount: number) => {
-    return `${user?.preferences?.currency || "USD"} ${amount.toLocaleString()}`;
-  };
-
   const statsCards = useMemo(
     () => [
       {
@@ -321,6 +346,8 @@ const Dashboard: React.FC = () => {
         gradient: "from-sky-500 to-cyan-600",
         bgGradient: "from-sky-50 to-cyan-50",
         borderColor: "border-sky-200",
+        darkBgGradient: "from-gray-800 to-gray-700",
+        darkBorderColor: "border-gray-700",
       },
       {
         icon: <DollarSign className="w-7 h-7" />,
@@ -332,6 +359,8 @@ const Dashboard: React.FC = () => {
         gradient: "from-blue-500 to-indigo-600",
         bgGradient: "from-blue-50 to-indigo-50",
         borderColor: "border-blue-200",
+        darkBgGradient: "from-gray-800 to-gray-700",
+        darkBorderColor: "border-gray-700",
       },
       {
         icon: <Receipt className="w-7 h-7" />,
@@ -343,6 +372,8 @@ const Dashboard: React.FC = () => {
         gradient: "from-amber-500 to-orange-600",
         bgGradient: "from-amber-50 to-orange-50",
         borderColor: "border-amber-200",
+        darkBgGradient: "from-gray-800 to-gray-700",
+        darkBorderColor: "border-gray-700",
         urgent: dashboardData.upcomingBills.some((bill) => {
           const dueDate = new Date(bill.dueDate);
           const today = new Date();
@@ -361,12 +392,12 @@ const Dashboard: React.FC = () => {
         gradient: "from-emerald-500 to-teal-600",
         bgGradient: "from-emerald-50 to-teal-50",
         borderColor: "border-emerald-200",
+        darkBgGradient: "from-gray-800 to-gray-700",
+        darkBorderColor: "border-gray-700",
       },
     ],
-    [dashboardData, user?.preferences?.currency]
+    [dashboardData, formatCurrency]
   );
-
-  
 
   return (
     <div className="min-h-screen">
@@ -378,7 +409,7 @@ const Dashboard: React.FC = () => {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="mb-6 sm:mb-8"
         >
-          <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 border border-gray-200 shadow-lg shadow-gray-200/20">
+          <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 border border-gray-200 dark:border-gray-700 shadow-lg shadow-gray-200/20 dark:shadow-gray-900/20">
             <div>
               <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
                 <div className="relative">
@@ -391,20 +422,20 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 bg-clip-text text-transparent leading-tight">
+                  <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 dark:from-white dark:via-gray-200 dark:to-white bg-clip-text text-transparent leading-tight">
                     {greeting}, {user?.name || "User"}!
                   </h1>
-                  <p className="text-sm sm:text-base text-slate-600 mt-0.5 sm:mt-1">
+                  <p className="text-sm sm:text-base text-slate-600 dark:text-gray-300 mt-0.5 sm:mt-1">
                     Here's your financial snapshot for today.
                   </p>
                 </div>
               </div>
 
               {/* Mobile-optimized date display */}
-              <div className="flex items-center pt-2 sm:pt-3 border-t border-slate-200/50">
+              <div className="flex items-center pt-2 sm:pt-3 border-t border-slate-200/50 dark:border-gray-700/50">
                 <div className="flex items-center space-x-1.5 sm:space-x-2">
                   <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-gray-400 rounded-full"></div>
-                  <span className="text-xs font-medium text-slate-600">
+                  <span className="text-xs font-medium text-slate-600 dark:text-gray-300">
                     {new Date().toLocaleDateString("en-US", {
                       weekday: "short",
                       month: "short",
@@ -424,18 +455,20 @@ const Dashboard: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6"
+              className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-700 rounded-xl p-4 mb-6"
             >
               <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-semibold text-red-800">
+                  <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
                     Error Loading Stats
                   </h3>
-                  <p className="text-sm text-red-700 mt-1">{errors.stats}</p>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {errors.stats}
+                  </p>
                   <button
                     onClick={() => fetchStatsData()}
-                    className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium"
+                    className="mt-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
                   >
                     Try again
                   </button>
@@ -450,18 +483,20 @@ const Dashboard: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6"
+              className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-700 rounded-xl p-4 mb-6"
             >
               <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-semibold text-red-800">
+                  <h3 className="text-sm font-semibold text-red-800 dark:text-red-200">
                     Error Loading Charts
                   </h3>
-                  <p className="text-sm text-red-700 mt-1">{errors.charts}</p>
+                  <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                    {errors.charts}
+                  </p>
                   <button
                     onClick={() => fetchChartsData()}
-                    className="mt-2 text-sm text-red-600 hover:text-red-700 font-medium"
+                    className="mt-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium"
                   >
                     Try again
                   </button>
@@ -479,15 +514,19 @@ const Dashboard: React.FC = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
         >
           {loadingStats
-            ? Array.from({ length: 4 }).map((_, idx) => <SkeletonCard key={idx} />)
+            ? Array.from({ length: 4 }).map((_, idx) => (
+                <SkeletonCard key={idx} />
+              ))
             : statsCards.map((item, idx) => (
                 <Link
                   to={item.link}
                   key={idx}
                   className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br ${
                     item.bgGradient
-                  } border ${
+                  } dark:${item.darkBgGradient} border ${
                     item.borderColor
+                  } dark:${
+                    item.darkBorderColor
                   } hover:scale-[1.02] overflow-hidden ${
                     item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
                   } min-h-[120px] sm:min-h-[140px]`}
@@ -510,14 +549,14 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-start justify-between mb-3 sm:mb-4">
                       <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                          <h3 className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider">
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-wider">
                             {item.title}
                           </h3>
                           {/* <span className="text-xs text-slate-500 font-medium">
                         {item.subtitle}
                       </span> */}
                         </div>
-                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 break-words">
+                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
                           {item.value}
                         </p>
                       </div>
@@ -529,7 +568,7 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between mt-auto">
-                      <span className="text-xs sm:text-sm text-slate-600 font-medium group-hover:text-slate-800 transition-colors flex items-center">
+                      <span className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 font-medium group-hover:text-slate-800 dark:group-hover:text-white transition-colors flex items-center">
                         View Details
                         <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
                       </span>
@@ -559,33 +598,33 @@ const Dashboard: React.FC = () => {
           ) : (
             <>
               {/* Monthly Expenses Chart */}
-              <div className="lg:col-span-3 bg-white p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200">
+              <div className="lg:col-span-3 bg-white dark:bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
                       <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                         Monthly Overview
                       </h3>
-                      <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                         Income vs. Expense trends
                       </p>
                     </div>
                   </div>
                   <div className="text-left sm:text-right">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {new Date().getFullYear()}
                     </div>
-                    <div className="text-xs text-gray-500 mt-0.5">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       Year to date
                     </div>
                   </div>
                 </div>
                 <div className="h-64 sm:h-72 lg:h-80">
-                  {(dashboardData.monthlyExpenseData.length > 0 ||
-                    dashboardData.monthlyIncomeData.length > 0) ? (
+                  {dashboardData.monthlyExpenseData.length > 0 ||
+                  dashboardData.monthlyIncomeData.length > 0 ? (
                     <Line
                       data={monthlyChartData}
                       options={{
@@ -607,31 +646,37 @@ const Dashboard: React.FC = () => {
                           y: {
                             beginAtZero: true,
                             grid: {
-                              color: "#f1f5f9",
+                              color: theme === "dark" ? "#374151" : "#f1f5f9",
                               lineWidth: 1,
                               drawTicks: false,
                             },
                             border: {
                               display: true,
-                              color: "#e2e8f0",
+                              color: theme === "dark" ? "#4b5563" : "#e2e8f0",
                               width: 1,
                             },
                             ticks: {
                               callback: (value) => {
                                 const numValue = Number(value);
                                 if (numValue >= 1000000) {
-                                  return `${user?.preferences?.currency || "USD"}${(numValue / 1000000).toFixed(1)}M`;
+                                  return `${
+                                    user?.preferences?.currency || "USD"
+                                  }${(numValue / 1000000).toFixed(1)}M`;
                                 } else if (numValue >= 1000) {
-                                  return `${user?.preferences?.currency || "USD"}${(numValue / 1000).toFixed(0)}K`;
+                                  return `${
+                                    user?.preferences?.currency || "USD"
+                                  }${(numValue / 1000).toFixed(0)}K`;
                                 }
-                                return `${user?.preferences?.currency || "USD"}${numValue.toLocaleString()}`;
+                                return `${
+                                  user?.preferences?.currency || "USD"
+                                }${numValue.toLocaleString()}`;
                               },
                               font: {
                                 size: 11,
                                 family: "Inter, sans-serif",
                                 weight: 500,
                               },
-                              color: "#6b7280",
+                              color: theme === "dark" ? "#9ca3af" : "#6b7280",
                               padding: 12,
                               maxTicksLimit: 6,
                             },
@@ -642,7 +687,7 @@ const Dashboard: React.FC = () => {
                             },
                             border: {
                               display: true,
-                              color: "#e2e8f0",
+                              color: theme === "dark" ? "#4b5563" : "#e2e8f0",
                               width: 1,
                             },
                             ticks: {
@@ -651,7 +696,7 @@ const Dashboard: React.FC = () => {
                                 family: "Inter, sans-serif",
                                 weight: 500,
                               },
-                              color: "#6b7280",
+                              color: theme === "dark" ? "#9ca3af" : "#6b7280",
                               padding: 8,
                             },
                           },
@@ -664,7 +709,7 @@ const Dashboard: React.FC = () => {
                             labels: {
                               boxWidth: 12,
                               padding: 20,
-                              color: "#6b7280",
+                              color: theme === "dark" ? "#9ca3af" : "#6b7280",
                               font: {
                                 size: 12,
                                 family: "Inter, sans-serif",
@@ -674,10 +719,13 @@ const Dashboard: React.FC = () => {
                           },
                           tooltip: {
                             enabled: true,
-                            backgroundColor: "#ffffff",
-                            titleColor: "#1f2937",
-                            bodyColor: "#374151",
-                            borderColor: "#e5e7eb",
+                            backgroundColor:
+                              theme === "dark" ? "#1f2937" : "#ffffff",
+                            titleColor:
+                              theme === "dark" ? "#f9fafb" : "#1f2937",
+                            bodyColor: theme === "dark" ? "#d1d5db" : "#374151",
+                            borderColor:
+                              theme === "dark" ? "#4b5563" : "#e5e7eb",
                             borderWidth: 1,
                             titleFont: {
                               size: 13,
@@ -696,13 +744,17 @@ const Dashboard: React.FC = () => {
                             caretPadding: 8,
                             callbacks: {
                               title: (context) => {
-                                return `${context[0].label} ${new Date().getFullYear()}`;
+                                return `${
+                                  context[0].label
+                                } ${new Date().getFullYear()}`;
                               },
                               label: (context) => {
                                 const label = context.dataset.label || "";
                                 const value = context.parsed.y;
                                 if (value !== null) {
-                                  return `${label}: ${user?.preferences?.currency || "USD"}${value.toLocaleString()}`;
+                                  return `${label}: ${
+                                    user?.preferences?.currency || "USD"
+                                  }${value.toLocaleString()}`;
                                 }
                                 return "";
                               },
@@ -724,8 +776,8 @@ const Dashboard: React.FC = () => {
                   ) : (
                     <div className="h-full flex items-center justify-center">
                       <div className="text-center">
-                        <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500 font-medium">
+                        <TrendingUp className="w-16 h-16 text-slate-300 dark:text-gray-600 mx-auto mb-4" />
+                        <p className="text-slate-500 dark:text-gray-400 font-medium">
                           No income or expense data available
                         </p>
                       </div>
@@ -735,17 +787,17 @@ const Dashboard: React.FC = () => {
               </div>
 
               {/* Category Charts */}
-              <div className="lg:col-span-2 bg-white p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200">
+              <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
                       <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                         Category Breakdown
                       </h3>
-                      <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                         Income vs. Expense
                       </p>
                     </div>
@@ -753,7 +805,9 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col items-center">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Expenses</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                      Expenses
+                    </h4>
                     <div className="w-full h-48">
                       {dashboardData.categoryData.length > 0 ? (
                         <Doughnut
@@ -766,7 +820,13 @@ const Dashboard: React.FC = () => {
                               legend: {
                                 position: "bottom",
                                 labels: {
-                                  font: { size: 10 },
+                                  color:
+                                    theme === "dark" ? "#FFFFFF" : "#475569",
+                                  font: {
+                                    size: 10,
+                                    family: "Inter, sans-serif",
+                                    weight: 500,
+                                  },
                                   boxWidth: 8,
                                   generateLabels: (chart) => {
                                     const data = chart.data;
@@ -774,19 +834,28 @@ const Dashboard: React.FC = () => {
                                       return data.labels.map((label, i) => {
                                         const dataset = data.datasets[0];
                                         const value = dataset.data[i] as number;
-                                        const total = (dataset.data as number[]).reduce(
-                                          (a, b) => a + b,
-                                          0
-                                        );
-                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        const total = (
+                                          dataset.data as number[]
+                                        ).reduce((a, b) => a + b, 0);
+                                        const percentage = (
+                                          (value / total) *
+                                          100
+                                        ).toFixed(1);
                                         return {
                                           text: `${label} (${percentage}%)`,
                                           fillStyle:
-                                            (dataset.backgroundColor as string[])[i] || "#000",
-                                          strokeStyle: dataset.borderColor as string,
+                                            (
+                                              dataset.backgroundColor as string[]
+                                            )[i] || "#000",
+                                          strokeStyle:
+                                            dataset.borderColor as string,
                                           lineWidth: 1,
                                           hidden: false,
                                           index: i,
+                                          fontColor:
+                                            theme === "dark"
+                                              ? "#ffffff"
+                                              : "#475569",
                                         };
                                       });
                                     }
@@ -799,12 +868,16 @@ const Dashboard: React.FC = () => {
                                   label: (context) => {
                                     const label = context.label || "";
                                     const value = context.parsed;
-                                    const total = (context.dataset.data as number[]).reduce(
-                                      (a, b) => a + b,
-                                      0
-                                    );
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                    const total = (
+                                      context.dataset.data as number[]
+                                    ).reduce((a, b) => a + b, 0);
+                                    const percentage = (
+                                      (value / total) *
+                                      100
+                                    ).toFixed(1);
+                                    return `${label}: ${formatCurrency(
+                                      value
+                                    )} (${percentage}%)`;
                                   },
                                 },
                               },
@@ -812,14 +885,16 @@ const Dashboard: React.FC = () => {
                           }}
                         />
                       ) : (
-                        <div className="h-full flex items-center justify-center text-center text-xs text-slate-500">
+                        <div className="h-full flex items-center justify-center text-center text-xs text-slate-500 dark:text-gray-400">
                           No expense data
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Incomes</h4>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                      Incomes
+                    </h4>
                     <div className="w-full h-48">
                       {dashboardData.incomeCategoryData.length > 0 ? (
                         <Doughnut
@@ -832,6 +907,8 @@ const Dashboard: React.FC = () => {
                               legend: {
                                 position: "bottom",
                                 labels: {
+                                  color:
+                                    theme === "dark" ? "#ffffff" : "#475569",
                                   font: { size: 10 },
                                   boxWidth: 8,
                                   generateLabels: (chart) => {
@@ -840,19 +917,28 @@ const Dashboard: React.FC = () => {
                                       return data.labels.map((label, i) => {
                                         const dataset = data.datasets[0];
                                         const value = dataset.data[i] as number;
-                                        const total = (dataset.data as number[]).reduce(
-                                          (a, b) => a + b,
-                                          0
-                                        );
-                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        const total = (
+                                          dataset.data as number[]
+                                        ).reduce((a, b) => a + b, 0);
+                                        const percentage = (
+                                          (value / total) *
+                                          100
+                                        ).toFixed(1);
                                         return {
                                           text: `${label} (${percentage}%)`,
                                           fillStyle:
-                                            (dataset.backgroundColor as string[])[i] || "#000",
-                                          strokeStyle: dataset.borderColor as string,
+                                            (
+                                              dataset.backgroundColor as string[]
+                                            )[i] || "#000",
+                                          strokeStyle:
+                                            dataset.borderColor as string,
                                           lineWidth: 1,
                                           hidden: false,
                                           index: i,
+                                          fontColor:
+                                            theme === "dark"
+                                              ? "#ffffff"
+                                              : "#475569",
                                         };
                                       });
                                     }
@@ -865,12 +951,16 @@ const Dashboard: React.FC = () => {
                                   label: (context) => {
                                     const label = context.label || "";
                                     const value = context.parsed;
-                                    const total = (context.dataset.data as number[]).reduce(
-                                      (a, b) => a + b,
-                                      0
-                                    );
-                                    const percentage = ((value / total) * 100).toFixed(1);
-                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                    const total = (
+                                      context.dataset.data as number[]
+                                    ).reduce((a, b) => a + b, 0);
+                                    const percentage = (
+                                      (value / total) *
+                                      100
+                                    ).toFixed(1);
+                                    return `${label}: ${formatCurrency(
+                                      value
+                                    )} (${percentage}%)`;
                                   },
                                 },
                               },
@@ -878,7 +968,7 @@ const Dashboard: React.FC = () => {
                           }}
                         />
                       ) : (
-                        <div className="h-full flex items-center justify-center text-center text-xs text-slate-500">
+                        <div className="h-full flex items-center justify-center text-center text-xs text-slate-500 dark:text-gray-400">
                           No income data
                         </div>
                       )}

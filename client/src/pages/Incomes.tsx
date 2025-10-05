@@ -1,41 +1,41 @@
 import axios from "axios";
 import {
-    endOfMonth,
-    format,
-    isValid,
-    isWithinInterval,
-    parseISO,
-    startOfMonth,
+  endOfMonth,
+  format,
+  isValid,
+  isWithinInterval,
+  parseISO,
+  startOfMonth,
 } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    AlertCircle,
-    ArrowDownAZ,
-    ArrowUpZA,
-    Calendar,
-    DollarSign,
-    Edit3,
-    Filter,
-    Plus,
-    Receipt,
-    RefreshCw,
-    Search,
-    Trash2,
-    TrendingUp,
-    X,
-    XCircle,
+  AlertCircle,
+  ArrowDownAZ,
+  ArrowUpZA,
+  Calendar,
+  DollarSign,
+  Edit3,
+  Filter,
+  Plus,
+  Receipt,
+  RefreshCw,
+  Search,
+  Trash2,
+  TrendingUp,
+  X,
+  XCircle,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmModal from "../components/ConfirmModal";
 import CustomSelect from "../components/CustomSelect";
-import IncomeBulkEditModal, { BulkEditData } from "../components/IncomeBulkEditModal";
+import IncomeBulkEditModal, {
+  BulkEditData,
+} from "../components/IncomeBulkEditModal";
 import IncomeModal from "../components/IncomeModal";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/auth-exports";
 import { incomeCategories } from "../lib/incomeCategories";
 import IncomeFormData from "../types/IncomeFormData";
 import IncomeInterface from "../types/IncomeInterface";
-
-
 
 // Types
 interface SortConfig {
@@ -89,28 +89,16 @@ const Incomes: React.FC = () => {
 
   const { user } = useAuth();
 
-  useEffect(() => {
-    fetchIncomes();
-  }, []);
-
-  // Auto-clear error after 5 seconds
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(""), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
-
-  const fetchIncomes = async () => {
+  const fetchIncomes = useCallback(async () => {
     try {
       setLoading(true);
-      console.log("Fetching incomes...");
+
       const response = await axios.get("/api/incomes");
-      console.log("Incomes response:", response);
+
       const data = Array.isArray(response.data)
         ? response.data
         : response.data.incomes;
-      console.log("Incomes data:", data);
+
       setIncomes(data || []);
       setError("");
     } catch (err) {
@@ -122,7 +110,11 @@ const Incomes: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLoading, setIncomes, setError]);
+
+  useEffect(() => {
+    fetchIncomes();
+  }, [fetchIncomes]);
 
   const openConfirmModal = (id: string) => {
     setSelectedId(id);
@@ -139,9 +131,8 @@ const Incomes: React.FC = () => {
       setIsModalOpen(false);
       setSelectedId(null);
       setError(""); // Clear any previous error
-    } catch (err) {
+    } catch {
       setError("Failed to delete income");
-      console.error("Error deleting income:", err);
     } finally {
       setDeletingId(null); // Reset deleting state
     }
@@ -156,152 +147,149 @@ const Incomes: React.FC = () => {
   const categories = incomeCategories;
 
   // Memoized filtered and sorted incomes
-  const {
-    filteredIncomes,
-    totalAmount,
-    monthlyTotal,
-    currentRecords,
-    nPages,
-  } = useMemo(() => {
-    let filtered = incomes.filter((income) => {
-      // Search filter
-      if (filters.searchTerm) {
-        const searchLower = filters.searchTerm.toLowerCase();
-        if (!income.description.toLowerCase().includes(searchLower)) {
+  const { filteredIncomes, totalAmount, monthlyTotal, currentRecords, nPages } =
+    useMemo(() => {
+      const filtered = incomes.filter((income) => {
+        // Search filter
+        if (filters.searchTerm) {
+          const searchLower = filters.searchTerm.toLowerCase();
+          if (!income.description.toLowerCase().includes(searchLower)) {
+            return false;
+          }
+        }
+
+        // Category filter
+        if (filters.category && income.category !== filters.category) {
           return false;
         }
-      }
 
-      // Category filter
-      if (filters.category && income.category !== filters.category) {
-        return false;
-      }
+        // Date range filter
+        if (filters.dateRange !== "all") {
+          const incomeDate = parseISO(income.date);
+          if (!isValid(incomeDate)) return false;
 
-      // Date range filter
-      if (filters.dateRange !== "all") {
-        const incomeDate = parseISO(income.date);
-        if (!isValid(incomeDate)) return false;
+          const now = new Date();
+          let dateRange: { start: Date; end: Date };
 
-        const now = new Date();
-        let dateRange: { start: Date; end: Date };
-
-        switch (filters.dateRange) {
-          case "thisMonth":
-            dateRange = {
-              start: startOfMonth(now),
-              end: endOfMonth(now),
-            };
-            break;
-          case "lastMonth":
-            const lastMonth = new Date(
-              now.getFullYear(),
-              now.getMonth() - 1,
-              1
-            );
-            dateRange = {
-              start: startOfMonth(lastMonth),
-              end: endOfMonth(lastMonth),
-            };
-            break;
-          case "custom":
-            if (filters.customMonth && filters.customYear) {
-              const customDate = new Date(
-                filters.customYear,
-                filters.customMonth - 1,
+          switch (filters.dateRange) {
+            case "thisMonth":
+              dateRange = {
+                start: startOfMonth(now),
+                end: endOfMonth(now),
+              };
+              break;
+            case "lastMonth": {
+              const lastMonth = new Date(
+                now.getFullYear(),
+                now.getMonth() - 1,
                 1
               );
               dateRange = {
-                start: startOfMonth(customDate),
-                end: endOfMonth(customDate),
+                start: startOfMonth(lastMonth),
+                end: endOfMonth(lastMonth),
               };
-            } else {
-              return true;
+              break;
             }
+            case "custom": {
+              if (filters.customMonth && filters.customYear) {
+                const customDate = new Date(
+                  filters.customYear,
+                  filters.customMonth - 1,
+                  1
+                );
+                dateRange = {
+                  start: startOfMonth(customDate),
+                  end: endOfMonth(customDate),
+                };
+              } else {
+                return true;
+              }
+              break;
+            }
+            default:
+              return true;
+          }
+
+          if (!isWithinInterval(incomeDate, dateRange)) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      // Sort incomes
+      filtered.sort((a, b) => {
+        let valueA: number | string;
+        let valueB: number | string;
+
+        switch (sortConfig.key) {
+          case "date":
+            valueA = new Date(a.date).getTime();
+            valueB = new Date(b.date).getTime();
+            break;
+          case "amount":
+            valueA = a.amount;
+            valueB = b.amount;
+            break;
+          case "description":
+            valueA = a.description.toLowerCase();
+            valueB = b.description.toLowerCase();
+            break;
+          case "category":
+            valueA = a.category.toLowerCase();
+            valueB = b.category.toLowerCase();
             break;
           default:
-            return true;
+            valueA = 0;
+            valueB = 0;
         }
 
-        if (!isWithinInterval(incomeDate, dateRange)) {
-          return false;
-        }
-      }
+        if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
+        if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
 
-      return true;
-    });
-
-    // Sort incomes
-    filtered.sort((a, b) => {
-      let valueA: any;
-      let valueB: any;
-
-      switch (sortConfig.key) {
-        case "date":
-          valueA = new Date(a.date).getTime();
-          valueB = new Date(b.date).getTime();
-          break;
-        case "amount":
-          valueA = a.amount;
-          valueB = b.amount;
-          break;
-        case "description":
-          valueA = a.description.toLowerCase();
-          valueB = b.description.toLowerCase();
-          break;
-        case "category":
-          valueA = a.category.toLowerCase();
-          valueB = b.category.toLowerCase();
-          break;
-        default:
-          valueA = 0;
-          valueB = 0;
-      }
-
-      if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
-      if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    const total = filtered.reduce(
-      (sum, income) => sum + (income.amount || 0),
-      0
-    );
-
-    // Calculate this month's total
-    const now = new Date();
-    const thisMonthIncomes = incomes.filter((income) => {
-      const incomeDate = parseISO(income.date);
-      return (
-        isValid(incomeDate) &&
-        isWithinInterval(incomeDate, {
-          start: startOfMonth(now),
-          end: endOfMonth(now),
-        })
+      const total = filtered.reduce(
+        (sum, income) => sum + (income.amount || 0),
+        0
       );
-    });
-    const monthlyTotal = thisMonthIncomes.reduce(
-      (sum, income) => sum + (income.amount || 0),
-      0
-    );
 
-    // Pagination logic
-    const indexOfLastRecord = currentPage * recordsPerPage;
-    const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-    const currentRecords = filtered.slice(
-      indexOfFirstRecord,
-      indexOfLastRecord
-    );
-    const nPages = Math.ceil(filtered.length / recordsPerPage);
+      // Calculate this month's total
+      const now = new Date();
+      const thisMonthIncomes = incomes.filter((income) => {
+        const incomeDate = parseISO(income.date);
+        return (
+          isValid(incomeDate) &&
+          isWithinInterval(incomeDate, {
+            start: startOfMonth(now),
+            end: endOfMonth(now),
+          })
+        );
+      });
+      const monthlyTotal = thisMonthIncomes.reduce(
+        (sum, income) => sum + (income.amount || 0),
+        0
+      );
 
-    return {
-      filteredIncomes: filtered,
-      totalAmount: total,
-      monthlyTotal,
-      currentRecords,
-      nPages,
-      currentPage,
-    };
-  }, [incomes, filters, sortConfig, currentPage]);
+      // Pagination logic
+      const indexOfLastRecord = currentPage * recordsPerPage;
+      const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+      const currentRecords = filtered.slice(
+        indexOfFirstRecord,
+        indexOfLastRecord
+      );
+      const nPages = Math.ceil(filtered.length / recordsPerPage);
+
+      return {
+        filteredIncomes: filtered,
+        totalAmount: total,
+        monthlyTotal,
+        currentRecords,
+        nPages,
+        currentPage,
+      };
+    }, [incomes, filters, sortConfig, currentPage]);
 
   // Adjust current page if it becomes invalid after filtering or deletion
   useEffect(() => {
@@ -369,7 +357,7 @@ const Incomes: React.FC = () => {
       );
       setSelectedIds([]);
       setError("");
-    } catch (err) {
+    } catch {
       setError("Failed to delete selected incomes");
     } finally {
       setIsBulkDeleteModalOpen(false);
@@ -383,8 +371,17 @@ const Incomes: React.FC = () => {
     setIsBulkEditing(true);
 
     // Prepare the update payload, parsing amount to a number if it exists
-    const updatesToApply: { [key: string]: any } = { ...updates };
-    if (updates.amount) {
+    const updatesToApply: Partial<IncomeInterface> = {};
+    if (updates.description !== undefined) {
+      updatesToApply.description = updates.description;
+    }
+    if (updates.date !== undefined) {
+      updatesToApply.date = updates.date;
+    }
+    if (updates.category !== undefined) {
+      updatesToApply.category = updates.category;
+    }
+    if (updates.amount !== undefined) {
       updatesToApply.amount = parseFloat(updates.amount);
     }
 
@@ -399,10 +396,9 @@ const Incomes: React.FC = () => {
         // Construct the new data by merging existing data with updates
         const updatedData = {
           description: updates.description ?? incomeToUpdate.description,
-          amount:
-            updates.amount
-              ? parseFloat(updates.amount)
-              : incomeToUpdate.amount,
+          amount: updates.amount
+            ? parseFloat(updates.amount)
+            : incomeToUpdate.amount,
           date: updates.date ?? incomeToUpdate.date,
           category: updates.category ?? incomeToUpdate.category,
           notes: incomeToUpdate.notes, // notes are not part of Edit
@@ -456,10 +452,10 @@ const Incomes: React.FC = () => {
               <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 Incomes Management
               </h1>
-              <p className="text-slate-600 mt-1 text-sm sm:text-base">
+              <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm sm:text-base">
                 You are monitoring and managing your income sources
               </p>
             </div>
@@ -476,16 +472,16 @@ const Incomes: React.FC = () => {
 
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-          <span className="text-slate-500">
+          <span className="text-slate-500 dark:text-slate-400">
             {filteredIncomes.length} incomes
           </span>
-          <span className="text-slate-500 hidden sm:inline">•</span>
-          <span className="text-slate-500">
+          <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">•</span>
+          <span className="text-slate-500 dark:text-slate-400">
             Total: {user?.preferences?.currency || "USD"}{" "}
             {totalAmount.toFixed(2)}
           </span>
-          <span className="text-slate-500 hidden sm:inline">•</span>
-          <span className="text-slate-500">
+          <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">•</span>
+          <span className="text-slate-500 dark:text-slate-400">
             This month: {user?.preferences?.currency || "USD"}{" "}
             {monthlyTotal.toFixed(2)}
           </span>
@@ -493,10 +489,10 @@ const Incomes: React.FC = () => {
       </header>
 
       {/* Simplified Filters */}
-      <div className="bg-white p-3 sm:p-4 rounded-lg border shadow-sm space-y-3 sm:space-y-4">
+      <div className="bg-white dark:bg-gray-800 dark:border-gray-700 p-3 sm:p-4 rounded-lg border shadow-sm space-y-3 sm:space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 w-5 h-5" />
           <input
             type="text"
             placeholder="Search incomes..."
@@ -508,7 +504,7 @@ const Incomes: React.FC = () => {
               }));
               setCurrentPage(1);
             }}
-            className="w-full pl-12 pr-10 py-3 bg-slate-100 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white transition-all duration-300 shadow-sm"
+            className="w-full pl-12 pr-10 py-3 bg-slate-100 dark:bg-gray-700 dark:text-white rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-sky-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-300 shadow-sm"
           />
           {filters.searchTerm && (
             <button
@@ -517,7 +513,7 @@ const Incomes: React.FC = () => {
                 setFilters((prev) => ({ ...prev, searchTerm: "" }));
                 setCurrentPage(1);
               }}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-full p-1"
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-full p-1"
               aria-label="Clear search"
             >
               <X className="w-4 h-4" />
@@ -531,7 +527,7 @@ const Incomes: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             {/* Category Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <label className="text-xs sm:text-sm font-medium text-gray-700">
+              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Category:
               </label>
               <CustomSelect
@@ -553,7 +549,7 @@ const Incomes: React.FC = () => {
 
             {/* Date Range Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <label className="text-xs sm:text-sm font-medium text-gray-700">
+              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Period:
               </label>
               <CustomSelect
@@ -621,8 +617,8 @@ const Incomes: React.FC = () => {
           {/* Sort Controls */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 sm:ml-auto">
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <label className="text-xs sm:text-sm font-medium text-gray-700">
+              <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Sort by:
               </label>
               <CustomSelect
@@ -653,7 +649,7 @@ const Incomes: React.FC = () => {
                   }));
                   setCurrentPage(1);
                 }}
-                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border rounded-md text-xs sm:text-sm text-gray-700 bg-white hover:bg-gray-50 flex-1 sm:flex-none"
+                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex-1 sm:flex-none"
                 title="Toggle sort order"
               >
                 {sortConfig.direction === "asc" ? (
@@ -668,7 +664,7 @@ const Incomes: React.FC = () => {
 
               <button
                 onClick={fetchIncomes}
-                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border rounded-md text-xs sm:text-sm text-gray-700 bg-white hover:bg-gray-50"
+                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                 title="Refresh incomes"
                 disabled={loading}
               >
@@ -683,20 +679,20 @@ const Incomes: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 p-4 rounded-md">
+        <div className="bg-red-50 dark:bg-red-900/20 border dark:border-red-800 border-red-200 p-4 rounded-md">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-2">
-              <AlertCircle className="text-red-500 w-5 h-5 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="text-red-500 dark:text-red-400 w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                   Error Occurred
                 </h3>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
               </div>
             </div>
             <button
               onClick={() => setError("")}
-              className="text-red-400 hover:text-red-600"
+              className="text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-300"
             >
               <XCircle className="w-5 h-5" />
             </button>
@@ -712,9 +708,9 @@ const Incomes: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="bg-slate-100 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            className="bg-slate-100 dark:bg-gray-800 dark:border-gray-700 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
           >
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-sm font-medium text-slate-700 dark:text-gray-200">
               {selectedIds.length} item(s) selected
             </div>
             <div className="flex items-center gap-2">
@@ -737,7 +733,7 @@ const Incomes: React.FC = () => {
               </button>
               <button
                 onClick={() => setSelectedIds([])}
-                className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300"
+                className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-slate-200 dark:bg-gray-700 rounded-md hover:bg-slate-300 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
@@ -749,17 +745,17 @@ const Incomes: React.FC = () => {
       <div className="relative min-h-[600px]">
         {/* Incomes Table or Empty State */}
         {filteredIncomes.length === 0 && !loading && !error ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 rounded-lg border border-dashed border-gray-300">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <DollarSign className="w-8 h-8 text-sky-500" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 {incomes.length === 0
                   ? "No Incomes to Display"
                   : "No Matching Incomes Found"}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 {incomes.length === 0
                   ? "It looks like you haven't added any incomes yet. Let's get started!"
                   : "Your current filters returned no results. Try broadening your search or adjusting the criteria."}
@@ -776,15 +772,15 @@ const Incomes: React.FC = () => {
         ) : (
           !loading &&
           !error && (
-            <div className="bg-white rounded-lg shadow border overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 dark:border-gray-700 rounded-lg shadow border overflow-hidden">
               {/* Mobile Card View */}
               <div className="block sm:hidden">
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {currentRecords.map((income) => (
                     <div
                       key={income._id}
                       className={`p-4 space-y-3 ${
-                        selectedIds.includes(income._id) ? "bg-blue-50" : ""
+                        selectedIds.includes(income._id) ? "bg-blue-50 dark:bg-blue-900/20" : ""
                       }`}
                       onClick={() => handleSelect(income._id)}
                     >
@@ -804,7 +800,7 @@ const Incomes: React.FC = () => {
                                   setEditIncomeData(income)
                                 )
                               }
-                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                              className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 flex items-center space-x-1 group"
                             >
                               <span className="truncate">
                                 {income.description}
@@ -813,7 +809,7 @@ const Incomes: React.FC = () => {
                             </button>
                           </div>
                           <div className="mt-1 flex items-center space-x-2 ml-7">
-                            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                            <span className="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
                               {income.category}
                             </span>
                           </div>
@@ -822,10 +818,10 @@ const Incomes: React.FC = () => {
 
                       <div className="flex items-center justify-between text-sm ml-7">
                         <div>
-                          <div className="text-gray-600">
+                          <div className="text-gray-600 dark:text-gray-400">
                             Date: {format(parseISO(income.date), "MMM d, yyyy")}
                           </div>
-                          <div className="font-semibold text-gray-900">
+                          <div className="font-semibold text-gray-900 dark:text-gray-100">
                             {user?.preferences?.currency || "USD"}{" "}
                             {typeof income.amount === "number"
                               ? income.amount.toFixed(2)
@@ -860,8 +856,8 @@ const Incomes: React.FC = () => {
 
               {/* Desktop Table View */}
               <div className="hidden sm:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
                       <th
                         scope="col"
@@ -889,38 +885,38 @@ const Incomes: React.FC = () => {
                           }
                         />
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                         <div className="flex items-center space-x-1">
                           <Receipt className="w-4 h-4" />
                           <span>Description</span>
                         </div>
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                         Category
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                         <div className="flex items-center space-x-1">
                           <Calendar className="w-4 h-4" />
                           <span>Date</span>
                         </div>
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                         <div className="flex items-center justify-end space-x-1">
                           <DollarSign className="w-4 h-4" />
                           <span>Amount</span>
                         </div>
                       </th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {currentRecords.map((income) => (
                       <tr
                         key={income._id}
-                        className={`hover:bg-gray-50 ${
-                          selectedIds.includes(income._id) ? "bg-blue-50" : ""
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                          selectedIds.includes(income._id) ? "bg-blue-50 dark:bg-blue-900/20" : ""
                         }`}
                         onClick={() => handleSelect(income._id)}
                       >
@@ -940,22 +936,22 @@ const Incomes: React.FC = () => {
                                 setEditIncomeData(income)
                               )
                             }
-                            className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                            className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 flex items-center space-x-1 group"
                           >
                             <span>{income.description}</span>
                             <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                          <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
                             {income.category}
                           </span>
                         </td>
-                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                           {format(parseISO(income.date), "MMM d, yyyy")}
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                             {user?.preferences?.currency || "USD"}{" "}
                             {typeof income.amount === "number"
                               ? income.amount.toFixed(2)
@@ -995,13 +991,13 @@ const Incomes: React.FC = () => {
       </div>
 
       {nPages > 1 && (
-        <nav className="flex justify-center mt-6 p-2 bg-white rounded-lg shadow-md">
+        <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <ul className="flex items-center space-x-1 h-10 text-base">
             <li>
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
               >
                 Previous
               </button>
@@ -1011,7 +1007,7 @@ const Incomes: React.FC = () => {
               const pageNumbers = [];
               const maxPagesToShow = 5; // Maximum number of page buttons to display
               const ellipsis = (
-                <li key="ellipsis" className="px-2 text-gray-500">
+                <li key="ellipsis" className="px-2 text-gray-500 dark:text-gray-400">
                   ...
                 </li>
               );
@@ -1020,7 +1016,7 @@ const Incomes: React.FC = () => {
                 1,
                 currentPage - Math.floor(maxPagesToShow / 2)
               );
-              let endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
+              const endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
 
               if (endPage - startPage + 1 < maxPagesToShow) {
                 startPage = Math.max(1, endPage - maxPagesToShow + 1);
@@ -1031,10 +1027,10 @@ const Incomes: React.FC = () => {
                   <li key={1}>
                     <button
                       onClick={() => setCurrentPage(1)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === 1
                           ? "text-white bg-sky-500 hover:bg-sky-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       1
@@ -1051,10 +1047,10 @@ const Incomes: React.FC = () => {
                   <li key={i}>
                     <button
                       onClick={() => setCurrentPage(i)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === i
                           ? "text-white bg-sky-500 hover:bg-sky-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       {i}
@@ -1071,10 +1067,10 @@ const Incomes: React.FC = () => {
                   <li key={nPages}>
                     <button
                       onClick={() => setCurrentPage(nPages)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === nPages
                           ? "text-white bg-sky-500 hover:bg-sky-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       {nPages}
@@ -1090,7 +1086,7 @@ const Incomes: React.FC = () => {
                   setCurrentPage((prev) => Math.min(prev + 1, nPages))
                 }
                 disabled={currentPage === nPages}
-                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
               >
                 Next
               </button>

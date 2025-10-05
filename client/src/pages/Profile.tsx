@@ -1,27 +1,29 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import axios, { AxiosError, AxiosProgressEvent } from "axios";
+import { AnimatePresence, motion } from "framer-motion";
 import {
-  User,
-  Mail,
-  Save,
-  Camera,
-  Trash2,
   AlertTriangle,
-  X,
+  Camera,
   Check,
-  RefreshCw,
-  Info,
   CheckCircle,
   CreditCard,
   FileText,
+  Info,
+  Mail,
+  RefreshCw,
+  Save,
   ShieldCheck,
+  Trash2,
   TrendingUp,
+  User,
+  X,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import ClearRecordsModal from "../components/ClearRecordsModal";
 import CurrencySelect from "../components/CurrencySelect";
-import axios from "axios";
+import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+
+import { useAuth } from "../contexts/auth-exports";
+import { useTheme } from "../contexts/ThemeContext";
 
 // Types
 interface Message {
@@ -40,8 +42,21 @@ interface ProfileStatsData {
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-// Sub-components
+// Hook: detect hover-capable devices (prevents sticky hover on touch)
+function useHoverCapable() {
+  const [canHover, setCanHover] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const update = () => setCanHover(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+  return canHover;
+}
 
+// Sub-components
 const Toast: React.FC<{ message: Message; onClose: () => void }> = ({
   message,
   onClose,
@@ -97,17 +112,13 @@ const Toast: React.FC<{ message: Message; onClose: () => void }> = ({
   </AnimatePresence>
 );
 
-// Success Animation Component
-
 // Main Component
 const Profile: React.FC = () => {
-  const {
-    user,
-    updateProfile,
-    removeAvatar,
-    updateCurrency,
-    deleteProfile,
-  } = useAuth();
+  const { user, updateProfile, removeAvatar, updateCurrency, deleteProfile } =
+    useAuth();
+  const { theme, toggleTheme } = useTheme();
+
+  const canHover = useHoverCapable();
 
   // Form state
   const [name, setName] = useState(user?.name || "");
@@ -117,15 +128,16 @@ const Profile: React.FC = () => {
   const [selectedCurrency, setSelectedCurrency] = useState(
     user?.preferences?.currency || "USD"
   );
-  const [pendingCurrency, setPendingCurrency] = useState<
-    string | undefined
-  >(undefined);
+  const [pendingCurrency, setPendingCurrency] = useState<string | undefined>(
+    undefined
+  );
 
   // UI state
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<Message>({ type: "", text: "" });
   const [avatar, setAvatar] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showClearRecordsModal, setShowClearRecordsModal] = useState(false);
@@ -145,14 +157,14 @@ const Profile: React.FC = () => {
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch stats
-  const fetchStats = useCallback(async () => {
+  // Cancelable stats fetch
+  const fetchStats = useCallback(async (signal?: AbortSignal) => {
     try {
       setStatsLoading(true);
-      const response = await axios.get("/api/auth/profile/stats");
+      const response = await axios.get("/api/auth/profile/stats", { signal });
       const data = response.data;
 
-      if (data.activity) {
+      if (data?.activity) {
         setStats({
           bills: data.activity.bills || 0,
           expenses: data.activity.expenses || 0,
@@ -161,15 +173,21 @@ const Profile: React.FC = () => {
           total: data.activity.total || 0,
         });
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      if (error instanceof AxiosError && error?.code === "ERR_CANCELED") return;
       console.error("Error fetching profile stats:", error);
+      setMessage((m) =>
+        m.text ? m : { type: "error", text: "Failed to load stats." }
+      );
     } finally {
       setStatsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchStats();
+    const controller = new AbortController();
+    fetchStats(controller.signal);
+    return () => controller.abort();
   }, [fetchStats]);
 
   // Auto-clear messages
@@ -188,15 +206,27 @@ const Profile: React.FC = () => {
     setSelectedCurrency(user?.preferences?.currency || "USD");
   }, [user?.name, user?.preferences?.currency]);
 
+  // Create and cleanup avatar preview URL
+  useEffect(() => {
+    if (!avatar) {
+      setAvatarPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(avatar);
+    setAvatarPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [avatar]);
+
   // Real-time name validation
   useEffect(() => {
     if (!isNameTouched) return;
 
-    if (name.trim() === "") {
+    const trimmed = name.trim();
+    if (trimmed === "") {
       setNameError("Full name is required.");
-    } else if (name.length < 3) {
+    } else if (trimmed.length < 3) {
       setNameError("Full name must be at least 3 characters long.");
-    } else if (name.length > 50) {
+    } else if (trimmed.length > 50) {
       setNameError("Full name must be less than 50 characters long.");
     } else {
       setNameError("");
@@ -204,35 +234,27 @@ const Profile: React.FC = () => {
   }, [name, isNameTouched]);
 
   // Computed values
-  const hasNameChanged = name !== (user?.name || "");
-  const hasCurrencyChanged =
-    pendingCurrency && pendingCurrency !== selectedCurrency;
-  const hasChanges = hasNameChanged || hasCurrencyChanged || avatar || isAvatarPendingDeletion;
+  const trimmedName = name.trim();
+  const hasNameChanged = trimmedName !== (user?.name?.trim() || "");
+  const hasCurrencyChanged = Boolean(
+    pendingCurrency && pendingCurrency !== selectedCurrency
+  );
+  const hasChanges =
+    hasNameChanged || hasCurrencyChanged || !!avatar || isAvatarPendingDeletion;
 
   const avatarUrl = isAvatarPendingDeletion
     ? `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        name || "User"
+        trimmedName || "User"
       )}&background=EEE&color=888&size=256`
-    : avatar
-    ? URL.createObjectURL(avatar)
-    : user?.avatar && user.avatar !== ""
-    ? user.avatar.split("=")[0]
-    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        name || "User"
-      )}&background=EEE&color=888&size=256`;
-
-  // Cleanup object URL when component unmounts or avatar changes
-  useEffect(() => {
-    return () => {
-      if (avatar) {
-        URL.revokeObjectURL(avatarUrl);
-      }
-    };
-  }, [avatar, avatarUrl]);
+    : avatarPreview ||
+      (user?.avatar && user.avatar !== ""
+        ? user.avatar
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            trimmedName || "User"
+          )}&background=EEE&color=888&size=256`);
 
   // Handlers
   const handleFileSelect = useCallback((file: File) => {
-    // Validate file
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
       setMessage({
         type: "error",
@@ -251,6 +273,7 @@ const Profile: React.FC = () => {
       return;
     }
 
+    setIsAvatarPendingDeletion(false);
     setAvatar(file);
     setMessage({
       type: "info",
@@ -260,7 +283,9 @@ const Profile: React.FC = () => {
 
   const handleRemoveAvatar = useCallback(() => {
     setIsAvatarPendingDeletion(true);
-    setAvatar(null); // Also clear any newly selected avatar
+    setAvatar(null);
+    setAvatarPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
     setMessage({
       type: "info",
       text: "Avatar marked for removal. Click 'Save Changes' to confirm.",
@@ -271,26 +296,35 @@ const Profile: React.FC = () => {
     setLoading(true);
     setMessage({ type: "", text: "" });
 
-    try {
-      const promises = [];
+    const trimmed = trimmedName;
+    if (trimmed.length < 3 || trimmed.length > 50) {
+      setIsNameTouched(true);
+      setNameError(
+        trimmed.length < 3
+          ? "Full name must be at least 3 characters long."
+          : "Full name must be less than 50 characters long."
+      );
+      setLoading(false);
+      return;
+    }
 
-      // Handle avatar removal
+    try {
+      const promises: Promise<void>[] = [];
+
       if (isAvatarPendingDeletion) {
         promises.push(removeAvatar());
       }
 
-      // Save profile changes
       if (hasNameChanged || avatar) {
         const formData = new FormData();
-        formData.append("name", name);
+        formData.append("name", trimmed);
         formData.append("email", email);
         if (avatar) formData.append("avatar", avatar);
 
         const config = {
-          onUploadProgress: (progressEvent: any) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
+          onUploadProgress: (e: AxiosProgressEvent) => {
+            if (!e?.total) return;
+            const percentCompleted = Math.round((e.loaded * 100) / e.total);
             setUploadProgress(percentCompleted);
           },
         };
@@ -298,44 +332,44 @@ const Profile: React.FC = () => {
         promises.push(updateProfile(formData, config));
       }
 
-      // Save currency changes
       if (hasCurrencyChanged && pendingCurrency) {
         promises.push(updateCurrency(pendingCurrency));
       }
 
       await Promise.all(promises);
 
-      // Reset local state instead of reloading page
       setAvatar(null);
+      setAvatarPreview(null);
       setPendingCurrency(undefined);
       setIsAvatarPendingDeletion(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
 
-      // Show success animation
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
-
       setMessage({ type: "success", text: "Changes saved successfully!" });
-      setUploadProgress(0); // Reset progress
-    } catch (error) {
+      setUploadProgress(0);
+    } catch (error: unknown) {
       setMessage({
         type: "error",
-        text: "Failed to save changes. Please check your connection and try again.",
+        text:
+          (error instanceof AxiosError && error?.response?.data?.message) ||
+          "Failed to save changes. Please check your connection and try again.",
       });
-      setUploadProgress(0); // Reset progress
+      setUploadProgress(0);
     } finally {
       setLoading(false);
     }
   }, [
-    hasNameChanged,
     avatar,
-    hasCurrencyChanged,
-    pendingCurrency,
-    name,
     email,
-    updateProfile,
-    updateCurrency,
+    hasCurrencyChanged,
+    hasNameChanged,
     isAvatarPendingDeletion,
+    pendingCurrency,
     removeAvatar,
+    updateCurrency,
+    updateProfile,
+    trimmedName,
   ]);
 
   const handleDeleteProfile = useCallback(async () => {
@@ -353,49 +387,56 @@ const Profile: React.FC = () => {
 
     try {
       await deleteProfile();
-    } catch (error) {
+      // If your auth context doesn't redirect, do it here with your router.
+    } catch (_err: unknown) {
       setMessage({
         type: "error",
-        text: "Failed to delete profile. Please try again.",
+        text:
+          (_err instanceof AxiosError && _err?.response?.data?.message) ||
+          "Failed to delete profile. Please try again.",
       });
       setDeleting(false);
     }
   }, [deleteProfile, deleteInput, user?.name]);
 
-  const handleClearRecords = useCallback(async (recordsToClear: string[]) => {
-    setIsClearingRecords(true);
-    setMessage({ type: "", text: "" });
+  const handleClearRecords = useCallback(
+    async (recordsToClear: string[]) => {
+      setIsClearingRecords(true);
+      setMessage({ type: "", text: "" });
 
-    try {
-      await axios.delete("/api/user/records", {
-        data: { records: recordsToClear },
-      });
-      setMessage({
-        type: "success",
-        text: "Selected records have been cleared.",
-      });
-      setShowClearRecordsModal(false);
-      fetchStats(); // Refresh stats after clearing
-    } catch (error) {
-      setMessage({
-        type: "error",
-        text: "Failed to clear records. Please try again.",
-      });
-    } finally {
-      setIsClearingRecords(false);
-    }
-  }, [fetchStats]);
+      try {
+        await axios.delete("/api/user/records", {
+          data: { records: recordsToClear },
+        });
+        setMessage({
+          type: "success",
+          text: "Selected records have been cleared.",
+        });
+        setShowClearRecordsModal(false);
+        fetchStats();
+      } catch (_err: unknown) {
+        setMessage({
+          type: "error",
+          text:
+            (_err instanceof AxiosError && _err?.response?.data?.message) ||
+            "Failed to clear records. Please try again.",
+        });
+      } finally {
+        setIsClearingRecords(false);
+      }
+    },
+    [fetchStats]
+  );
 
-  const handleCurrencyChange = useCallback((currency: string) => {
-    setPendingCurrency(currency);
-  }, []);
+
 
   const handleRevertChanges = useCallback(() => {
     setName(user?.name || "");
     setPendingCurrency(undefined);
     setAvatar(null);
+    setAvatarPreview(null);
     setIsAvatarPendingDeletion(false);
-    setUploadProgress(0); // Reset progress
+    setUploadProgress(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -412,40 +453,46 @@ const Profile: React.FC = () => {
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       {/* Header */}
       <header className="text-center">
-        <h1 className="text-xl font-semibold text-slate-900 mb-2">
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
           Profile Settings
         </h1>
-        <p className="text-slate-600 text-sm">
+        <p className="text-slate-600 dark:text-slate-400 text-sm">
           Manage your account information
         </p>
       </header>
 
       {/* Main Content - Desktop: Side by side, Mobile: Stacked */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
-        {/* Avatar Section - Left side on desktop */}
+        {/* Avatar Section */}
         <div className="lg:col-span-1">
           <div className="flex flex-col items-center space-y-6">
+            {/* Anchor container for avatar + absolute action buttons */}
             <div className="relative group">
+              {/* Clipped circular wrapper to prevent shadow/scale bleed */}
               <motion.div
-                whileHover={{ scale: 1.02 }}
+                className={`relative inline-block w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden transform-gpu shadow-lg ring-4 shrink-0 ${
+                  isAvatarPendingDeletion
+                    ? "ring-red-500"
+                    : "ring-white dark:ring-slate-800"
+                }`}
+                whileHover={canHover ? { scale: 1.02 } : undefined}
                 transition={{ duration: 0.2 }}
-                className="relative"
               >
                 <img
                   src={avatarUrl}
-                  alt={`${name}'s avatar`}
-                  className={`w-32 h-32 sm:w-40 sm:h-40 rounded-full object-cover cursor-pointer transition-all duration-300 hover:shadow-lg border-4 ${isAvatarPendingDeletion ? "border-red-500" : "border-white"} shadow-lg`}
+                  alt={`${trimmedName || "User"}'s avatar`}
+                  className="w-full h-full object-cover cursor-pointer"
                   onClick={() => fileInputRef.current?.click()}
                   onError={(e) => {
                     e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      name || "User"
+                      trimmedName || "User"
                     )}&background=6366f1&color=ffffff&size=256`;
                   }}
                 />
 
                 {/* Upload Progress Bar */}
                 {uploadProgress > 0 && uploadProgress < 100 && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                     <div className="w-24 h-24">
                       <svg className="w-full h-full" viewBox="0 0 100 100">
                         <circle
@@ -466,9 +513,14 @@ const Profile: React.FC = () => {
                           r="45"
                           cx="50"
                           cy="50"
-                          initial={{ strokeDashoffset: 2 * Math.PI * 45 }}
+                          initial={{
+                            strokeDasharray: 2 * Math.PI * 45,
+                            strokeDashoffset: 2 * Math.PI * 45,
+                          }}
                           animate={{
-                            strokeDashoffset: 2 * Math.PI * 45 * (1 - uploadProgress / 100),
+                            strokeDasharray: 2 * Math.PI * 45,
+                            strokeDashoffset:
+                              2 * Math.PI * 45 * (1 - uploadProgress / 100),
                           }}
                           transition={{ duration: 0.3 }}
                         />
@@ -486,43 +538,48 @@ const Profile: React.FC = () => {
                   </div>
                 )}
 
-                {/* Upload overlay */}
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 rounded-full transition-all duration-300 flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                {/* Hover overlay (only on hover-capable devices) */}
+                <div className="absolute inset-0 rounded-full bg-black/0 transition [@media(hover:hover)]:group-hover:bg-black/20">
+                  <div className="opacity-0 transition-opacity flex items-center justify-center h-full [@media(hover:hover)]:group-hover:opacity-100">
                     <Camera className="w-8 h-8 text-white" />
                   </div>
                 </div>
               </motion.div>
 
-              {/* Action Buttons - Mobile friendly */}
-              <div className="flex sm:absolute sm:-bottom-1 sm:-right-1 sm:gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity mt-4 sm:mt-0">
+              {/* Action Buttons: icon-only on mobile; text on larger screens.
+                  Absolute for all screens -> no layout shift */}
+              <div className="absolute -bottom-2 -right-2 flex gap-2 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity">
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     fileInputRef.current?.click();
                   }}
-                  className="flex items-center gap-2 bg-white hover:bg-slate-50 p-2 sm:p-2 rounded-lg sm:rounded-full shadow-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-                  title="Upload new image"
+                  className="h-9 w-9 sm:h-10 sm:w-auto sm:px-3 flex items-center justify-center gap-2 bg-white hover:bg-slate-50 rounded-full shadow-md border border-slate-200 text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   aria-label="Upload new avatar image"
+                  title="Upload new image"
                 >
-                  <Camera className="w-4 h-4 sm:w-3 sm:h-3 text-indigo-600" />
-                  <span className="sm:hidden text-sm font-medium text-indigo-600">Change</span>
+                  <Camera className="w-4 h-4" />
+                  <span className="hidden sm:inline text-sm font-medium">
+                    Change
+                  </span>
                 </button>
 
-                {(user?.avatar || avatar) && (
+                {(user?.avatar || avatarPreview) && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRemoveAvatar();
                     }}
-                    className="flex items-center gap-2 bg-white hover:bg-slate-50 p-2 sm:p-2 rounded-lg sm:rounded-full shadow-md border border-slate-200 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors transform hover:scale-105"
-                    title="Remove image"
+                    className="h-9 w-9 sm:h-10 sm:w-auto sm:px-3 flex items-center justify-center gap-2 bg-white hover:bg-slate-50 rounded-full shadow-md border border-slate-200 text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
                     aria-label="Remove avatar image"
+                    title="Remove image"
                   >
-                    <Trash2 className="w-4 h-4 sm:w-3 sm:h-3 text-red-600" />
-                    <span className="sm:hidden text-sm font-medium text-red-600">Remove</span>
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm font-medium">
+                      Remove
+                    </span>
                   </button>
                 )}
               </div>
@@ -541,8 +598,8 @@ const Profile: React.FC = () => {
             </div>
 
             <div className="text-center relative">
-              <p className="text-sm text-slate-600 mb-2">
-                Click to change photo
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                Tap the photo to change
               </p>
               <div className="group relative inline-block">
                 <button
@@ -575,98 +632,117 @@ const Profile: React.FC = () => {
             )}
 
             {/* Compact Stats */}
-            <div className="mt-8 space-y-4">
-              <div className="h-px bg-slate-200"></div>
+            <div className="mt-8 space-y-4 w-full">
+              <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
               {statsLoading ? (
-                <div className="relative flex flex-col items-center justify-center py-10 bg-slate-50 rounded-lg">
-                  <div className="absolute inset-0 bg-white bg-opacity-50 backdrop-blur-sm"></div>
+                <div className="relative flex flex-col items-center justify-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"></div>
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="relative z-10 flex items-center gap-3 text-sm text-slate-600"
+                    className="relative z-10 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300"
                   >
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span className="font-medium">Loading activity stats...</span>
+                    <span className="font-medium">
+                      Loading activity stats...
+                    </span>
                   </motion.div>
                 </div>
               ) : (
-                <div className="grid grid-cols-4 gap-4">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-center"
-                  >
-                    <div className="flex items-center justify-center mb-2">
-                      <div className="p-2 rounded-lg bg-cyan-50">
-                        <TrendingUp className="w-4 h-4 text-cyan-600" />
-                      </div>
-                    </div>
-                    <div className="text-lg font-semibold text-slate-900">
-                      {stats.incomes}
-                    </div>
-                    <div className="text-xs text-slate-500">Incomes</div>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-center"
-                  >
-                    <div className="flex items-center justify-center mb-2">
-                      <div className="p-2 rounded-lg bg-blue-50">
-                        <CreditCard className="w-4 h-4 text-blue-600" />
-                      </div>
-                    </div>
-                    <div className="text-lg font-semibold text-slate-900">
-                      {stats.bills}
-                    </div>
-                    <div className="text-xs text-slate-500">Bills</div>
-                  </motion.div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      Total Records
+                    </span>
+                    <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                      {stats.total}
+                    </span>
+                  </div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-center"
-                  >
-                    <div className="flex items-center justify-center mb-2">
-                      <div className="p-2 rounded-lg bg-green-50">
-                        <FileText className="w-4 h-4 text-green-600" />
+                  <div className="grid grid-cols-4 gap-4">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="text-center"
+                    >
+                      <div className="flex items-center justify-center mb-2">
+                        <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/50">
+                          <TrendingUp className="w-4 h-4 text-cyan-600" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-lg font-semibold text-slate-900">
-                      {stats.expenses}
-                    </div>
-                    <div className="text-xs text-slate-500">Expenses</div>
-                  </motion.div>
+                      <div className="text-lg font-semibold text-slate-900 dark:text-slate-200">
+                        {stats.incomes}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Incomes
+                      </div>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="text-center"
+                    >
+                      <div className="flex items-center justify-center mb-2">
+                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/50">
+                          <CreditCard className="w-4 h-4 text-blue-600" />
+                        </div>
+                      </div>
+                      <div className="text-lg font-semibold text-slate-900 dark:text-slate-200">
+                        {stats.bills}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Bills
+                      </div>
+                    </motion.div>
 
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-center"
-                  >
-                    <div className="flex items-center justify-center mb-2">
-                      <div className="p-2 rounded-lg bg-purple-50">
-                        <ShieldCheck className="w-4 h-4 text-purple-600" />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-center"
+                    >
+                      <div className="flex items-center justify-center mb-2">
+                        <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/50">
+                          <FileText className="w-4 h-4 text-green-600" />
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-lg font-semibold text-slate-900">
-                      {stats.warranties}
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      Warranties
-                    </div>
-                  </motion.div>
+                      <div className="text-lg font-semibold text-slate-900 dark:text-slate-200">
+                        {stats.expenses}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Expenses
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-center"
+                    >
+                      <div className="flex items-center justify-center mb-2">
+                        <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/50">
+                          <ShieldCheck className="w-4 h-4 text-purple-600" />
+                        </div>
+                      </div>
+                      <div className="text-lg font-semibold text-slate-900 dark:text-slate-200">
+                        {stats.warranties}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Warranties
+                      </div>
+                    </motion.div>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Form Section - Right side on desktop */}
+        {/* Form Section */}
         <div className="lg:col-span-2">
           <form
             onSubmit={(e) => {
@@ -679,7 +755,7 @@ const Profile: React.FC = () => {
             <div className="space-y-3">
               <label
                 htmlFor="name"
-                className="block text-sm font-semibold text-slate-900"
+                className="block text-sm font-semibold text-slate-900 dark:text-slate-100"
               >
                 Full Name
               </label>
@@ -694,10 +770,10 @@ const Profile: React.FC = () => {
                   onChange={(e) => setName(e.target.value)}
                   onBlur={() => setIsNameTouched(true)}
                   required
-                  className={`block w-full pl-12 pr-4 py-3 text-slate-900 placeholder-slate-400 bg-slate-50 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 sm:text-sm hover:bg-slate-100 ${
+                  className={`block w-full pl-12 pr-4 py-3 text-slate-900 dark:text-slate-100 placeholder-slate-400 bg-slate-50 dark:bg-slate-800 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 sm:text-sm hover:bg-slate-100 dark:hover:bg-slate-700 ${
                     nameError
                       ? "border-red-500 focus:ring-red-500"
-                      : "border-slate-200 focus:ring-slate-900"
+                      : "border-slate-200 dark:border-slate-700 focus:ring-slate-900 dark:focus:ring-slate-200"
                   }`}
                   placeholder="Enter your full name"
                 />
@@ -707,14 +783,14 @@ const Profile: React.FC = () => {
               )}
             </div>
 
-            {/* Horizontal separator */}
-            <div className="h-px bg-slate-200"></div>
+            {/* separator */}
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
             {/* Email Field */}
             <div className="space-y-3">
               <label
                 htmlFor="email"
-                className="block text-sm font-semibold text-slate-900"
+                className="block text-sm font-semibold text-slate-900 dark:text-slate-100"
               >
                 Email Address
               </label>
@@ -727,28 +803,28 @@ const Profile: React.FC = () => {
                   type="email"
                   value={email}
                   readOnly
-                  className="block w-full pl-12 pr-4 py-3 text-slate-500 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed sm:text-sm"
+                  className="block w-full pl-12 pr-4 py-3 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg cursor-not-allowed sm:text-sm"
                 />
               </div>
-              <p className="text-sm text-slate-500">
-                Email cannot be changed for security reasons
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Email cannot be changed for security reasons.
               </p>
             </div>
 
-            {/* Horizontal separator */}
-            <div className="h-px bg-slate-200"></div>
+            {/* separator */}
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
             {/* Currency Field */}
             <div className="space-y-3">
               <label
                 htmlFor="currency"
-                className="block text-sm font-semibold text-slate-900"
+                className="block text-sm font-semibold text-slate-900 dark:text-slate-100"
               >
                 Preferred Currency
               </label>
               <CurrencySelect
                 selectedCurrency={pendingCurrency || selectedCurrency}
-                onCurrencyChange={handleCurrencyChange}
+                onCurrencyChange={setPendingCurrency}
               />
               {hasCurrencyChanged && (
                 <motion.div
@@ -760,91 +836,129 @@ const Profile: React.FC = () => {
                   <span>Currency change will be applied after saving.</span>
                 </motion.div>
               )}
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 This will be used for displaying amounts throughout the app
               </p>
             </div>
 
-            {/* Horizontal separator */}
-            <div className="h-px bg-slate-200"></div>
+            {/* separator */}
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-            {hasChanges && (
-              <motion.button
-                type="button"
-                onClick={handleRevertChanges}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 text-slate-600 font-semibold border-2 border-slate-300 rounded-lg hover:bg-slate-100 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 transition-all duration-300 ease-in-out text-sm min-h-[44px] transform hover:-translate-y-0.5"
-              >
-                <X className="w-5 h-5" />
-                Revert Changes
-              </motion.button>
-            )}
-
-            <motion.button
-              type="submit"
-              disabled={loading || !hasChanges || !!nameError}
-              whileHover={{ scale: hasChanges && !nameError ? 1.02 : 1 }}
-              whileTap={{ scale: hasChanges && !nameError ? 0.98 : 1 }}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed text-sm min-h-[44px] transform hover:-translate-y-0.5"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  <span>Save Changes</span>
-                  {hasChanges && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="w-2 h-2 rounded-full bg-indigo-400 ml-1"
-                    ></motion.div>
-                  )}
-                </>
+              {hasChanges && (
+                <motion.button
+                  type="button"
+                  onClick={handleRevertChanges}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 text-slate-600 dark:text-slate-300 font-semibold border-2 border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 transition-all duration-300 ease-in-out text-sm min-h-[44px]"
+                >
+                  <X className="w-5 h-5" />
+                  Revert Changes
+                </motion.button>
               )}
-            </motion.button>
-          </div>
 
-            {/* Horizontal separator */}
-            <div className="h-px bg-slate-200"></div>
+              <motion.button
+                type="submit"
+                disabled={loading || !hasChanges || !!nameError}
+                whileHover={{ scale: hasChanges && !nameError ? 1.02 : 1 }}
+                whileTap={{ scale: hasChanges && !nameError ? 0.98 : 1 }}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed text-sm min-h-[44px]"
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    <span>Save Changes</span>
+                    {hasChanges && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="w-2 h-2 rounded-full bg-indigo-400 ml-1"
+                      />
+                    )}
+                  </>
+                )}
+              </motion.button>
+            </div>
 
-            {/* Delete Account Section */}
+            {/* separator */}
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
+
+            {/* Theme Selection */}
+            <div className="space-y-3">
+              <label
+                htmlFor="theme"
+                className="block text-sm font-semibold text-slate-900 dark:text-slate-100"
+              >
+                Theme
+              </label>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span className="text-sm text-slate-500 dark:text-slate-400">
+                  Dark Mode
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  aria-pressed={theme === "dark"}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                    theme === "dark" ? "bg-indigo-600" : "bg-gray-200"
+                  }`}
+                >
+                  <span className="sr-only">Toggle dark mode</span>
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      theme === "dark" ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Switch between light and dark themes.
+              </p>
+            </div>
+
+            {/* separator */}
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
+
+            {/* Danger Zone */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-slate-900">
+              <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">
                 Danger Zone
               </h3>
               <div className="space-y-2">
-                <p className="text-sm text-slate-600">
-                  Permanently clear your financial records. This action is irreversible.
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Permanently clear your financial records. This action is
+                  irreversible.
                 </p>
                 <motion.button
                   type="button"
                   onClick={() => setShowClearRecordsModal(true)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-100 text-amber-700 font-semibold border border-amber-200 rounded-lg hover:bg-amber-200 hover:text-amber-800 hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 ease-in-out text-sm min-h-[44px] transform hover:-translate-y-0.5"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-amber-100 text-amber-700 font-semibold border border-amber-200 rounded-lg hover:bg-amber-200 hover:text-amber-800 hover:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 ease-in-out text-sm min-h-[44px]"
                 >
                   <Trash2 className="w-5 h-5" />
                   Clear Records
                 </motion.button>
               </div>
-              <div className="h-px bg-slate-200 my-4"></div>
-              <p className="text-sm text-slate-600">
-                Once you delete your account, there is no going back.
-                Please be certain.
+              <div className="h-px bg-slate-200 dark:bg-slate-700 my-4"></div>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Once you delete your account, there is no going back. Please be
+                certain.
               </p>
               <motion.button
                 type="button"
                 onClick={() => setShowDeleteModal(true)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-100 text-red-700 font-semibold border border-red-200 rounded-lg hover:bg-red-200 hover:text-red-800 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-300 ease-in-out text-sm min-h-[44px] transform hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-100 text-red-700 font-semibold border border-red-200 rounded-lg hover:bg-red-200 hover:text-red-800 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-300 ease-in-out text-sm min-h-[44px]"
               >
                 <Trash2 className="w-5 h-5" />
                 Delete Account
@@ -892,6 +1006,8 @@ const Profile: React.FC = () => {
         deleting={deleting}
       />
 
+
+
       {/* Clear Records Modal */}
       <ClearRecordsModal
         isOpen={showClearRecordsModal}
@@ -904,7 +1020,5 @@ const Profile: React.FC = () => {
   );
 };
 
-// Set display names for better debugging
 Profile.displayName = "Profile";
-
 export default Profile;

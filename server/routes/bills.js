@@ -1,3 +1,4 @@
+import { check, validationResult } from "express-validator";
 import express from "express";
 import mongoose from "mongoose";
 import Bill from "../models/Bill.js";
@@ -43,7 +44,19 @@ router.get("/", async (req, res) => {
 });
 
 // @route   POST /api/bills
-router.post("/", async (req, res) => {
+router.post(
+  "/",
+  [
+    check("name", "Bill name is required").trim().notEmpty().matches(/[a-zA-Z]/).withMessage("Bill name must contain at least one alphabetic character"),
+    check("amount", "Amount is required and must be a number").isNumeric(),
+    check("dueDate", "Due date is required and must be a valid date").isISO8601().toDate(),
+    check("category", "Category is required").notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
   try {
     const {
       name,
@@ -96,7 +109,23 @@ router.post("/", async (req, res) => {
 });
 
 // @route   PUT /api/bills/:id
-router.put("/:id", async (req, res) => {
+router.put(
+  "/:id",
+  [
+    check("name", "Bill name must contain at least one alphabetic character")
+      .optional()
+      .trim()
+      .notEmpty()
+      .matches(/[a-zA-Z]/),
+    check("amount", "Amount must be a number").optional().isNumeric(),
+    check("dueDate", "Due date must be a valid date").optional().isISO8601().toDate(),
+    check("category", "Category is required").optional().notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
   try {
     const {
       name,

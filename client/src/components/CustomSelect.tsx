@@ -185,11 +185,11 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
       <button
         type="button"
         className={`flex items-center justify-between w-full px-4 py-2 text-sm font-medium
-          bg-white/80 backdrop-blur-md border border-gray-200 rounded-xl shadow-sm
+          bg-white/80 dark:bg-gray-700/80 backdrop-blur-md border border-gray-200 dark:border-gray-600 rounded-xl shadow-sm
           transition-all duration-200 ease-in-out
           ${
             disabled
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+              ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
               : "hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           }
           ${
@@ -205,11 +205,11 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
         }
         disabled={disabled}
       >
-        <span className="truncate text-gray-800">
+        <span className="truncate text-gray-800 dark:text-white">
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown
-          className={`w-4 h-4 ml-2 text-gray-500 transition-transform duration-200 ${
+          className={`w-4 h-4 ml-2 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
@@ -224,7 +224,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
             animate="animate"
             exit="exit"
             transition={{ duration: 0.2 }}
-            className={`absolute z-20 w-full bg-white/90 backdrop-blur-md border border-gray-200 shadow-xl rounded-xl overflow-y-auto max-h-60
+            className={`absolute z-20 w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-600 shadow-xl rounded-xl overflow-y-auto max-h-60
               ${direction === "top" ? "bottom-full mb-2" : "top-full mt-2"}`}
             role="listbox"
             aria-activedescendant={highlightedValue}
@@ -237,13 +237,13 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
                   transition-all duration-150
                   ${
                     option.value === highlightedValue
-                      ? "bg-blue-100 text-blue-700"
+                      ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
                       : ""
                   }
                   ${
                     option.value === value
-                      ? "bg-blue-500 text-white font-semibold"
-                      : "text-gray-800 hover:bg-gray-100"
+                      ? "bg-blue-500 dark:bg-blue-600 text-white font-semibold"
+                      : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                   }`}
                 onClick={() => handleSelect(option.value)}
                 onMouseEnter={() => setHighlightedValue(option.value)}

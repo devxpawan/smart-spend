@@ -35,16 +35,16 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       case "danger":
         return {
           Icon: Trash2,
-          iconContainerClasses: "bg-red-500/10",
-          iconClasses: "text-red-400",
+          iconContainerClasses: "bg-red-100 dark:bg-red-900",
+          iconClasses: "text-red-600 dark:text-red-400",
           confirmButtonClasses:
             "bg-red-600 hover:bg-red-700 focus:ring-red-500",
         };
       case "warning":
         return {
           Icon: AlertTriangle,
-          iconContainerClasses: "bg-amber-500/10",
-          iconClasses: "text-amber-400",
+          iconContainerClasses: "bg-amber-100 dark:bg-amber-900",
+          iconClasses: "text-amber-600 dark:text-amber-400",
           confirmButtonClasses:
             "bg-amber-600 hover:bg-amber-700 focus:ring-amber-500",
         };
@@ -52,8 +52,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       default:
         return {
           Icon: Check,
-          iconContainerClasses: "bg-blue-500/10",
-          iconClasses: "text-blue-400",
+          iconContainerClasses: "bg-blue-100 dark:bg-blue-900",
+          iconClasses: "text-blue-600 dark:text-blue-400",
           confirmButtonClasses:
             "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
         };
@@ -130,61 +130,60 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           onClick={!loading ? onCancel : undefined}
         >
           <motion.div
-            className="bg-slate-800/90 backdrop-blur-xl rounded-xl shadow-2xl w-full max-w-sm border border-white/10 overflow-hidden"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 overflow-hidden"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
             ref={modalRef}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 space-y-4">
-              <div className="flex items-start gap-4">
-                <div
-                  className={`mx-auto flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full sm:mx-0 ${iconContainerClasses}`}
+            <div className="p-8 text-center">
+              <div
+                className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${iconContainerClasses}`}
+              >
+                <Icon className={`h-6 w-6 ${iconClasses}`} aria-hidden="true" />
+              </div>
+              <div className="mt-5">
+                <h2
+                  id="confirm-modal-title"
+                  className="text-xl font-semibold text-slate-50"
                 >
-                  <Icon className={`h-5 w-5 ${iconClasses}`} aria-hidden="true" />
-                </div>
-                <div className="flex-1">
-                  <h2
-                    id="confirm-modal-title"
-                    className="text-lg font-bold text-slate-100"
-                  >
-                    {title}
-                  </h2>
+                  {title}
+                </h2>
+                <div className="mt-2">
                   <p
                     id="confirm-modal-description"
-                    className="text-sm text-slate-400 mt-1"
+                    className="text-sm text-slate-400"
                   >
                     {message}
                   </p>
                 </div>
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  ref={cancelButtonRef}
-                  onClick={onCancel}
-                  className="px-4 py-2 text-sm font-semibold text-slate-300 bg-white/5 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white/50 transition-colors duration-150 disabled:opacity-50"
-                  disabled={loading}
-                >
-                  {cancelText}
-                </button>
-                <button
-                  onClick={onConfirm}
-                  disabled={loading}
-                  className={`inline-flex items-center justify-center px-4 py-2 text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 transition-colors duration-150 text-sm disabled:opacity-60 ${confirmButtonClasses}`}
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    confirmText
-                  )}
-                </button>
-              </div>
+            </div>
+            <div className="bg-slate-900/50 px-6 py-4 grid grid-cols-2 gap-4">
+              <button
+                ref={cancelButtonRef}
+                onClick={onCancel}
+                className="w-full px-4 py-2.5 text-sm font-semibold text-slate-200 bg-slate-700/50 rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-white/50 transition-colors duration-150 disabled:opacity-50"
+                disabled={loading}
+              >
+                {cancelText}
+              </button>
+              <button
+                onClick={onConfirm}
+                disabled={loading}
+                className={`w-full inline-flex items-center justify-center px-4 py-2.5 text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-150 text-sm disabled:opacity-60 ${confirmButtonClasses}`}
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-3"></div>
+                    Processing...
+                  </>
+                ) : (
+                  confirmText
+                )}
+              </button>
             </div>
           </motion.div>
         </motion.div>

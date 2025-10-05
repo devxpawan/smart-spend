@@ -9,7 +9,7 @@ import MonthlyBreakdown from "./pages/MonthlyBreakdown";
 
 import NotFound from "./pages/NotFound";
 import PrivateRoute from "./components/PrivateRoute";
-import { useAuth } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/auth-exports";
 import Profile from "./pages/Profile";
 import LoginRegister from "./pages/LoginRegister";
 import About from "./pages/About";
@@ -17,14 +17,12 @@ import Warranties from "./pages/Warranties";
 import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 
-
-
 function App() {
   const { loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );

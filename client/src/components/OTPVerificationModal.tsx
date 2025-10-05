@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from "../contexts/auth-exports";   
 
 interface OTPVerificationModalProps {
   isOpen: boolean;
@@ -46,8 +46,9 @@ const OTPVerificationModal: React.FC<OTPVerificationModalProps> = ({ isOpen, onC
       const { token, user } = response.data;
       loginWithToken(token, user);
       onClose(); // Close the modal on success
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred during OTP verification.');
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      setError(axiosError.response?.data?.message || 'An error occurred during OTP verification.');
     }
     setLoading(false);
   };
@@ -64,8 +65,9 @@ const OTPVerificationModal: React.FC<OTPVerificationModalProps> = ({ isOpen, onC
     try {
       await axios.post('/api/auth/resend-otp', { email });
       setSuccess('A new OTP has been sent to your email.');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred while resending OTP.');
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string } } };
+      setError(axiosError.response?.data?.message || 'An error occurred while resending OTP.');
     }
   };
 

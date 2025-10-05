@@ -31,7 +31,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
-    if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
+    if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/)) {
       return cb(new Error("Only image files are allowed!"), false);
     }
     cb(null, true);
@@ -89,7 +89,7 @@ const generatePasswordResetEmailHtml = (otp, expiresMinutes) => `
       </div>
     </div>
   </div>
-`;;
+`;
 
 const generateAccountCreatedEmailHtml = (userName) => `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; padding: 20px;">
@@ -103,7 +103,9 @@ const generateAccountCreatedEmailHtml = (userName) => `
         <p style="font-size: 16px; color: #555;">Welcome to SmartSpend! Your account has been successfully created and verified.</p>
         <p style="font-size: 16px; color: #555;">You can now log in and start managing your finances with ease.</p>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${process.env.CLIENT_URL}/auth" style="display: inline-block; background-color: #4CAF50; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold;">Log In to Your Account</a>
+          <a href="${
+            process.env.CLIENT_URL
+          }/auth" style="display: inline-block; background-color: #4CAF50; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold;">Log In to Your Account</a>
         </div>
         <p style="font-size: 16px; color: #555; margin-top: 30px;">Thank you for joining SmartSpend!</p>
         <p style="font-size: 16px; color: #555; margin: 0;">Best regards,</p>
@@ -139,7 +141,20 @@ const generateAccountDeletedEmailHtml = (userName) => `
   </div>
 `;
 
-const generatePasswordResetConfirmationEmailHtml = (userName) => `
+const generatePasswordResetConfirmationEmailHtml = (
+  userName,
+  isNewPassword
+) => {
+  const newPasswordMessage = isNewPassword
+    ? `
+        <p style="font-size: 16px; color: #555;">
+          Since you previously signed in using Google, we've now set a password for your account.
+          You can now log in using either your Google account or your email and this new password.
+        </p>
+      `
+    : "";
+
+  return `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; padding: 20px;">
     <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
       <div style="background-color: #4CAF50; color: #ffffff; padding: 25px 20px; text-align: center;">
@@ -149,6 +164,7 @@ const generatePasswordResetConfirmationEmailHtml = (userName) => `
       <div style="padding: 30px 25px;">
         <p style="font-size: 16px; color: #555;">Dear ${userName},</p>
         <p style="font-size: 16px; color: #555;">Your password for your SmartSpend account has been successfully reset.</p>
+        ${newPasswordMessage}
         <p style="font-size: 16px; color: #555;">If you did not initiate this change, please contact our support team immediately.</p>
         <p style="font-size: 16px; color: #555; margin-top: 30px;">Best regards,</p>
         <p style="font-size: 16px; color: #555; margin: 0;">The SmartSpend Team</p>
@@ -160,14 +176,13 @@ const generatePasswordResetConfirmationEmailHtml = (userName) => `
     </div>
   </div>
 `;
+};
 
 // Helper function to generate JWT
 const generateToken = (user) => {
-  return jwt.sign(
-    { id: user._id, email: user.email },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+  return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
 };
 
 // Helper function to format user response
@@ -178,6 +193,7 @@ const formatUserResponse = (user) => ({
   avatar: user.avatar,
   preferences: user.preferences,
   createdAt: user.createdAt,
+  isGoogleUser: !!user.googleId, // Add this field
 });
 
 // Helper function to delete avatar file
@@ -185,10 +201,7 @@ const deleteAvatarFile = (avatarPath) => {
   try {
     if (!avatarPath || !avatarPath.includes("/uploads/")) return;
 
-    const fullPath = path.join(
-      process.cwd(),
-      avatarPath.replace(/^\//, "")
-    );
+    const fullPath = path.join(process.cwd(), avatarPath.replace(/^\//, ""));
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
       console.log("Avatar deleted:", fullPath);
@@ -200,11 +213,11 @@ const deleteAvatarFile = (avatarPath) => {
 
 // Helper to extract Cloudinary public ID from URL
 const getCloudinaryPublicId = (url) => {
-  // Example: https://res.cloudinary.com/<cloud_name>/image/upload/v1234567890/avatars/avatar-123.jpg
-  // Extract "avatars/avatar-123"
   if (!url) return null;
-  const match = url.match(/\/avatars\/([^./]+)(\.[a-zA-Z]+)?$/);
-  if (match) {
+  // Example URL: https://res.cloudinary.com/cloud-name/image/upload/v12345/avatars/random_string.jpg
+  // We want to extract "avatars/random_string"
+  const match = url.match(/avatars\/([^.]+)/);
+  if (match && match[1]) {
     return `avatars/${match[1]}`;
   }
   return null;
@@ -343,7 +356,6 @@ router.post("/resend-otp", async (req, res) => {
   }
 });
 
-
 // @route   POST /api/auth/login
 router.post("/login", validate(authValidation.login), async (req, res) => {
   try {
@@ -356,7 +368,9 @@ router.post("/login", validate(authValidation.login), async (req, res) => {
     }
 
     if (!user.isVerified) {
-      return res.status(401).json({ message: "Please verify your email to login" });
+      return res
+        .status(401)
+        .json({ message: "Please verify your email to login" });
     }
 
     const token = generateToken(user);
@@ -396,7 +410,7 @@ router.post("/forgot-password", async (req, res) => {
 
     res.json({ message: "OTP sent to your email." });
   } catch (error) {
-    console.error("Forgot password error:", error);
+    console.error("Forgot password error:", error.message, error.stack);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -415,16 +429,22 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // Check if the new password is the same as the current password
-    const isSamePassword = await bcrypt.compare(password, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({ message: "New password cannot be the same as the old password." });
+    // If user has a password, check if the new password is the same as the old one
+    if (user.password) {
+      const isSamePassword = await bcrypt.compare(password, user.password);
+      if (isSamePassword) {
+        return res.status(400).json({
+          message: "New password cannot be the same as the old password.",
+        });
+      }
     }
 
+    const isNewPassword = !user.password;
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
     user.passwordResetOTP = undefined;
     user.passwordResetExpires = undefined;
+    user.isVerified = true; // Mark user as verified
 
     await user.save();
 
@@ -433,7 +453,7 @@ router.post("/reset-password", async (req, res) => {
       user.email,
       "SmartSpend Password Reset Successful",
       null,
-      generatePasswordResetConfirmationEmailHtml(user.name)
+      generatePasswordResetConfirmationEmailHtml(user.name, isNewPassword)
     );
 
     res.json({ message: "Password has been reset successfully." });
@@ -443,7 +463,7 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-""
+("");
 
 // @route   POST /api/auth/google
 router.post("/google", async (req, res) => {
@@ -492,6 +512,26 @@ router.post("/google", async (req, res) => {
   }
 });
 
+router.post("/check-google-user", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.googleId) {
+      return res.json({ isGoogleUser: true });
+    }
+
+    res.json({ isGoogleUser: false });
+  } catch (error) {
+    console.error("Check google user error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @route   GET /api/auth/me
 router.get("/me", authenticateToken, async (req, res) => {
   try {
@@ -513,67 +553,50 @@ router.put(
   upload.single("avatar"),
   async (req, res) => {
     try {
-      const { name, email, preferences } = req.body;
+      const { name } = req.body; // Only get name, as email and preferences are not updated here
       const user = await User.findById(req.user.id);
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Update basic fields
-      if (name) user.name = name;
-      if (email) user.email = email;
-      if (preferences) {
-        user.preferences = {
-          ...user.preferences,
-          ...JSON.parse(preferences),
-        };
+      if (name) {
+        user.name = name;
       }
 
-      // Handle avatar update with Cloudinary
       if (req.file) {
-        try {
-          // Delete old avatar if needed
-          if (user.avatar && user.avatar.startsWith("http")) {
-            const publicId = getCloudinaryPublicId(user.avatar);
-            if (publicId) {
-              await cloudinary.uploader.destroy(publicId);
-            }
+        // Delete old avatar if it's a cloudinary url
+        if (user.avatar && user.avatar.includes("cloudinary")) {
+          const publicId = getCloudinaryPublicId(user.avatar);
+          if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
           }
+        }
 
-          // Upload buffer to Cloudinary using Promise
-          const uploadResult = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-              {
-                folder: "avatars",
-                width: 200,
-                height: 200,
-                crop: "fill",
-                resource_type: "image",
-              },
-              (error, result) => {
-                if (error) {
-                  reject(error);
-                } else {
-                  resolve(result);
-                }
-              }
-            );
-            uploadStream.end(req.file.buffer);
-          });
+        // Upload new avatar
+        const uploadResult = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: "avatars",
+              width: 200,
+              height: 200,
+              crop: "fill",
+              resource_type: "image",
+            },
+            (error, result) => {
+              if (error) return reject(error);
+              resolve(result);
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
 
-          // Update user avatar with the new URL
+        if (uploadResult && uploadResult.secure_url) {
           user.avatar = uploadResult.secure_url;
-          await user.save();
-
-          return res.json({
-            user: formatUserResponse(user),
-          });
-        } catch (uploadError) {
-          console.error("Avatar upload error:", uploadError);
-          return res
-            .status(500)
-            .json({ message: "Failed to upload avatar" });
+        } else {
+          // This case should be handled, maybe return an error
+          // For now, just log it.
+          console.error("Cloudinary upload failed, no secure_url in result");
         }
       }
 
@@ -584,6 +607,10 @@ router.put(
       });
     } catch (error) {
       console.error("Update profile error:", error);
+      // Check for cloudinary errors
+      if (error.http_code) {
+        return res.status(error.http_code).json({ message: error.message });
+      }
       res.status(500).json({ message: "Server error" });
     }
   }
@@ -665,9 +692,7 @@ router.delete("/profile", authenticateToken, async (req, res) => {
           const publicId = getCloudinaryPublicId(user.avatar);
           if (publicId) {
             await cloudinary.uploader.destroy(publicId);
-            console.log(
-              `User avatar deleted from Cloudinary: ${publicId}`
-            );
+            console.log(`User avatar deleted from Cloudinary: ${publicId}`);
           }
         } else if (user.avatar.startsWith("/uploads/")) {
           deleteAvatarFile(user.avatar);
@@ -749,14 +774,13 @@ router.get("/profile/stats", authenticateToken, async (req, res) => {
     const userId = new mongoose.Types.ObjectId(req.user.id);
 
     // Basic counts - only what the client uses
-    const [billsCount, expensesCount, warrantiesCount, incomesCount] = await Promise.all(
-      [
+    const [billsCount, expensesCount, warrantiesCount, incomesCount] =
+      await Promise.all([
         Bill.countDocuments({ user: userId }),
         Expense.countDocuments({ user: userId }),
         Warranty.countDocuments({ user: userId }),
         Income.countDocuments({ user: userId }),
-      ]
-    );
+      ]);
 
     res.json({
       activity: {

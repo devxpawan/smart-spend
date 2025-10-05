@@ -1,3 +1,4 @@
+import { check, validationResult } from "express-validator";
 import express from "express";
 import mongoose from "mongoose";
 import Bill from "../models/Bill.js";
@@ -65,7 +66,18 @@ router.get("/", async (req, res) => {
 // @route   POST /api/expenses
 // @desc    Create a new expense
 // @access  Private
-router.post("/", async (req, res) => {
+router.post(
+  "/",
+  [
+    check("description", "Description is required").trim().notEmpty().matches(/[a-zA-Z]/).withMessage("Description must contain at least one alphabetic character"),
+    check("amount", "Amount is required and must be a number").isNumeric(),
+    check("category", "Category is required").notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
   try {
     const { amount, description, category, date, paymentMethod, notes } =
       req.body;
@@ -93,7 +105,22 @@ router.post("/", async (req, res) => {
 // @route   PUT /api/expenses/:id
 // @desc    Update expense
 // @access  Private
-router.put("/:id", async (req, res) => {
+router.put(
+  "/:id",
+  [
+    check("description", "Description must contain at least one alphabetic character")
+      .optional()
+      .trim()
+      .notEmpty()
+      .matches(/[a-zA-Z]/),
+    check("amount", "Amount must be a number").optional().isNumeric(),
+    check("category", "Category is required").optional().notEmpty(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
   try {
     const { amount, description, category, date, paymentMethod, notes } =
       req.body;

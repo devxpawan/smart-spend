@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/auth-exports";
 import IncomeFormData from "../types/IncomeFormData";
 import CustomSelect from "./CustomSelect";
 import { incomeCategories } from "../lib/incomeCategories";
@@ -81,6 +81,8 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
 
     if (!formData.description.trim()) {
       newErrors.description = "Description is required";
+    } else if (!/[a-zA-Z]/.test(formData.description)) {
+      newErrors.description = "Description must contain at least one alphabetic character";
     }
 
     if (!formData.amount || parseFloat(formData.amount as string) <= 0) {
@@ -236,26 +238,26 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden"
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-sky-50 to-cyan-50">
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-gray-700 bg-gradient-to-r from-sky-50 to-cyan-50 dark:from-gray-800 dark:to-gray-700">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-600 flex items-center justify-center shadow-lg">
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <h2
                 id="modal-title"
-                className="text-xl font-bold text-slate-800"
+                className="text-xl font-bold text-slate-800 dark:text-white"
               >
                 {initialData ? "Edit Income" : "Add New Income"}
               </h2>
             </div>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-white/50 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="text-slate-400 hover:text-slate-600 dark:text-gray-400 dark:hover:text-white transition-colors p-2 rounded-lg hover:bg-white/50 dark:hover:bg-gray-600/50 focus:outline-none focus:ring-2 focus:ring-sky-500"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
@@ -270,13 +272,13 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                 <div className="md:col-span-2">
                   <label
                     htmlFor="description"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
                   >
                     Income Description *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Receipt className="h-5 w-5 text-slate-400" />
+                      <Receipt className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="text"
@@ -285,10 +287,10 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       value={formData.description}
                       onChange={handleChange}
                       placeholder="e.g., Monthly salary, Project payment"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
                         errors.description
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-sky-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
                       }`}
                       required
                       ref={firstInputRef}
@@ -303,7 +305,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                   {errors.description && (
                     <div
                       id="description-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.description}</span>
@@ -315,13 +317,13 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                 <div>
                   <label
                     htmlFor="amount"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
                   >
                     Amount *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-slate-400" />
+                      <DollarSign className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="number"
@@ -332,10 +334,10 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
                         errors.amount
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-sky-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
                       }`}
                       required
                       aria-invalid={errors.amount ? "true" : "false"}
@@ -347,13 +349,13 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                   {errors.amount && (
                     <div
                       id="amount-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.amount}</span>
                     </div>
                   )}
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Currency: {user?.preferences?.currency || "USD"}
                   </p>
                 </div>
@@ -362,13 +364,13 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                 <div>
                   <label
                     htmlFor="date"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
                   >
                     Date *
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Calendar className="h-5 w-5 text-slate-400" />
+                      <Calendar className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="date"
@@ -377,10 +379,10 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       value={formData.date}
                       onChange={handleChange}
                       max={new Date().toISOString().split("T")[0]}
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
                         errors.date
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-sky-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
                       }`}
                       required
                       aria-invalid={errors.date ? "true" : "false"}
@@ -392,7 +394,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                   {errors.date && (
                     <div
                       id="date-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.date}</span>
@@ -404,7 +406,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                 <div className="md:col-span-2">
                   <label
                     htmlFor="category"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
                   >
                     Category *
                   </label>
@@ -422,14 +424,14 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                     className={`${
                       errors.category
                         ? "border-red-300 focus:ring-red-500"
-                        : "border-slate-300 focus:ring-sky-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
                     }`}
                     openDirection="top"
                   />
                   {errors.category && (
                     <div
                       id="category-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.category}</span>
@@ -441,13 +443,13 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                 <div className="md:col-span-2">
                   <label
                     htmlFor="notes"
-                    className="block text-sm font-semibold text-slate-700 mb-2"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
                   >
                     Notes (Optional)
                   </label>
                   <div className="relative">
                     <div className="absolute top-3 left-3 pointer-events-none">
-                      <FileText className="h-5 w-5 text-slate-400" />
+                      <FileText className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <textarea
                       id="notes"
@@ -456,10 +458,10 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       onChange={handleChange}
                       rows={3}
                       maxLength={500}
-                      className={`form-textarea block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out resize-none ${
+                      className={`form-textarea block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out resize-none ${
                         errors.notes
                           ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-sky-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
                       }`}
                       placeholder="Additional details about this income..."
                       aria-invalid={errors.notes ? "true" : "false"}
@@ -471,7 +473,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                   {errors.notes && (
                     <div
                       id="notes-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.notes}</span>
@@ -479,7 +481,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                   )}
                   <p
                     id="notes-help"
-                    className="mt-1 text-xs text-slate-500"
+                    className="mt-1 text-xs text-slate-500 dark:text-slate-400"
                   >
                     {formData.notes?.length || 0}/500 characters
                   </p>
@@ -487,11 +489,11 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200">
+              <div className="flex justify-end space-x-3 pt-6 border-t border-slate-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors duration-150 ease-in-out shadow-sm"
+                  className="px-6 py-3 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-lg hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 transition-colors duration-150 ease-in-out shadow-sm"
                 >
                   Cancel
                 </button>

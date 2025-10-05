@@ -30,7 +30,7 @@ import CustomSelect from "../components/CustomSelect";
 
 import WarrantyModal from "../components/WarrantyModal";
 import WarrantyQRCodeModal from "../components/WarrantyQRCodeModal";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/auth-exports";
 import { WarrantyImage } from "../types/WarrantyFormData";
 import WarrantyInterface from "../types/WarrantyInterface";
 
@@ -94,7 +94,7 @@ const Warranties: React.FC = () => {
 
   // Image viewer state
   const [showImageViewer, setShowImageViewer] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<any[]>([]);
+  const [selectedImages, setSelectedImages] = useState<WarrantyImage[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Enhanced filtering
@@ -131,8 +131,8 @@ const Warranties: React.FC = () => {
     try {
       const response = await axios.get("/api/warranties/categories");
       setUserCategories(response.data);
-    } catch (err) {
-      console.error("Error fetching user categories:", err);
+    } catch (error) {
+      console.error("Error fetching user categories:", error);
       // Optionally set an error state or default categories
     }
   }, []); // Empty dependency array means this runs once on mount
@@ -160,9 +160,9 @@ const Warranties: React.FC = () => {
         ? response.data
         : response.data.warranties;
       setWarranties(data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching warranties:", err);
-      if (err.response?.status === 401) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
         setError("You are not authorized. Please log in again.");
       } else {
         setError("Failed to load warranties. Please try again.");
@@ -267,7 +267,7 @@ const Warranties: React.FC = () => {
       );
       setSelectedWarrantyForDetail(updatedDetail || null);
     }
-  }, [warranties, selectedWarrantyForDetail?._id]);
+  }, [warranties, selectedWarrantyForDetail?._id, selectedWarrantyForDetail]);
 
   // Adjust current page if it becomes invalid after filtering or deletion
   useEffect(() => {
@@ -335,7 +335,7 @@ const Warranties: React.FC = () => {
 
       const cleanedData = Object.fromEntries(
         Object.entries(warrantyData).filter(
-          ([_, value]) => value !== undefined && value !== ""
+          ([, value]) => value !== undefined && value !== ""
         )
       );
 
@@ -372,15 +372,14 @@ const Warranties: React.FC = () => {
         });
       }
 
-      resetFormData();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error creating/updating warranty:", err);
 
-      if (err.response?.data?.message) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
         setError(err.response.data.message);
-      } else if (err.response?.data?.errors) {
+      } else if (axios.isAxiosError(err) && err.response?.data?.errors) {
         const errorMessages = err.response.data.errors
-          .map((e: any) => e.msg || e.message)
+          .map((e: { msg?: string; message?: string }) => e.msg || e.message)
           .join(", ");
         setError(errorMessages);
       } else {
@@ -429,7 +428,7 @@ const Warranties: React.FC = () => {
     setConfirmModal({ open: true, id: id });
   };
 
-  const handleViewImages = (images: any[], startIndex: number = 0) => {
+  const handleViewImages = (images: WarrantyImage[], startIndex: number = 0) => {
     setSelectedImages(images);
     setCurrentImageIndex(startIndex);
     setShowImageViewer(true);
@@ -466,7 +465,7 @@ const Warranties: React.FC = () => {
         setIsDetailModalOpen(false);
       }
       setError(""); // Clear any previous error
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error deleting warranty:", err);
       setError("Failed to delete warranty. Please try again.");
     } finally {
@@ -512,7 +511,12 @@ const Warranties: React.FC = () => {
       setSelectedIds([]);
       setError("");
     } catch (err) {
-      setError("Failed to delete selected warranties");
+      console.error("Error deleting selected warranties:", err);
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Failed to delete selected warranties. Please try again.");
+      }
     } finally {
       setIsBulkDeleteModalOpen(false);
       setIsBulkDeleting(false);
@@ -544,10 +548,10 @@ const Warranties: React.FC = () => {
               <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
                 Warranties Manager
               </h1>
-              <p className="text-gray-600 mt-1 text-sm sm:text-base">
+              <p className="text-gray-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
                 Manage your product warranties and coverage
               </p>
             </div>
@@ -567,19 +571,19 @@ const Warranties: React.FC = () => {
 
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-          <span className="text-slate-500">{stats.total} warranties</span>
-          <span className="text-slate-500 hidden sm:inline">•</span>
+          <span className="text-slate-500 dark:text-slate-400">{stats.total} warranties</span>
+          <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">•</span>
           <span className="text-green-600 font-medium">
             {stats.active} active
           </span>
-          <span className="text-slate-500 hidden sm:inline">•</span>
+          <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">•</span>
           <span className="text-amber-600 font-medium">
             {stats.expiringSoon} expiring soon
           </span>
           {stats.totalValue > 0 && (
             <>
-              <span className="text-slate-500 hidden sm:inline">•</span>
-              <span className="text-slate-500">
+              <span className="text-slate-500 dark:text-slate-400 hidden sm:inline">•</span>
+              <span className="text-slate-500 dark:text-slate-400">
                 Value: {user?.preferences?.currency || "USD"}{" "}
                 {stats.totalValue.toFixed(2)}
               </span>
@@ -589,7 +593,7 @@ const Warranties: React.FC = () => {
       </header>
 
       {/* Simplified Filters and Search */}
-      <div className="bg-white p-3 sm:p-4 rounded-lg border shadow-sm space-y-3 sm:space-y-4">
+      <div className="bg-white dark:bg-gray-800 dark:border-gray-700 p-3 sm:p-4 rounded-lg border shadow-sm space-y-3 sm:space-y-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -598,7 +602,7 @@ const Warranties: React.FC = () => {
             placeholder="Search warranties..."
             value={filters.searchTerm}
             onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
-            className="w-full pl-12 pr-10 py-3 bg-slate-100 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all duration-300 shadow-sm"
+            className="w-full pl-12 pr-10 py-3 bg-slate-100 dark:bg-gray-700 dark:text-white rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-gray-900 transition-all duration-300 shadow-sm"
           />
           {filters.searchTerm && (
             <button
@@ -618,7 +622,7 @@ const Warranties: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             {/* Category Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <label className="text-xs sm:text-sm font-medium text-gray-700">
+              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Category:
               </label>
               <CustomSelect
@@ -631,7 +635,7 @@ const Warranties: React.FC = () => {
 
             {/* Status Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <label className="text-xs sm:text-sm font-medium text-gray-700">
+              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
                 Status:
               </label>
               <CustomSelect
@@ -651,7 +655,7 @@ const Warranties: React.FC = () => {
                 setFilters({ category: "", status: "", searchTerm: "" });
                 setCurrentPage(1);
               }}
-              className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors font-medium"
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-slate-600 dark:text-gray-300 bg-slate-100 dark:bg-gray-700 hover:bg-slate-200 dark:hover:bg-gray-600 rounded-lg transition-colors font-medium"
             >
               Clear Filters
             </button>
@@ -659,7 +663,7 @@ const Warranties: React.FC = () => {
             {/* Refresh Button */}
             <button
               onClick={() => fetchWarranties()}
-              className="flex items-center justify-center px-3 py-1.5 sm:py-2 border border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+              className="flex items-center justify-center px-3 py-1.5 sm:py-2 border dark:border-gray-600 border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
               title="Refresh warranties"
               disabled={loading}
             >
@@ -673,22 +677,22 @@ const Warranties: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border border-red-200 p-4 rounded-md">
+        <div className="bg-red-50 dark:bg-red-900/20 border dark:border-red-800 border-red-200 p-4 rounded-md">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-3">
               <div className="p-2 bg-red-100 rounded-lg">
                 <AlertCircle className="text-red-600 w-5 h-5 flex-shrink-0" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-red-800">
+                <h3 className="text-sm font-bold text-red-800 dark:text-red-200">
                   Error Occurred
                 </h3>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
               </div>
             </div>
             <button
               onClick={() => setError("")}
-              className="text-red-400 hover:text-red-600 focus:outline-none"
+              className="text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-300 focus:outline-none"
             >
               <X className="w-5 h-5" />
             </button>
@@ -704,9 +708,9 @@ const Warranties: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="bg-slate-100 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            className="bg-slate-100 dark:bg-gray-800 dark:border-gray-700 p-3 sm:p-4 rounded-lg border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
           >
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-sm font-medium text-slate-700 dark:text-gray-200">
               {selectedIds.length} item(s) selected
             </div>
             <div className="flex items-center gap-2">
@@ -723,7 +727,7 @@ const Warranties: React.FC = () => {
               </button>
               <button
                 onClick={() => setSelectedIds([])}
-                className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-200 rounded-md hover:bg-slate-300"
+                className="px-3 py-2 text-xs font-semibold text-slate-700 dark:text-gray-200 bg-slate-200 dark:bg-gray-700 rounded-md hover:bg-slate-300 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
@@ -744,23 +748,23 @@ const Warranties: React.FC = () => {
             </div>
           </div>
         ) : filteredWarranties.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 rounded-lg border border-dashed border-gray-300">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Package className="w-8 h-8 text-purple-500" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
                 {warranties.length === 0 ? "No Warranties to Display" : "No Matching Warranties Found"}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 {warranties.length === 0
                   ? "It looks like you haven't added any warranties yet. Let's get started!"
                   : "Your current filters returned no results. Try broadening your search or adjusting the criteria."}
               </p>
               {/* Quick Tips Section */}
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4 text-left max-w-md mx-auto">
-                <h4 className="text-base font-semibold text-purple-700 mb-2">Quick Tips</h4>
-                <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
+              <div className="bg-slate-50 dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg p-4 mb-4 text-left max-w-md mx-auto">
+                <h4 className="text-base font-semibold text-purple-700 dark:text-purple-300 mb-2">Quick Tips</h4>
+                <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700 dark:text-slate-300">
                   <li>Print and attach to product</li>
                   <li>Share with repair shops</li>
                   <li>Works on any smartphone</li>
@@ -780,10 +784,10 @@ const Warranties: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow border overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 dark:border-gray-700 rounded-lg shadow border overflow-hidden">
             {/* Mobile Card View */}
             <div className="block lg:hidden">
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {paginatedWarranties.map((warranty) => {
                   const daysUntilExpiry = getDaysUntilExpiry(
                     warranty.expirationDate,
@@ -802,7 +806,7 @@ const Warranties: React.FC = () => {
                     <div
                       key={warranty._id}
                       className={`p-4 space-y-3 ${
-                        selectedIds.includes(warranty._id) ? "bg-blue-50" : ""
+                        selectedIds.includes(warranty._id) ? "bg-blue-50 dark:bg-blue-900/20" : ""
                       }`}
                       onClick={() => handleSelect(warranty._id)}
                     >
@@ -821,7 +825,7 @@ const Warranties: React.FC = () => {
                                 e.stopPropagation();
                                 handleViewDetails(warranty);
                               }}
-                              className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                              className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 flex items-center space-x-1 group"
                             >
                               <span className="truncate">
                                 {warranty.productName}
@@ -830,7 +834,7 @@ const Warranties: React.FC = () => {
                             </button>
                           </div>
                           <div className="mt-1 flex items-center space-x-2 ml-7">
-                            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                            <span className="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
                               {warranty.category}
                             </span>
                             {warranty.isLifetimeWarranty ? (
@@ -860,8 +864,8 @@ const Warranties: React.FC = () => {
 
                       <div className="grid grid-cols-2 gap-3 text-sm ml-7">
                         <div>
-                          <div className="text-gray-600 text-xs">Expires:</div>
-                          <div className="font-medium">
+                          <div className="text-gray-600 dark:text-gray-400 text-xs">Expires:</div>
+                          <div className="font-medium dark:text-gray-200">
                             {warranty.isLifetimeWarranty ? (
                               <span className="text-green-600 font-semibold">
                                 Lifetime
@@ -876,7 +880,7 @@ const Warranties: React.FC = () => {
                             </div>
                           ) : (
                             !expired && (
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
                                 {daysUntilExpiry && daysUntilExpiry > 0
                                   ? `${daysUntilExpiry} days left`
                                   : "Expires today"}
@@ -885,12 +889,12 @@ const Warranties: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <div className="text-gray-600 text-xs">Retailer:</div>
-                          <div className="font-medium">
+                          <div className="text-gray-600 dark:text-gray-400 text-xs">Retailer:</div>
+                          <div className="font-medium dark:text-gray-200">
                             {warranty.retailer || "N/A"}
                           </div>
                           {warranty.purchasePrice && (
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
                               {user?.preferences?.currency || "USD"}{" "}
                               {warranty.purchasePrice.toFixed(2)}
                             </div>
@@ -925,7 +929,7 @@ const Warranties: React.FC = () => {
                                   ))}
                               </div>
                               {warranty.warrantyCardImages.length > 2 && (
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
                                   +{warranty.warrantyCardImages.length - 2}
                                 </span>
                               )}
@@ -974,8 +978,8 @@ const Warranties: React.FC = () => {
 
             {/* Desktop Table View */}
             <div className="hidden lg:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700/50">
                   <tr>
                     <th scope="col" className="p-4">
                       <input
@@ -992,7 +996,7 @@ const Warranties: React.FC = () => {
                     </th>
                     <th
                       scope="col"
-                      className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                      className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase"
                     >
                       <div className="flex items-center space-x-1">
                         <Package className="w-4 h-4" />
@@ -1001,7 +1005,7 @@ const Warranties: React.FC = () => {
                     </th>
                     <th
                       scope="col"
-                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                     >
                       <div className="flex items-center space-x-2">
                         <Image className="w-4 h-4" />
@@ -1010,13 +1014,13 @@ const Warranties: React.FC = () => {
                     </th>
                     <th
                       scope="col"
-                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                     >
                       Category
                     </th>
                     <th
                       scope="col"
-                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                     >
                       <div className="flex items-center space-x-2">
                         <Calendar className="w-4 h-4" />
@@ -1025,13 +1029,13 @@ const Warranties: React.FC = () => {
                     </th>
                     <th
                       scope="col"
-                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                     >
                       Status
                     </th>
                     <th
                       scope="col"
-                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-4 lg:px-6 py-4 text-left text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                     >
                       <div className="flex items-center space-x-2">
                         <Store className="w-4 h-4" />
@@ -1040,13 +1044,13 @@ const Warranties: React.FC = () => {
                     </th>
                     <th
                       scope="col"
-                      className="px-4 lg:px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider"
+                      className="px-4 lg:px-6 py-4 text-center text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                     >
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white/50 divide-y divide-slate-200">
+                <tbody className="bg-white/50 dark:bg-gray-800/50 divide-y divide-slate-200 dark:divide-slate-700">
                   {paginatedWarranties.map((warranty) => {
                     const daysUntilExpiry = getDaysUntilExpiry(
                       warranty.expirationDate,
@@ -1064,8 +1068,8 @@ const Warranties: React.FC = () => {
                     return (
                       <tr
                         key={warranty._id}
-                        className={`hover:bg-gray-50 ${
-                          selectedIds.includes(warranty._id) ? "bg-blue-50" : ""
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                          selectedIds.includes(warranty._id) ? "bg-blue-50 dark:bg-blue-900/20" : ""
                         }`}
                         onClick={() => handleSelect(warranty._id)}
                       >
@@ -1089,13 +1093,13 @@ const Warranties: React.FC = () => {
                                   e.stopPropagation();
                                   handleViewDetails(warranty);
                                 }}
-                                className="text-sm font-medium text-gray-900 hover:text-blue-600 flex items-center space-x-1 group"
+                                className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 flex items-center space-x-1 group"
                               >
                                 <span>{warranty.productName}</span>
                                 <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                               </button>
                               {warranty.purchasePrice && (
-                                <div className="text-sm text-gray-600 font-medium mt-1 flex items-center">
+                                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium mt-1 flex items-center">
                                   <DollarSign className="w-3 h-3 mr-1" />
                                   {user?.preferences?.currency || "USD"}{" "}
                                   {warranty.purchasePrice.toFixed(2)}
@@ -1131,7 +1135,7 @@ const Warranties: React.FC = () => {
                                     ))}
                                 </div>
                                 {warranty.warrantyCardImages.length > 3 && (
-                                  <span className="text-xs text-slate-500 font-medium">
+                                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                     +{warranty.warrantyCardImages.length - 3}{" "}
                                     more
                                   </span>
@@ -1146,7 +1150,7 @@ const Warranties: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded font-medium">
+                          <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
                             {warranty.category}
                           </span>
                         </td>
@@ -1154,7 +1158,7 @@ const Warranties: React.FC = () => {
                           <div className="flex items-center space-x-2">
                             <Calendar className="h-4 w-4 text-slate-400" />
                             <div>
-                              <div className="text-sm text-slate-900 font-medium">
+                              <div className="text-sm text-slate-900 dark:text-gray-200 font-medium">
                                 {warranty.isLifetimeWarranty ? (
                                   <span className="text-green-600 font-semibold">
                                     Lifetime
@@ -1169,7 +1173,7 @@ const Warranties: React.FC = () => {
                                 </div>
                               ) : (
                                 !expired && (
-                                  <div className="text-xs text-slate-500">
+                                  <div className="text-xs text-slate-500 dark:text-gray-400">
                                     {daysUntilExpiry && daysUntilExpiry > 0
                                       ? `${daysUntilExpiry} days left`
                                       : "Expires today"}
@@ -1205,7 +1209,7 @@ const Warranties: React.FC = () => {
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
                             <Store className="h-4 w-4 text-slate-400" />
-                            <div className="text-sm text-slate-900 font-medium">
+                            <div className="text-sm text-slate-900 dark:text-gray-200 font-medium">
                               {warranty.retailer || "N/A"}
                             </div>
                           </div>
@@ -1251,13 +1255,13 @@ const Warranties: React.FC = () => {
 
       {/* Enhanced Pagination */}
       {pageCount > 1 && (
-        <nav className="flex justify-center mt-6 p-2 bg-white rounded-lg shadow-md">
+        <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <ul className="flex items-center space-x-1 h-10 text-base">
             <li>
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
               >
                 Previous
               </button>
@@ -1266,10 +1270,10 @@ const Warranties: React.FC = () => {
             {(() => {
               const pageNumbers = [];
               const maxPagesToShow = 5; // Maximum number of page buttons to display
-              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500">...</li>;
+              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500 dark:text-gray-400">...</li>;
 
               let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-              let endPage = Math.min(pageCount, startPage + maxPagesToShow - 1);
+              const endPage = Math.min(pageCount, startPage + maxPagesToShow - 1);
 
               if (endPage - startPage + 1 < maxPagesToShow) {
                 startPage = Math.max(1, endPage - maxPagesToShow + 1);
@@ -1280,10 +1284,10 @@ const Warranties: React.FC = () => {
                   <li key={1}>
                     <button
                       onClick={() => handlePageChange(1)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === 1
                           ? "text-white bg-purple-600 hover:bg-purple-700"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       1
@@ -1300,10 +1304,10 @@ const Warranties: React.FC = () => {
                   <li key={i}>
                     <button
                       onClick={() => handlePageChange(i)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === i
                           ? "text-white bg-purple-600 hover:bg-purple-700"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       {i}
@@ -1320,10 +1324,10 @@ const Warranties: React.FC = () => {
                   <li key={pageCount}>
                     <button
                       onClick={() => handlePageChange(pageCount)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 ${
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
                         currentPage === pageCount
                           ? "text-white bg-purple-600 hover:bg-purple-700"
-                          : "text-gray-700 bg-white hover:bg-gray-100"
+                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                       }`}
                     >
                       {pageCount}
@@ -1337,7 +1341,7 @@ const Warranties: React.FC = () => {
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage === pageCount}
-                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
               >
                 Next
               </button>
