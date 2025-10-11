@@ -5,5 +5,6 @@ export default interface IncomeInterface {
     category: string;
     date: string;
     notes?: string;
+    bankAccount?: string;
   }
   

@@ -12,6 +12,7 @@ import warrantyRoutes from "./routes/warranties.js";
 import incomeRoutes from "./routes/incomes.js";
 import financialHealthRoutes from "./routes/financialHealth.js";
 import userRoutes from "./routes/user.js";
+import bankAccountRoutes from "./routes/bankAccounts.js";
 
 // Middleware
 import { authenticateToken } from "./middleware/auth.js";
@@ -108,6 +109,7 @@ app.use("/api/warranties", authenticateToken, warrantyRoutes);
 app.use("/api/incomes", authenticateToken, incomeRoutes);
 app.use("/api/financial-health", authenticateToken, financialHealthRoutes);
 app.use("/api/user", authenticateToken, userRoutes);
+app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
 
 // Default route
 app.get("/", (req, res) => {

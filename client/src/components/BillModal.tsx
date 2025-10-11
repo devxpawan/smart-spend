@@ -12,6 +12,9 @@ import {
   Receipt,
 } from "lucide-react";
 
+import { getBankAccounts } from "../api/bankAccounts";
+import BankAccountInterface from "../types/BankAccountInterface";
+
 interface BillModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,6 +28,7 @@ interface FormErrors {
   dueDate?: string;
   category?: string;
   duplicateName?: string;
+  bankAccount?: string;
 }
 
 const BillModal: React.FC<BillModalProps> = ({
@@ -39,6 +43,7 @@ const BillModal: React.FC<BillModalProps> = ({
     amount: "",
     dueDate: new Date().toISOString().split("T")[0],
     category: "",
+    bankAccount: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -46,6 +51,26 @@ const BillModal: React.FC<BillModalProps> = ({
   const [isDuplicateCheckComplete, setIsDuplicateCheckComplete] =
     useState(false);
   const [markAsPaid, setMarkAsPaid] = useState(false);
+  const [bankAccounts, setBankAccounts] = useState<BankAccountInterface[]>([]);
+  const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBankAccounts = async () => {
+      try {
+        setBankAccountsLoading(true);
+        const accounts = await getBankAccounts();
+        setBankAccounts(accounts);
+      } catch (error) {
+        console.error("Failed to fetch bank accounts:", error);
+      } finally {
+        setBankAccountsLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchBankAccounts();
+    }
+  }, [isOpen]);
 
   // Function to check for duplicate bill names
   const checkForDuplicateName = useCallback(
@@ -111,6 +136,7 @@ const BillModal: React.FC<BillModalProps> = ({
           : new Date().toISOString().split("T")[0],
         category: initialData.category,
         isPaid: initialData.isPaid,
+        bankAccount: initialData.bankAccount || "",
       });
     } else {
       setFormData({
@@ -118,6 +144,7 @@ const BillModal: React.FC<BillModalProps> = ({
         amount: "",
         dueDate: new Date().toISOString().split("T")[0],
         category: "",
+        bankAccount: "",
       });
     }
     setErrors({});
@@ -158,6 +185,10 @@ const BillModal: React.FC<BillModalProps> = ({
 
     if (!formData.category) {
       newErrors.category = "Please select a category";
+    }
+
+    if (!formData.bankAccount) {
+      newErrors.bankAccount = "Please select a bank account";
     }
 
     setErrors(newErrors);
@@ -286,9 +317,9 @@ const BillModal: React.FC<BillModalProps> = ({
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
 
-      // Focus first input after animation
+      // Focus first input after animation, but not on mobile
       setTimeout(() => {
-        if (firstInputRef.current) {
+        if (firstInputRef.current && window.innerWidth >= 768) {
           firstInputRef.current.focus();
 
           // If editing, check for duplicate name when opening
@@ -315,7 +346,7 @@ const BillModal: React.FC<BillModalProps> = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2"
         aria-modal="true"
         role="dialog"
         aria-labelledby="modal-title"
@@ -326,7 +357,7 @@ const BillModal: React.FC<BillModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-lg sm:max-w-2xl max-h-[90vh] overflow-hidden mx-auto"
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
         >
@@ -375,7 +406,7 @@ const BillModal: React.FC<BillModalProps> = ({
                       value={formData.name}
                       onChange={handleChange}
                       placeholder="e.g., Monthly Electricity Bill"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.name
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
@@ -431,7 +462,7 @@ const BillModal: React.FC<BillModalProps> = ({
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.amount
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
@@ -476,7 +507,7 @@ const BillModal: React.FC<BillModalProps> = ({
                       id="dueDate"
                       value={formData.dueDate}
                       onChange={handleChange}
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
                         errors.dueDate
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
@@ -526,18 +557,68 @@ const BillModal: React.FC<BillModalProps> = ({
                     }`}
                     disabled={!!errors.duplicateName}
                     openDirection="top"
+                    isSearchable={true}
+                    placeholder="Select a category"
                   />
-                  {errors.category && (
-                    <div
-                      id="category-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">{errors.category}</span>
-                    </div>
-                  )}
-                </div>
-                {!initialData && (
+                                    {
+                                      errors.category && (
+                                        <div
+                                          id="category-error"
+                                          className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
+                                        >
+                                          <AlertCircle className="w-4 h-4" />
+                                          <span className="text-sm">{errors.category}</span>
+                                        </div>
+                                      )
+                                    }
+                                  </div>
+                  
+                                  {/* Bank Account */}
+                                  <div className="md:col-span-2">
+                                    <label
+                                      htmlFor="bankAccount"
+                                      className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                                    >
+                                      Bank Account *
+                                    </label>
+                                    <CustomSelect
+                                      options={[
+                                        { value: "", label: "Select a bank account" },
+                                        ...bankAccounts.map((account) => ({
+                                          value: account._id,
+                                          label: `${account.accountName} (${account.bankName})`,
+                                        })),
+                                      ]}
+                                      value={formData.bankAccount || ""}
+                                      onChange={(value) =>
+                                        handleChange({
+                                          target: { name: "bankAccount", value },
+                                        } as React.ChangeEvent<HTMLSelectElement>)
+                                      }
+                                      className={`${errors.bankAccount
+                                          ? "border-red-300 focus:ring-red-500"
+                                          : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
+                                        }`}
+                                      openDirection="top"
+                                      isSearchable={true}
+                                      disabled={bankAccountsLoading}
+                                      placeholder="Select a bank account"
+                                    />
+                                    {bankAccountsLoading && (
+                                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Loading bank accounts...</p>
+                                    )}
+                                    {errors.bankAccount && (
+                                      <div
+                                        id="bankAccount-error"
+                                        className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
+                                      >
+                                        <AlertCircle className="w-4 h-4" />
+                                        <span className="text-sm">{errors.bankAccount}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                  
+                                  {!initialData && (
                   <div className="md:col-span-2">
                     <label
                       htmlFor="markAsPaid"

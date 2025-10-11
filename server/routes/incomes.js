@@ -1,6 +1,7 @@
 import { check, validationResult } from "express-validator";
 import express from "express";
 import Income from "../models/Income.js";
+import BankAccount from "../models/BankAccount.js";
 import mongoose from "mongoose";
 
 const router = express.Router();
@@ -71,6 +72,7 @@ router.post(
     check("description", "Description is required").trim().notEmpty().matches(/[a-zA-Z]/).withMessage("Description must contain at least one alphabetic character"),
     check("amount", "Amount is required and must be a number").isNumeric(),
     check("category", "Category is required").notEmpty(),
+    check("bankAccount", "Bank account is invalid").optional().isMongoId(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -78,20 +80,42 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, notes } =
+    const { amount, description, category, date, notes, bankAccount } =
       req.body;
 
-    const newIncome = new Income({
-      user: req.user.id,
-      amount,
-      description,
-      category,
-      date: date || Date.now(),
-      notes,
-    });
+    let session;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
 
-    const income = await newIncome.save();
-    res.status(201).json(income);
+      if (bankAccount) {
+        const account = await BankAccount.findById(bankAccount).session(session);
+        if (!account) {
+          throw new Error("Bank account not found");
+        }
+        account.currentBalance += amount;
+        await account.save({ session });
+      }
+
+      const newIncome = new Income({
+        user: req.user.id,
+        amount,
+        description,
+        category,
+        date: date || Date.now(),
+        notes,
+        bankAccount: bankAccount || undefined,
+      });
+
+      const income = await newIncome.save({ session });
+      await session.commitTransaction();
+      res.status(201).json(income);
+    } catch (transactionError) {
+      if (session) await session.abortTransaction();
+      throw transactionError;
+    } finally {
+      if (session) session.endSession();
+    }
   } catch (error) {
     console.error("Create income error:", error);
     res
@@ -113,6 +137,7 @@ router.put(
       .matches(/[a-zA-Z]/),
     check("amount", "Amount must be a number").optional().isNumeric(),
     check("category", "Category is required").optional().notEmpty(),
+    check("bankAccount", "Bank account is invalid").optional().isMongoId(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -120,27 +145,63 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, notes } =
+    const { amount, description, category, date, notes, bankAccount } =
       req.body;
 
-    const income = await Income.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
+    let session;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
 
-    if (!income) {
-      return res.status(404).json({ message: "Income not found" });
+      const income = await Income.findOne({
+        _id: req.params.id,
+        user: req.user.id,
+      }).session(session);
+
+      if (!income) {
+        throw new Error("Income not found");
+      }
+
+      const oldAmount = income.amount;
+      const oldBankAccount = income.bankAccount;
+      const newAmount = amount !== undefined ? amount : oldAmount;
+
+      // Revert the old transaction if there was a bank account
+      if (oldBankAccount) {
+        const oldAccount = await BankAccount.findById(oldBankAccount).session(session);
+        if (oldAccount) {
+          oldAccount.currentBalance -= oldAmount; // Subtract old income
+          await oldAccount.save({ session });
+        }
+      }
+
+      // Apply the new transaction if there is a new bank account
+      if (bankAccount) {
+        const newAccount = await BankAccount.findById(bankAccount).session(session);
+        if (!newAccount) {
+          throw new Error("New bank account not found");
+        }
+        newAccount.currentBalance += newAmount; // Add new income
+        await newAccount.save({ session });
+      }
+
+      // Update income fields
+      income.amount = amount !== undefined ? amount : income.amount;
+      income.description = description || income.description;
+      income.category = category || income.category;
+      income.date = date || income.date;
+      income.notes = notes !== undefined ? notes : income.notes;
+      income.bankAccount = bankAccount || undefined;
+
+      const updatedIncome = await income.save({ session });
+      await session.commitTransaction();
+      res.json(updatedIncome);
+    } catch (transactionError) {
+      if (session) await session.abortTransaction();
+      throw transactionError;
+    } finally {
+      if (session) session.endSession();
     }
-
-    // Update fields
-    income.amount = amount || income.amount;
-    income.description = description || income.description;
-    income.category = category || income.category;
-    income.date = date || income.date;
-    income.notes = notes !== undefined ? notes : income.notes;
-
-    const updatedIncome = await income.save();
-    res.json(updatedIncome);
   } catch (error) {
     console.error("Update income error:", error);
     res
@@ -154,17 +215,37 @@ router.put(
 // @access  Private
 router.delete("/:id", async (req, res) => {
   try {
-    const income = await Income.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
+    let session;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
 
-    if (!income) {
-      return res.status(404).json({ message: "Income not found" });
+      const income = await Income.findOne({
+        _id: req.params.id,
+        user: req.user.id,
+      }).session(session);
+
+      if (!income) {
+        throw new Error("Income not found");
+      }
+
+      if (income.bankAccount) {
+        const account = await BankAccount.findById(income.bankAccount).session(session);
+        if (account) {
+          account.currentBalance -= income.amount;
+          await account.save({ session });
+        }
+      }
+
+      await income.deleteOne({ session });
+      await session.commitTransaction();
+      res.json({ message: "Income removed" });
+    } catch (transactionError) {
+      if (session) await session.abortTransaction();
+      throw transactionError;
+    } finally {
+      if (session) session.endSession();
     }
-
-    await income.deleteOne();
-    res.json({ message: "Income removed" });
   } catch (error) {
     console.error("Delete income error:", error);
     res.status(500).json({ message: "Server error" });
@@ -334,6 +415,71 @@ router.get("/monthly/:year/:month", async (req, res) => {
   } catch (error) {
     console.error("Get monthly incomes error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.patch("/bulk-update", async (req, res) => {
+  const { ids, updates } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: "Income IDs must be a non-empty array." });
+  }
+
+  if (typeof updates !== 'object' || updates === null || Object.keys(updates).length === 0) {
+    return res.status(400).json({ message: "Update data must be a non-empty object." });
+  }
+
+  let session;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const updatePromises = ids.map(async (id) => {
+      const income = await Income.findOne({ _id: id, user: req.user.id }).session(session);
+      if (!income) {
+        // Consider whether to throw an error or just log a warning
+        console.warn(`Income with ID ${id} not found for this user.`);
+        return null;
+      }
+
+      const oldAmount = income.amount;
+      const newAmount = updates.amount !== undefined ? parseFloat(updates.amount) : oldAmount;
+
+      // Only adjust bank balance if the amount has actually changed
+      if (updates.amount !== undefined && newAmount !== oldAmount) {
+        if (income.bankAccount) {
+          const bankAccount = await BankAccount.findById(income.bankAccount).session(session);
+          if (bankAccount) {
+            bankAccount.currentBalance = bankAccount.currentBalance - oldAmount + newAmount;
+            await bankAccount.save({ session });
+          }
+        }
+      }
+
+      // Apply other updates
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+          income[key] = updates[key];
+        }
+      });
+
+      return await income.save({ session });
+    });
+
+    const updatedIncomes = await Promise.all(updatePromises);
+
+    await session.commitTransaction();
+    res.json({ 
+      message: "Incomes updated successfully", 
+      updatedCount: updatedIncomes.filter(i => i !== null).length 
+    });
+
+  } catch (error) {
+    if (session) await session.abortTransaction();
+    console.error("Bulk income update error:", error);
+    res.status(500).json({ message: "Server error during bulk update.", error: error.message });
+  } finally {
+    if (session) session.endSession();
   }
 });
 

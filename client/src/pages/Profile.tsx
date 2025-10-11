@@ -9,9 +9,11 @@ import {
   FileText,
   Info,
   Mail,
+  Moon,
   RefreshCw,
   Save,
   ShieldCheck,
+  Sun,
   Trash2,
   TrendingUp,
   User,
@@ -913,10 +915,16 @@ const Profile: React.FC = () => {
                   <span className="sr-only">Toggle dark mode</span>
                   <span
                     aria-hidden="true"
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    className={`pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
                       theme === "dark" ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
+                    } flex items-center justify-center`}
+                  >
+                    {theme === "dark" ? (
+                      <Moon className="h-3.5 w-3.5 text-slate-800" />
+                    ) : (
+                      <Sun className="h-3.5 w-3.5 text-indigo-600" />
+                    )}
+                  </span>
                 </button>
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">

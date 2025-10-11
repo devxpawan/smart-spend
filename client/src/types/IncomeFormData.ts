@@ -4,5 +4,6 @@ export default interface IncomeFormData {
     category: string;
     date: string;
     notes?: string;
+    bankAccount?: string;
   }
   

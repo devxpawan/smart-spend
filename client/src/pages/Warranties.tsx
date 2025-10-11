@@ -562,12 +562,28 @@ const Warranties: React.FC = () => {
               resetFormData();
               setIsAddModalOpen(true);
             }}
-            className="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 text-white hover:from-purple-700 hover:to-violet-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
+            className="hidden sm:inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-600 text-white hover:from-purple-700 hover:to-violet-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
           >
             <Plus className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
             Add New Warranty
           </button>
         </div>
+
+        {/* Floating Action Button for mobile */}
+        <motion.button
+          className="sm:hidden fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg hover:from-purple-700 hover:to-violet-700 transition-all duration-200 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+          onClick={() => {
+            resetFormData();
+            setIsAddModalOpen(true);
+          }}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0 }}
+          transition={{ duration: 0.3 }}
+          aria-label="Add New Warranty"
+        >
+          <Plus className="w-6 h-6" />
+        </motion.button>
 
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">

@@ -29,7 +29,9 @@ import {
   XCircle,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import BillBulkEditModal, { BulkEditUpdates } from "../components/BillBulkEditModal";
+import BillBulkEditModal, {
+  BulkEditUpdates,
+} from "../components/BillBulkEditModal";
 import BillModal from "../components/BillModal";
 import ConfirmModal from "../components/ConfirmModal";
 import CustomSelect from "../components/CustomSelect";
@@ -37,8 +39,6 @@ import { useAuth } from "../contexts/auth-exports";
 import { billCategories } from "../lib/billCategories";
 import BillFormData from "../types/BillFormData";
 import BillInterface from "../types/BillInterface";
-
-
 
 // Types
 interface SortConfig {
@@ -177,7 +177,8 @@ const Bills: React.FC = () => {
     if (isPaid) {
       return {
         text: "Paid",
-        color: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-700",
+        color:
+          "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/50 dark:text-emerald-300 dark:border-emerald-700",
         icon: <CheckCircle className="w-4 h-4 mr-1.5" />,
         priority: 4,
       };
@@ -189,7 +190,8 @@ const Bills: React.FC = () => {
       if (isPast(parsedDate)) {
         return {
           text: "Overdue",
-          color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700",
+          color:
+            "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700",
           icon: <XCircle className="w-4 h-4 mr-1.5" />,
           priority: 1,
         };
@@ -197,14 +199,16 @@ const Bills: React.FC = () => {
       if (isPast(addDays(parsedDate, -3))) {
         return {
           text: "Due Soon",
-          color: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700",
+          color:
+            "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700",
           icon: <Clock className="w-4 h-4 mr-1.5" />,
           priority: 2,
         };
       }
       return {
         text: "Upcoming",
-        color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700",
+        color:
+          "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700",
         icon: <Clock className="w-4 h-4 mr-1.5" />,
         priority: 3,
       };
@@ -212,7 +216,8 @@ const Bills: React.FC = () => {
       console.error("Invalid dueDate:", dueDate);
       return {
         text: "Invalid Date",
-        color: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
+        color:
+          "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
         icon: <AlertCircle className="w-4 h-4 mr-1.5" />,
         priority: 0,
       };
@@ -221,158 +226,164 @@ const Bills: React.FC = () => {
 
   // Memoized filtered and sorted bills
   // Memoized filtered and sorted bills
-  const { filteredBills, totalAmount, overdueCount, currentRecords, nPages, categories } =
-    useMemo(() => {
-      const filtered = bills.filter((bill) => {
-        // Search filter
-        if (filters.searchTerm) {
-          const searchLower = filters.searchTerm.toLowerCase();
-          if (!bill.name.toLowerCase().includes(searchLower)) {
-            return false;
+  const {
+    filteredBills,
+    totalAmount,
+    overdueCount,
+    currentRecords,
+    nPages,
+    categories,
+  } = useMemo(() => {
+    const filtered = bills.filter((bill) => {
+      // Search filter
+      if (filters.searchTerm) {
+        const searchLower = filters.searchTerm.toLowerCase();
+        if (!bill.name.toLowerCase().includes(searchLower)) {
+          return false;
+        }
+      }
+
+      // Status filter
+      if (filters.status !== "all") {
+        const status = getBillStatus(bill.dueDate, bill.isPaid);
+        switch (filters.status) {
+          case "paid": {
+            if (!bill.isPaid) return false;
+            break;
+          }
+          case "unpaid": {
+            if (bill.isPaid) return false;
+            break;
+          }
+          case "overdue": {
+            if (bill.isPaid || status.text !== "Overdue") return false;
+            break;
+          }
+          case "upcoming": {
+            if (
+              bill.isPaid ||
+              (status.text !== "Upcoming" && status.text !== "Due Soon")
+            )
+              return false;
+            break;
           }
         }
+      }
 
-        // Status filter
-        if (filters.status !== "all") {
-          const status = getBillStatus(bill.dueDate, bill.isPaid);
-          switch (filters.status) {
-            case "paid": {
-              if (!bill.isPaid) return false;
-              break;
-            }
-            case "unpaid": {
-              if (bill.isPaid) return false;
-              break;
-            }
-            case "overdue": {
-              if (bill.isPaid || status.text !== "Overdue") return false;
-              break;
-            }
-            case "upcoming": {
-              if (
-                bill.isPaid ||
-                (status.text !== "Upcoming" && status.text !== "Due Soon")
-              )
-                return false;
-              break;
-            }
+      // Date range filter
+      if (filters.dateRange !== "all") {
+        const billDate = parseISO(bill.dueDate);
+        if (!isValid(billDate)) return false;
+
+        const now = new Date();
+        let dateRange: { start: Date; end: Date };
+
+        switch (filters.dateRange) {
+          case "thisMonth": {
+            dateRange = {
+              start: startOfMonth(now),
+              end: endOfMonth(now),
+            };
+            break;
           }
-        }
-
-        // Date range filter
-        if (filters.dateRange !== "all") {
-          const billDate = parseISO(bill.dueDate);
-          if (!isValid(billDate)) return false;
-
-          const now = new Date();
-          let dateRange: { start: Date; end: Date };
-
-          switch (filters.dateRange) {
-            case "thisMonth": {
-              dateRange = {
-                start: startOfMonth(now),
-                end: endOfMonth(now),
-              };
-              break;
-            }
-            case "lastMonth": {
-              const lastMonth = new Date(
-                now.getFullYear(),
-                now.getMonth() - 1,
+          case "lastMonth": {
+            const lastMonth = new Date(
+              now.getFullYear(),
+              now.getMonth() - 1,
+              1
+            );
+            dateRange = {
+              start: startOfMonth(lastMonth),
+              end: endOfMonth(lastMonth),
+            };
+            break;
+          }
+          case "custom": {
+            if (filters.customMonth && filters.customYear) {
+              const customDate = new Date(
+                filters.customYear,
+                filters.customMonth - 1,
                 1
               );
               dateRange = {
-                start: startOfMonth(lastMonth),
-                end: endOfMonth(lastMonth),
+                start: startOfMonth(customDate),
+                end: endOfMonth(customDate),
               };
-              break;
-            }
-            case "custom": {
-              if (filters.customMonth && filters.customYear) {
-                const customDate = new Date(
-                  filters.customYear,
-                  filters.customMonth - 1,
-                  1
-                );
-                dateRange = {
-                  start: startOfMonth(customDate),
-                  end: endOfMonth(customDate),
-                };
-              } else {
-                return true;
-              }
-              break;
-            }
-            default:
+            } else {
               return true;
+            }
+            break;
           }
-
-          if (!isWithinInterval(billDate, dateRange)) {
-            return false;
-          }
-        }
-
-        return true;
-      });
-
-      // Sort bills
-      filtered.sort((a, b) => {
-        let valueA: number | string;
-        let valueB: number | string;
-
-        switch (sortConfig.key) {
-          case "dueDate":
-            valueA = new Date(a.dueDate).getTime();
-            valueB = new Date(b.dueDate).getTime();
-            break;
-          case "amount":
-            valueA = a.amount;
-            valueB = b.amount;
-            break;
-          case "status":
-            valueA = getBillStatus(a.dueDate, a.isPaid).priority;
-            valueB = getBillStatus(b.dueDate, b.isPaid).priority;
-            break;
-          case "name":
-            valueA = a.name.toLowerCase();
-            valueB = b.name.toLowerCase();
-            break;
           default:
-            valueA = 0;
-            valueB = 0;
+            return true;
         }
 
-        if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
-        if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      });
+        if (!isWithinInterval(billDate, dateRange)) {
+          return false;
+        }
+      }
 
-      const total = filtered.reduce((sum, bill) => sum + (bill.amount || 0), 0);
-      const overdue = filtered.filter(
-        (bill) =>
-          !bill.isPaid &&
-          getBillStatus(bill.dueDate, bill.isPaid).text === "Overdue"
-      ).length;
-      const categories = billCategories;
+      return true;
+    });
 
-      // Pagination logic
-      const indexOfLastRecord = currentPage * recordsPerPage;
-      const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-      const currentRecords = filtered.slice(
-        indexOfFirstRecord,
-        indexOfLastRecord
-      );
-      const nPages = Math.ceil(filtered.length / recordsPerPage);
+    // Sort bills
+    filtered.sort((a, b) => {
+      let valueA: number | string;
+      let valueB: number | string;
 
-      return {
-        filteredBills: filtered,
-        totalAmount: total,
-        overdueCount: overdue,
-        currentRecords,
-        nPages,
-        categories,
-      };
-    }, [bills, filters, sortConfig, getBillStatus, currentPage]);
+      switch (sortConfig.key) {
+        case "dueDate":
+          valueA = new Date(a.dueDate).getTime();
+          valueB = new Date(b.dueDate).getTime();
+          break;
+        case "amount":
+          valueA = a.amount;
+          valueB = b.amount;
+          break;
+        case "status":
+          valueA = getBillStatus(a.dueDate, a.isPaid).priority;
+          valueB = getBillStatus(b.dueDate, b.isPaid).priority;
+          break;
+        case "name":
+          valueA = a.name.toLowerCase();
+          valueB = b.name.toLowerCase();
+          break;
+        default:
+          valueA = 0;
+          valueB = 0;
+      }
+
+      if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
+      if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    const total = filtered.reduce((sum, bill) => sum + (bill.amount || 0), 0);
+    const overdue = filtered.filter(
+      (bill) =>
+        !bill.isPaid &&
+        getBillStatus(bill.dueDate, bill.isPaid).text === "Overdue"
+    ).length;
+    const categories = billCategories;
+
+    // Pagination logic
+    const indexOfLastRecord = currentPage * recordsPerPage;
+    const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+    const currentRecords = filtered.slice(
+      indexOfFirstRecord,
+      indexOfLastRecord
+    );
+    const nPages = Math.ceil(filtered.length / recordsPerPage);
+
+    return {
+      filteredBills: filtered,
+      totalAmount: total,
+      overdueCount: overdue,
+      currentRecords,
+      nPages,
+      categories,
+    };
+  }, [bills, filters, sortConfig, getBillStatus, currentPage]);
 
   // Adjust current page if it becomes invalid after filtering or deletion
   useEffect(() => {
@@ -454,24 +465,10 @@ const Bills: React.FC = () => {
     setIsBulkEditing(true);
 
     try {
-      const updatePromises = selectedIds.map((id) => {
-        const billToUpdate = bills.find((bill) => bill._id === id);
-        if (!billToUpdate) {
-          console.warn(`Bill with id ${id} not found for bulk update.`);
-          return Promise.resolve();
-        }
-
-        const finalData: Partial<BillInterface> = {
-          amount: updates.amount ? parseFloat(updates.amount) : billToUpdate.amount,
-          dueDate: updates.dueDate ?? billToUpdate.dueDate,
-          category: updates.category ?? billToUpdate.category,
-          isPaid: updates.isPaid !== undefined ? updates.isPaid : billToUpdate.isPaid,
-        };
-
-        return axios.put(`/api/bills/${id}`, finalData);
+      await axios.patch("/api/bills/bulk-update", { 
+        ids: selectedIds, 
+        updates 
       });
-
-      await Promise.all(updatePromises);
 
       // Optimistically update local state
       setBills((prevBills) =>
@@ -479,10 +476,14 @@ const Bills: React.FC = () => {
           if (selectedIds.includes(bill._id)) {
             const updatedBill: BillInterface = { ...bill };
 
-            if (updates.amount !== undefined) updatedBill.amount = parseFloat(updates.amount as string);
-            if (updates.dueDate !== undefined) updatedBill.dueDate = updates.dueDate;
-            if (updates.category !== undefined) updatedBill.category = updates.category;
-            if (updates.isPaid !== undefined) updatedBill.isPaid = updates.isPaid;
+            if (updates.amount !== undefined)
+              updatedBill.amount = parseFloat(updates.amount as string);
+            if (updates.dueDate !== undefined)
+              updatedBill.dueDate = updates.dueDate;
+            if (updates.category !== undefined)
+              updatedBill.category = updates.category;
+            if (updates.isPaid !== undefined)
+              updatedBill.isPaid = updates.isPaid;
 
             return updatedBill;
           }
@@ -502,14 +503,14 @@ const Bills: React.FC = () => {
     }
   };
 
-  
-
   if (loading && bills.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-200 border-t-orange-500"></div>
-          <p className="text-slate-600 dark:text-gray-300 font-medium">Loading your bills...</p>
+          <p className="text-slate-600 dark:text-gray-300 font-medium">
+            Loading your bills...
+          </p>
         </div>
       </div>
     );
@@ -536,24 +537,43 @@ const Bills: React.FC = () => {
 
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-orange-500 text-white hover:bg-orange-600 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
+            className="hidden sm:inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-orange-500 text-white hover:bg-orange-600 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
           >
             <Plus className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
             Add New Bill
           </button>
         </div>
 
+        {/* Floating Action Button for Mobile */}
+        <motion.button
+          className="sm:hidden fixed bottom-6 right-6 z-40 p-4 rounded-full bg-orange-500 text-white shadow-lg hover:bg-orange-600 transition-all duration-200 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+          onClick={() => setIsAddModalOpen(true)}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0 }}
+          transition={{ duration: 0.3 }}
+          aria-label="Add New Bill"
+        >
+          <Plus className="w-6 h-6" />
+        </motion.button>
+
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
-          <span className="text-gray-500 dark:text-gray-400">{filteredBills.length} bills</span>
-          <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">•</span>
+          <span className="text-gray-500 dark:text-gray-400">
+            {filteredBills.length} bills
+          </span>
+          <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">
+            •
+          </span>
           <span className="text-gray-500 dark:text-gray-400">
             Total: {user?.preferences?.currency || "USD"}{" "}
             {totalAmount.toFixed(2)}
           </span>
           {overdueCount > 0 && (
             <>
-              <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">•</span>
+              <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">
+                •
+              </span>
               <span className="text-red-600 font-medium">
                 {overdueCount} overdue
               </span>
@@ -764,7 +784,9 @@ const Bills: React.FC = () => {
                 <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                   Error Occurred
                 </h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  {error}
+                </p>
               </div>
             </div>
             <button
@@ -828,7 +850,9 @@ const Bills: React.FC = () => {
                 <Receipt className="w-8 h-8 text-orange-500" />
               </div>
               <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                {bills.length === 0 ? "No Bills to Display" : "No Matching Bills Found"}
+                {bills.length === 0
+                  ? "No Bills to Display"
+                  : "No Matching Bills Found"}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
                 {bills.length === 0
@@ -857,7 +881,9 @@ const Bills: React.FC = () => {
                       <div
                         key={bill._id}
                         className={`p-4 space-y-3 ${
-                          selectedIds.includes(bill._id) ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                          selectedIds.includes(bill._id)
+                            ? "bg-blue-50 dark:bg-blue-900/20"
+                            : ""
                         }`}
                         onClick={() => handleSelect(bill._id)}
                       >
@@ -945,7 +971,11 @@ const Bills: React.FC = () => {
                                 })
                               )
                             }
-                            className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${deletingId === bill._id ? 'opacity-60 cursor-not-allowed' : ''}`}
+                            className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
+                              deletingId === bill._id
+                                ? "opacity-60 cursor-not-allowed"
+                                : ""
+                            }`}
                             title="Delete Bill"
                             disabled={deletingId === bill._id}
                           >
@@ -1047,7 +1077,9 @@ const Bills: React.FC = () => {
                         <tr
                           key={bill._id}
                           className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                            selectedIds.includes(bill._id) ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                            selectedIds.includes(bill._id)
+                              ? "bg-blue-50 dark:bg-blue-900/20"
+                              : ""
                           }`}
                           onClick={() => handleSelect(bill._id)}
                         >
@@ -1136,7 +1168,11 @@ const Bills: React.FC = () => {
                                     })
                                   )
                                 }
-                                className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${deletingId === bill._id ? 'opacity-60 cursor-not-allowed' : 'transform hover:scale-105'}`}
+                                className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
+                                  deletingId === bill._id
+                                    ? "opacity-60 cursor-not-allowed"
+                                    : "transform hover:scale-105"
+                                }`}
                                 title="Delete Bill"
                                 disabled={deletingId === bill._id}
                               >
@@ -1175,9 +1211,19 @@ const Bills: React.FC = () => {
             {(() => {
               const pageNumbers = [];
               const maxPagesToShow = 5; // Maximum number of page buttons to display
-              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500 dark:text-gray-400">...</li>;
+              const ellipsis = (
+                <li
+                  key="ellipsis"
+                  className="px-2 text-gray-500 dark:text-gray-400"
+                >
+                  ...
+                </li>
+              );
 
-              let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+              let startPage = Math.max(
+                1,
+                currentPage - Math.floor(maxPagesToShow / 2)
+              );
               const endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
 
               if (endPage - startPage + 1 < maxPagesToShow) {
@@ -1296,9 +1342,10 @@ const Bills: React.FC = () => {
                   dueDate: editBillData.dueDate,
                   category: editBillData.category,
                   isPaid: editBillData.isPaid,
+                  bankAccount: editBillData.bankAccount,
                 }
               : undefined
-          } 
+          }
         />
       )}
     </div>

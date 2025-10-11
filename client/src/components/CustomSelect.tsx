@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import React, {
   KeyboardEventHandler,
   useCallback,
@@ -22,6 +22,7 @@ interface CustomSelectProps {
   className?: string;
   disabled?: boolean;
   openDirection?: "top" | "bottom" | "auto";
+  isSearchable?: boolean;
 }
 
 const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -32,19 +33,34 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   className = "",
   disabled = false,
   openDirection = "auto",
+  isSearchable = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedValue, setHighlightedValue] = useState(value);
   const [direction, setDirection] = useState<"top" | "bottom">("bottom");
+  const [searchTerm, setSearchTerm] = useState("");
   const selectRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredOptions = isSearchable
+    ? options.filter((option) =>
+        option.label.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : options;
+
   const selectedOption = options.find((option) => option.value === value);
 
   useEffect(() => {
     if (isOpen) {
       setHighlightedValue(value);
+      if (isSearchable && searchInputRef.current) {
+        setTimeout(() => searchInputRef.current?.focus(), 100);
+      }
+    } else {
+      setSearchTerm("");
     }
-  }, [isOpen, value]);
+  }, [isOpen, value, isSearchable]);
 
   const handleToggle = useCallback(() => {
     if (!disabled) {
@@ -86,37 +102,41 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
             return;
           }
 
-          const currentIndex = options.findIndex(
+          const currentIndex = filteredOptions.findIndex(
             (option) => option.value === highlightedValue
           );
           let nextIndex =
             event.key === "ArrowDown" ? currentIndex + 1 : currentIndex - 1;
 
-          if (nextIndex >= options.length) nextIndex = 0;
-          if (nextIndex < 0) nextIndex = options.length - 1;
+          if (nextIndex >= filteredOptions.length) nextIndex = 0;
+          if (nextIndex < 0) nextIndex = filteredOptions.length - 1;
 
-          setHighlightedValue(options[nextIndex].value);
+          setHighlightedValue(filteredOptions[nextIndex].value);
           break;
         }
         case "Enter":
           event.preventDefault();
           if (isOpen) {
-            handleSelect(highlightedValue);
+            if (highlightedValue) {
+              handleSelect(highlightedValue);
+            }
           } else {
             setIsOpen(true);
           }
           break;
         case " ": // Space key
-          event.preventDefault();
-          if (!isOpen) {
-            setIsOpen(true);
+          if (!isSearchable || !isOpen) {
+            event.preventDefault();
+            if (!isOpen) {
+              setIsOpen(true);
+            }
           }
           break;
         default:
           break;
       }
     },
-    [options, highlightedValue, isOpen, disabled, handleSelect]
+    [filteredOptions, highlightedValue, isOpen, disabled, handleSelect, isSearchable]
   );
 
   useEffect(() => {
@@ -184,7 +204,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
     >
       <button
         type="button"
-        className={`flex items-center justify-between w-full px-4 py-2 text-sm font-medium
+        className={`flex items-center justify-between w-full px-3 py-1.5 sm:py-2 text-sm font-medium
           bg-white/80 dark:bg-gray-700/80 backdrop-blur-md border border-gray-200 dark:border-gray-600 rounded-xl shadow-sm
           transition-all duration-200 ease-in-out
           ${
@@ -217,44 +237,69 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
 
       <AnimatePresence>
         {isOpen && (
-          <motion.ul
-            ref={listRef}
+          <motion.div
             variants={dropdownVariants[direction]}
             initial="initial"
             animate="animate"
             exit="exit"
             transition={{ duration: 0.2 }}
-            className={`absolute z-20 w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-600 shadow-xl rounded-xl overflow-y-auto max-h-60
+            className={`absolute z-20 w-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200 dark:border-gray-600 shadow-xl rounded-xl
               ${direction === "top" ? "bottom-full mb-2" : "top-full mt-2"}`}
-            role="listbox"
-            aria-activedescendant={highlightedValue}
-            tabIndex={-1}
           >
-            {options.map((option) => (
-              <li
-                key={option.value}
-                className={`px-4 py-2 text-sm cursor-pointer rounded-md mx-1 my-0.5
-                  transition-all duration-150
-                  ${
-                    option.value === highlightedValue
-                      ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                      : ""
-                  }
-                  ${
-                    option.value === value
-                      ? "bg-blue-500 dark:bg-blue-600 text-white font-semibold"
-                      : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  }`}
-                onClick={() => handleSelect(option.value)}
-                onMouseEnter={() => setHighlightedValue(option.value)}
-                role="option"
-                aria-selected={option.value === highlightedValue}
-                id={option.value}
-              >
-                {option.label}
-              </li>
-            ))}
-          </motion.ul>
+            {isSearchable && (
+              <div className="relative p-2">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full pl-8 pr-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            )}
+            <ul
+              ref={listRef}
+              className="overflow-y-auto max-h-52 p-1"
+              role="listbox"
+              aria-activedescendant={highlightedValue}
+              tabIndex={-1}
+            >
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <li
+                    key={option.value}
+                    className={`px-4 py-2 text-sm cursor-pointer rounded-md mx-1 my-0.5
+                      transition-all duration-150
+                      ${
+                        option.value === highlightedValue
+                          ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                          : ""
+                      }
+                      ${
+                        option.value === value
+                          ? "bg-blue-500 dark:bg-blue-600 text-white font-semibold"
+                          : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      }`}
+                    onClick={() => handleSelect(option.value)}
+                    onMouseEnter={() => setHighlightedValue(option.value)}
+                    role="option"
+                    aria-selected={option.value === highlightedValue}
+                    id={option.value}
+                  >
+                    {option.label}
+                  </li>
+                ))
+              ) : (
+                <li className="px-4 py-2 text-sm text-gray-500 text-center">
+                  No options found
+                </li>
+              )}
+            </ul>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

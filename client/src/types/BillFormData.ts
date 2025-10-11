@@ -4,6 +4,7 @@ interface BillFormData {
   dueDate: string;
   category: string;
   isPaid?: boolean;
+  bankAccount?: string;
 }
 
 export default BillFormData;

@@ -370,50 +370,22 @@ const Incomes: React.FC = () => {
 
     setIsBulkEditing(true);
 
-    // Prepare the update payload, parsing amount to a number if it exists
-    const updatesToApply: Partial<IncomeInterface> = {};
-    if (updates.description !== undefined) {
-      updatesToApply.description = updates.description;
-    }
-    if (updates.date !== undefined) {
-      updatesToApply.date = updates.date;
-    }
-    if (updates.category !== undefined) {
-      updatesToApply.category = updates.category;
-    }
-    if (updates.amount !== undefined) {
-      updatesToApply.amount = parseFloat(updates.amount);
-    }
-
     try {
-      const updatePromises = selectedIds.map((id) => {
-        const incomeToUpdate = incomes.find((inc) => inc._id === id);
-        if (!incomeToUpdate) {
-          console.warn(`Income with id ${id} not found for bulk update.`);
-          return Promise.resolve();
-        }
-
-        // Construct the new data by merging existing data with updates
-        const updatedData = {
-          description: updates.description ?? incomeToUpdate.description,
-          amount: updates.amount
-            ? parseFloat(updates.amount)
-            : incomeToUpdate.amount,
-          date: updates.date ?? incomeToUpdate.date,
-          category: updates.category ?? incomeToUpdate.category,
-          notes: incomeToUpdate.notes, // notes are not part of Edit
-        };
-
-        return axios.put(`/api/incomes/${id}`, updatedData);
+      await axios.patch("/api/incomes/bulk-update", { 
+        ids: selectedIds, 
+        updates 
       });
-
-      await Promise.all(updatePromises);
 
       // Optimistically update local state
       setIncomes((prevIncomes) =>
         prevIncomes.map((income) => {
           if (selectedIds.includes(income._id)) {
-            return { ...income, ...updatesToApply };
+            const updatedIncome = { ...income };
+            if (updates.description) updatedIncome.description = updates.description;
+            if (updates.amount) updatedIncome.amount = parseFloat(updates.amount);
+            if (updates.date) updatedIncome.date = updates.date;
+            if (updates.category) updatedIncome.category = updates.category;
+            return updatedIncome;
           }
           return income;
         })
@@ -463,13 +435,25 @@ const Incomes: React.FC = () => {
 
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-600 text-white hover:from-sky-700 hover:to-cyan-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
+            className="hidden sm:inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-600 text-white hover:from-sky-700 hover:to-cyan-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
           >
             <Plus className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
             Add New Income
           </button>
         </div>
 
+        {/* Floating Action Button for mobile */}
+        <motion.button
+          className="sm:hidden fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-r from-sky-500 to-cyan-600 text-white shadow-lg hover:from-sky-700 hover:to-cyan-700 transition-all duration-200 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+          onClick={() => setIsAddModalOpen(true)}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0 }}
+          transition={{ duration: 0.3 }}
+          aria-label="Add New Income"
+        >
+          <Plus className="w-6 h-6" />
+        </motion.button>
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
           <span className="text-slate-500 dark:text-slate-400">
@@ -1136,6 +1120,7 @@ const Incomes: React.FC = () => {
                   date: editIncomeData.date,
                   category: editIncomeData.category,
                   notes: editIncomeData.notes,
+                  bankAccount: editIncomeData.bankAccount,
                 }
               : undefined
           }

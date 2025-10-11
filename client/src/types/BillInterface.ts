@@ -5,11 +5,10 @@ interface BillInterface {
   dueDate: string;
   category: string;
   isPaid: boolean;
-  isRecurring?: boolean;
-  recurringPeriod?: string;
   reminderDate?: string;
   notes?: string;
   user: string;
+  bankAccount?: string;
 }
 
 export default BillInterface;

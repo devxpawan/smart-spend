@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Fragment } from "react";
 import axios from "axios";
 import {
   Calendar,
@@ -13,6 +13,9 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Download,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { useAuth } from "../contexts/auth-exports";
@@ -22,6 +25,9 @@ import IncomeInterface from "../types/IncomeInterface";
 import ExportButton from "../components/ExportButton";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, Transition } from "@headlessui/react";
+// Force recompile workaround
 
 interface MonthlyData {
   expenses: {
@@ -566,9 +572,73 @@ const MonthlyBreakdown: React.FC = () => {
             onExportCsv={handleExportCsv}
             onExportPdf={handleExportPdf}
             disabled={isDataEmpty}
+            className="hidden sm:inline-flex"
           />
         </div>
       </header>
+
+      {/* Floating Action Button for Mobile Export */}
+      <motion.div
+        className="sm:hidden fixed bottom-6 right-6 z-40"
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Menu as="div" className="relative">
+          <Menu.Button
+            className="flex items-center justify-center p-4 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none transition-all duration-200 transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Export options"
+            disabled={isDataEmpty}
+          >
+            <Download className="w-6 h-6" />
+          </Menu.Button>
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
+          >
+            <Menu.Items className="absolute right-0 bottom-full mb-2 w-56 origin-bottom-right bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              <div className="px-1 py-1">
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={handleExportCsv}
+                      className={`${
+                        active
+                          ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                          : "text-slate-700 dark:text-slate-300"
+                      } group flex rounded-md items-center w-full px-2 py-2 text-sm`}
+                    >
+                      <FileSpreadsheet className="w-5 h-5 mr-2" />
+                      Export as CSV
+                    </button>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={handleExportPdf}
+                      className={`${
+                        active
+                          ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                          : "text-slate-700 dark:text-slate-300"
+                      } group flex rounded-md items-center w-full px-2 py-2 text-sm`}
+                    >
+                      <FileText className="w-5 h-5 mr-2" />
+                      Export as PDF
+                    </button>
+                  )}
+                </Menu.Item>
+              </div>
+            </Menu.Items>
+          </Transition>
+        </Menu>
+      </motion.div>
 
       {/* Mobile-optimized Summary Cards */}
       {monthlyData && (

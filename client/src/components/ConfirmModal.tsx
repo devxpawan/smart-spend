@@ -130,7 +130,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           onClick={!loading ? onCancel : undefined}
         >
           <motion.div
-            className="bg-slate-800/80 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md border border-slate-700 overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 overflow-hidden"
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -147,25 +147,25 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               <div className="mt-5">
                 <h2
                   id="confirm-modal-title"
-                  className="text-xl font-semibold text-slate-50"
+                  className="text-xl font-semibold text-gray-900 dark:text-white"
                 >
                   {title}
                 </h2>
                 <div className="mt-2">
                   <p
                     id="confirm-modal-description"
-                    className="text-sm text-slate-400"
+                    className="text-sm text-gray-500 dark:text-gray-400"
                   >
                     {message}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="bg-slate-900/50 px-6 py-4 grid grid-cols-2 gap-4">
+            <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 grid grid-cols-2 gap-4">
               <button
                 ref={cancelButtonRef}
                 onClick={onCancel}
-                className="w-full px-4 py-2.5 text-sm font-semibold text-slate-200 bg-slate-700/50 rounded-lg hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-white/50 transition-colors duration-150 disabled:opacity-50"
+                className="w-full px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-150 disabled:opacity-50"
                 disabled={loading}
               >
                 {cancelText}
@@ -173,7 +173,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               <button
                 onClick={onConfirm}
                 disabled={loading}
-                className={`w-full inline-flex items-center justify-center px-4 py-2.5 text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-150 text-sm disabled:opacity-60 ${confirmButtonClasses}`}
+                className={`w-full inline-flex items-center justify-center px-4 py-2.5 text-white font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 transition-colors duration-150 text-sm disabled:opacity-60 ${confirmButtonClasses}`}
               >
                 {loading ? (
                   <>

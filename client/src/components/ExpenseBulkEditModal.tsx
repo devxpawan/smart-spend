@@ -111,6 +111,9 @@ const ExpenseBulkEditModal: React.FC<ExpenseBulkEditModalProps> = ({
                   </div>
                   <input
                     type="text"
+                    name="description"
+                    value={formData.description || ""}
+                    onChange={handleChange}
                     className="form-input block w-full pl-10 pr-3 py-3 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 sm:text-sm transition duration-150 ease-in-out"
                     placeholder="Enter new description"
                   />
@@ -169,6 +172,7 @@ const ExpenseBulkEditModal: React.FC<ExpenseBulkEditModalProps> = ({
                   value={formData.category || ""}
                   onChange={handleCategoryChange}
                   className="w-full"
+                  isSearchable={true}
                 />
               </div>
             </div>

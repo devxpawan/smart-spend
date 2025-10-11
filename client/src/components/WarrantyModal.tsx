@@ -414,9 +414,9 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
 
-      // Focus first input after animation
+      // Focus first input after animation, but not on mobile
       setTimeout(() => {
-        if (firstInputRef.current) {
+        if (firstInputRef.current && window.innerWidth >= 768) {
           firstInputRef.current.focus();
         }
       }, 100);
@@ -438,7 +438,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2"
         aria-modal="true"
         role="dialog"
         aria-labelledby="modal-title"
@@ -449,7 +449,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-3xl max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-lg sm:max-w-3xl max-h-[90vh] overflow-hidden mx-auto"
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
         >
@@ -499,7 +499,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       value={formData.productName}
                       onChange={handleInputChange}
                       placeholder="e.g., iPhone 15 Pro, Samsung TV 55 inch"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.productName
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-purple-500"
@@ -549,6 +549,8 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                         ? "border-red-300 focus:ring-red-500"
                         : "border-slate-300 focus:ring-purple-500"
                     }`}
+                    isSearchable={true}
+                    placeholder="Select a category"
                   />
                   {errors.category && (
                     <div
@@ -580,7 +582,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       value={formData.purchaseDate}
                       onChange={handleInputChange}
                       max={new Date().toISOString().split("T")[0]}
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
                         errors.purchaseDate
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-purple-500"
@@ -656,7 +658,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       value={formData.expirationDate}
                       onChange={handleInputChange}
                       disabled={formData.isLifetimeWarranty}
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
                         formData.isLifetimeWarranty
                           ? "bg-slate-100 dark:bg-gray-700 text-slate-500 dark:text-gray-500 cursor-not-allowed"
                           : errors.expirationDate
@@ -711,7 +713,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       value={formData.retailer}
                       onChange={handleInputChange}
                       placeholder="e.g., Amazon, Best Buy, Apple Store"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.retailer
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 focus:ring-purple-500"
@@ -754,7 +756,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.purchasePrice
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 focus:ring-purple-500"
@@ -807,7 +809,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       onChange={handleInputChange}
                       rows={3}
                       maxLength={1000}
-                      className={`form-textarea block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out resize-none ${
+                      className={`form-textarea block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out resize-none ${
                         errors.notes
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 focus:ring-purple-500"

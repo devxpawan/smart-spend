@@ -171,6 +171,7 @@ const IncomeBulkEditModal: React.FC<IncomeBulkEditModalProps> = ({
                   value={formData.category || ""}
                   onChange={handleCategoryChange}
                   className="w-full"
+                  isSearchable={true}
                 />
               </div>
             </div>

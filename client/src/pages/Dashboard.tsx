@@ -19,6 +19,7 @@ import {
   Target,
   TrendingUp,
   User,
+  CreditCard,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Doughnut, Line } from "react-chartjs-2";
@@ -33,6 +34,8 @@ import {
 import { useAuth } from "../contexts/auth-exports";
 import { useTheme } from "../contexts/ThemeContext";
 import { retryWithBackoff } from "../utils/retry";
+import BankAccountInterface from "../types/BankAccountInterface";
+import { getBankAccounts } from "../api/bankAccounts";
 
 ChartJS.register(
   ArcElement,
@@ -104,6 +107,8 @@ const Dashboard: React.FC = () => {
     monthlyExpenseData: [],
     monthlyIncomeData: [],
   });
+  const [bankAccounts, setBankAccounts] = useState<BankAccountInterface[]>([]);
+  const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
 
   // Get current time-based greeting
   const greeting = useMemo(() => {
@@ -143,6 +148,22 @@ const Dashboard: React.FC = () => {
       }));
     } finally {
       setLoadingStats(false);
+    }
+  };
+
+  const fetchBankAccountsData = async () => {
+    try {
+      setBankAccountsLoading(true);
+      const data = await getBankAccounts();
+      setBankAccounts(data);
+    } catch (error) {
+      console.error("Dashboard bank accounts fetch error:", error);
+      setErrors((prev) => ({
+        ...prev,
+        stats: "Failed to load bank accounts.",
+      }));
+    } finally {
+      setBankAccountsLoading(false);
     }
   };
 
@@ -203,6 +224,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchStatsData();
     fetchChartsData();
+    fetchBankAccountsData();
   }, []);
 
   const formatCurrency = useCallback(
@@ -581,6 +603,79 @@ const Dashboard: React.FC = () => {
                   </div>
                 </Link>
               ))}
+        </motion.section>
+
+        {/* Bank Accounts Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white dark:bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700"
+        >
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
+            Bank Accounts
+          </h2>
+          {bankAccountsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.from({ length: 2 }).map((_, idx) => (
+                <div key={idx} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 animate-pulse">
+                  <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          ) : bankAccounts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bankAccounts.map((account) => (
+                <div
+                  key={account._id}
+                  className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 border border-indigo-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden min-h-[120px] sm:min-h-[140px]"
+                >
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-5">
+                    <div
+                      className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600"
+                    ></div>
+                  </div>
+
+                  <div className="relative z-10 h-full flex flex-col">
+                    <div className="flex items-start justify-between mb-3 sm:mb-4">
+                      <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+                        <h3 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-wider">
+                          {account.bankName}
+                        </h3>
+                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
+                          {formatCurrency(account.currentBalance)}
+                        </p>
+                      </div>
+                      <div
+                        className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg flex-shrink-0 ml-2"
+                      >
+                        <CreditCard className="w-7 h-7 text-white" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 font-medium">
+                        {account.accountName} ({account.accountType})
+                      </span>
+                      <Link
+                        to="/bank-accounts"
+                        className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 font-medium group-hover:text-indigo-800 dark:group-hover:text-indigo-300 transition-colors flex items-center"
+                      >
+                        Manage
+                        <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+              No bank accounts added yet.
+            </div>
+          )}
         </motion.section>
 
         {/* Mobile-optimized Charts Section */}

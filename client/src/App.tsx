@@ -16,6 +16,7 @@ import About from "./pages/About";
 import Warranties from "./pages/Warranties";
 import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
+import BankAccounts from "./pages/BankAccounts";
 
 function App() {
   const { loading } = useAuth();
@@ -63,6 +64,7 @@ function App() {
           {/* Profile */}
           <Route path="profile" element={<Profile />} />
           <Route path="about" element={<About />} />
+          <Route path="bank-accounts" element={<BankAccounts />} />
         </Route>
         {/* 404 */}
         <Route path="*" element={<NotFound />} />

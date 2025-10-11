@@ -1,16 +1,9 @@
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import axios from "axios";
-import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  User,
-  Sparkles, // ✅ added Sparkles
-} from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Sparkles, User } from "lucide-react";
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import OTPVerificationModal from "../components/OTPVerificationModal";
@@ -18,7 +11,7 @@ import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import ResetPasswordModal from "../components/ResetPasswordModal";
 import { useAuth } from "../contexts/auth-exports";
 import { validatePassword } from "../utils/passwordValidation";
-import logo from "/logo.webp";
+import logo from "/logo.png";
 
 // Types
 type TabType = "login" | "register";

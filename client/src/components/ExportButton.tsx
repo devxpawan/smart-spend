@@ -7,14 +7,15 @@ interface ExportButtonProps {
   onExportCsv: () => void;
   onExportPdf: () => void;
   disabled?: boolean;
+  className?: string;
 }
 
-const ExportButton: React.FC<ExportButtonProps> = ({ onExportCsv, onExportPdf, disabled }) => {
+const ExportButton: React.FC<ExportButtonProps> = ({ onExportCsv, onExportPdf, disabled, className }) => {
   return (
     <Menu as="div" className="relative inline-block text-left">
       <div>
         <Menu.Button
-          className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700 text-slate-700 dark:text-slate-200 transition-colors min-h-[44px] min-w-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`${className} inline-flex items-center justify-center px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-700 text-slate-700 dark:text-slate-200 transition-colors min-h-[44px] min-w-[44px] disabled:opacity-50 disabled:cursor-not-allowed`}
           aria-label="Export options"
           disabled={disabled}
         >

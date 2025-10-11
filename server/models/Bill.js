@@ -40,6 +40,11 @@ const billSchema = new mongoose.Schema({
       "Other Utilities",
     ],
   },
+  bankAccount: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "BankAccount",
+    required: false,
+  },
 
   isPaid: {
     type: Boolean,

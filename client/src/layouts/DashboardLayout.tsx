@@ -7,6 +7,7 @@ import {
   DollarSign,
   Home,
   Info,
+  Landmark,
   LogOut,
   Menu,
   Receipt,
@@ -109,6 +110,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     path: "/warranties",
     icon: <ShieldCheck className="w-4 h-4" />,
     gradient: "from-purple-500 to-violet-600",
+  },
+  {
+    name: "Bank Accounts",
+    path: "/bank-accounts",
+    icon: <Landmark className="w-4 h-4" />,
+    gradient: "from-teal-500 to-cyan-600",
   },
   {
     name: "About",
@@ -348,7 +355,7 @@ const LogoSection: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => (
     }`}
   >
     <img
-      src="/logo.webp"
+      src="/logo.png"
       alt="SmartSpend Logo"
       className="h-8 w-8 rounded-lg shadow-md"
       onError={(e) => (e.currentTarget.style.display = "none")}

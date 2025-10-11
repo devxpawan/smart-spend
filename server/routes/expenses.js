@@ -1,7 +1,7 @@
 import { check, validationResult } from "express-validator";
 import express from "express";
 import mongoose from "mongoose";
-import Bill from "../models/Bill.js";
+import BankAccount from "../models/BankAccount.js";
 import Expense from "../models/Expense.js";
 
 const router = express.Router();
@@ -72,6 +72,7 @@ router.post(
     check("description", "Description is required").trim().notEmpty().matches(/[a-zA-Z]/).withMessage("Description must contain at least one alphabetic character"),
     check("amount", "Amount is required and must be a number").isNumeric(),
     check("category", "Category is required").notEmpty(),
+    check("bankAccount", "Bank account is invalid").optional().isMongoId(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -79,21 +80,43 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, paymentMethod, notes } =
+    const { amount, description, category, date, paymentMethod, notes, bankAccount } =
       req.body;
 
-    const newExpense = new Expense({
-      user: req.user.id,
-      amount,
-      description,
-      category,
-      date: date || Date.now(),
-      paymentMethod,
-      notes,
-    });
+    let session;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
 
-    const expense = await newExpense.save();
-    res.status(201).json(expense);
+      if (bankAccount) {
+        const account = await BankAccount.findById(bankAccount).session(session);
+        if (!account) {
+          throw new Error("Bank account not found");
+        }
+        account.currentBalance -= amount;
+        await account.save({ session });
+      }
+
+      const newExpense = new Expense({
+        user: req.user.id,
+        amount,
+        description,
+        category,
+        date: date || Date.now(),
+        paymentMethod,
+        notes,
+        bankAccount: bankAccount || undefined,
+      });
+
+      const expense = await newExpense.save({ session });
+      await session.commitTransaction();
+      res.status(201).json(expense);
+    } catch (transactionError) {
+      if (session) await session.abortTransaction();
+      throw transactionError;
+    } finally {
+      if (session) session.endSession();
+    }
   } catch (error) {
     console.error("Create expense error:", error);
     res
@@ -115,6 +138,7 @@ router.put(
       .matches(/[a-zA-Z]/),
     check("amount", "Amount must be a number").optional().isNumeric(),
     check("category", "Category is required").optional().notEmpty(),
+    check("bankAccount", "Bank account is invalid").optional().isMongoId(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -122,28 +146,64 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, paymentMethod, notes } =
+    const { amount, description, category, date, paymentMethod, notes, bankAccount } =
       req.body;
 
-    const expense = await Expense.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
+    let session;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
 
-    if (!expense) {
-      return res.status(404).json({ message: "Expense not found" });
+      const expense = await Expense.findOne({
+        _id: req.params.id,
+        user: req.user.id,
+      }).session(session);
+
+      if (!expense) {
+        throw new Error("Expense not found");
+      }
+
+      const oldAmount = expense.amount;
+      const oldBankAccount = expense.bankAccount;
+      const newAmount = amount !== undefined ? amount : oldAmount;
+
+      // Revert the old transaction if there was a bank account
+      if (oldBankAccount) {
+        const oldAccount = await BankAccount.findById(oldBankAccount).session(session);
+        if (oldAccount) {
+          oldAccount.currentBalance += oldAmount;
+          await oldAccount.save({ session });
+        }
+      }
+
+      // Apply the new transaction if there is a new bank account
+      if (bankAccount) {
+        const newAccount = await BankAccount.findById(bankAccount).session(session);
+        if (!newAccount) {
+          throw new Error("New bank account not found");
+        }
+        newAccount.currentBalance -= newAmount;
+        await newAccount.save({ session });
+      }
+
+      // Update expense fields
+      expense.amount = amount !== undefined ? amount : expense.amount;
+      expense.description = description || expense.description;
+      expense.category = category || expense.category;
+      expense.date = date || expense.date;
+      expense.paymentMethod = paymentMethod || expense.paymentMethod;
+      expense.notes = notes !== undefined ? notes : expense.notes;
+      expense.bankAccount = bankAccount || undefined;
+
+      const updatedExpense = await expense.save({ session });
+      await session.commitTransaction();
+      res.json(updatedExpense);
+    } catch (transactionError) {
+      if (session) await session.abortTransaction();
+      throw transactionError;
+    } finally {
+      if (session) session.endSession();
     }
-
-    // Update fields
-    expense.amount = amount || expense.amount;
-    expense.description = description || expense.description;
-    expense.category = category || expense.category;
-    expense.date = date || expense.date;
-    expense.paymentMethod = paymentMethod || expense.paymentMethod;
-    expense.notes = notes !== undefined ? notes : expense.notes;
-
-    const updatedExpense = await expense.save();
-    res.json(updatedExpense);
   } catch (error) {
     console.error("Update expense error:", error);
     res
@@ -157,17 +217,37 @@ router.put(
 // @access  Private
 router.delete("/:id", async (req, res) => {
   try {
-    const expense = await Expense.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
+    let session;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
 
-    if (!expense) {
-      return res.status(404).json({ message: "Expense not found" });
+      const expense = await Expense.findOne({
+        _id: req.params.id,
+        user: req.user.id,
+      }).session(session);
+
+      if (!expense) {
+        throw new Error("Expense not found");
+      }
+
+      if (expense.bankAccount) {
+        const account = await BankAccount.findById(expense.bankAccount).session(session);
+        if (account) {
+          account.currentBalance += expense.amount;
+          await account.save({ session });
+        }
+      }
+
+      await expense.deleteOne({ session });
+      await session.commitTransaction();
+      res.json({ message: "Expense removed" });
+    } catch (transactionError) {
+      if (session) await session.abortTransaction();
+      throw transactionError;
+    } finally {
+      if (session) session.endSession();
     }
-
-    await expense.deleteOne();
-    res.json({ message: "Expense removed" });
   } catch (error) {
     console.error("Delete expense error:", error);
     res.status(500).json({ message: "Server error" });
@@ -358,5 +438,67 @@ router.get("/monthly/:year/:month", async (req, res) => {
 });
 
 
+
+router.patch("/bulk-update", async (req, res) => {
+  const { ids, updates } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: "Expense IDs must be a non-empty array." });
+  }
+
+  if (typeof updates !== 'object' || updates === null || Object.keys(updates).length === 0) {
+    return res.status(400).json({ message: "Update data must be a non-empty object." });
+  }
+
+  let session;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const updatePromises = ids.map(async (id) => {
+      const expense = await Expense.findOne({ _id: id, user: req.user.id }).session(session);
+      if (!expense) {
+        console.warn(`Expense with ID ${id} not found for this user.`);
+        return null;
+      }
+
+      const oldAmount = expense.amount;
+      const newAmount = updates.amount !== undefined ? parseFloat(updates.amount) : oldAmount;
+
+      if (updates.amount !== undefined && newAmount !== oldAmount) {
+        if (expense.bankAccount) {
+          const bankAccount = await BankAccount.findById(expense.bankAccount).session(session);
+          if (bankAccount) {
+            bankAccount.currentBalance = bankAccount.currentBalance + oldAmount - newAmount;
+            await bankAccount.save({ session });
+          }
+        }
+      }
+
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+          expense[key] = updates[key];
+        }
+      });
+
+      return await expense.save({ session });
+    });
+
+    const updatedExpenses = await Promise.all(updatePromises);
+
+    await session.commitTransaction();
+    res.json({ 
+      message: "Expenses updated successfully", 
+      updatedCount: updatedExpenses.filter(e => e !== null).length 
+    });
+
+  } catch (error) {
+    if (session) await session.abortTransaction();
+    console.error("Bulk expense update error:", error);
+    res.status(500).json({ message: "Server error during bulk update.", error: error.message });
+  } finally {
+    if (session) session.endSession();
+  }
+});
 
 export default router;

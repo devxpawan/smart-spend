@@ -171,6 +171,7 @@ const BillBulkEditModal: React.FC<BillBulkEditModalProps> = ({
                   value={formData.category || ""}
                   onChange={(value) => handleSelectChange('category', value)}
                   className="w-full"
+                  isSearchable={true}
                 />
               </div>
 

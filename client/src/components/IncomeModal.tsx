@@ -12,8 +12,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../contexts/auth-exports";
 import IncomeFormData from "../types/IncomeFormData";
+import BankAccountInterface from "../types/BankAccountInterface";
 import CustomSelect from "./CustomSelect";
 import { incomeCategories } from "../lib/incomeCategories";
+import { getBankAccounts } from "../api/bankAccounts";
 
 
 interface IncomeModalProps {
@@ -29,6 +31,7 @@ interface FormErrors {
   date?: string;
   category?: string;
   notes?: string;
+  bankAccount?: string;
 }
 
 const IncomeModal: React.FC<IncomeModalProps> = ({
@@ -44,9 +47,12 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
     date: new Date().toISOString().split("T")[0],
     category: "",
     notes: "",
+    bankAccount: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [bankAccounts, setBankAccounts] = useState<BankAccountInterface[]>([]);
+  const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -62,6 +68,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
           : new Date().toISOString().split("T")[0],
         category: initialData.category,
         notes: initialData.notes || "",
+        bankAccount: initialData.bankAccount || "",
       });
     } else {
       setFormData({
@@ -70,10 +77,29 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
         date: new Date().toISOString().split("T")[0],
         category: "",
         notes: "",
+        bankAccount: "",
       });
     }
     setErrors({});
   }, [initialData, isOpen]);
+
+  useEffect(() => {
+    const fetchBankAccounts = async () => {
+      try {
+        setBankAccountsLoading(true);
+        const accounts = await getBankAccounts();
+        setBankAccounts(accounts);
+      } catch (error) {
+        console.error("Failed to fetch bank accounts:", error);
+      } finally {
+        setBankAccountsLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchBankAccounts();
+    }
+  }, [isOpen]);
 
   // Form validation
   const validateForm = useCallback((): boolean => {
@@ -109,9 +135,13 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
       newErrors.notes = "Notes must be less than 500 characters";
     }
 
+    if (!formData.bankAccount) {
+      newErrors.bankAccount = "Please select a bank account";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData]);
+  }, [formData, bankAccounts]);
 
   // Handle input changes
   const handleChange = (
@@ -147,6 +177,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
       await onSubmit({
         ...formData,
         amount: parseFloat(formData.amount as string),
+        bankAccount: formData.bankAccount || undefined,
       });
       onClose();
     } catch (err) {
@@ -203,9 +234,9 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
 
-      // Focus first input after animation
+      // Focus first input after animation, but not on mobile
       setTimeout(() => {
-        if (firstInputRef.current) {
+        if (firstInputRef.current && window.innerWidth >= 768) {
           firstInputRef.current.focus();
         }
       }, 100);
@@ -227,7 +258,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2"
         aria-modal="true"
         role="dialog"
         aria-labelledby="modal-title"
@@ -238,7 +269,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-2xl max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-gray-700 w-full max-w-lg sm:max-w-2xl max-h-[90vh] overflow-hidden mx-auto"
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
         >
@@ -286,8 +317,8 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       id="description"
                       value={formData.description}
                       onChange={handleChange}
-                      placeholder="e.g., Monthly salary, Project payment"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      placeholder="e.g., Salary, Freelance Payment"
+                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.description
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
@@ -334,7 +365,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.amount
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
@@ -379,7 +410,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       value={formData.date}
                       onChange={handleChange}
                       max={new Date().toISOString().split("T")[0]}
-                      className={`form-input block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
                         errors.date
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
@@ -427,6 +458,8 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                         : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
                     }`}
                     openDirection="top"
+                    isSearchable={true}
+                    placeholder="Select a category"
                   />
                   {errors.category && (
                     <div
@@ -435,6 +468,52 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                     >
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm">{errors.category}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bank Account */}
+                <div className="md:col-span-2">
+                  <label
+                    htmlFor="bankAccount"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                  >
+                    Bank Account *
+                  </label>
+                  <CustomSelect
+                    options={[
+                      { value: "", label: "Select a bank account" },
+                      ...bankAccounts.map((account) => ({
+                        value: account._id,
+                        label: `${account.accountName} (${account.bankName})`,
+                      })),
+                    ]}
+                    value={formData.bankAccount || ""}
+                    onChange={(value) =>
+                      handleChange({
+                        target: { name: "bankAccount", value },
+                      } as React.ChangeEvent<HTMLSelectElement>)
+                    }
+                    className={`${
+                      errors.bankAccount
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
+                    }`}
+                    openDirection="top"
+                    isSearchable={true}
+                    disabled={bankAccountsLoading}
+                    placeholder="Select a bank account"
+                  />
+                  {bankAccountsLoading && (
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Loading bank accounts...</p>
+                  )}
+                  {errors.bankAccount && (
+                    <div
+                      id="bankAccount-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{errors.bankAccount}</span>
                     </div>
                   )}
                 </div>
@@ -458,7 +537,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       onChange={handleChange}
                       rows={3}
                       maxLength={500}
-                      className={`form-textarea block w-full pl-10 pr-3 py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent sm:text-sm transition duration-150 ease-in-out resize-none ${
+                      className={`form-textarea block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out resize-none ${
                         errors.notes
                           ? "border-red-300 focus:ring-red-500"
                           : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"

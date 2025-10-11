@@ -4,6 +4,7 @@ interface ExpenseFormData {
   date: string;
   category: string;
   notes?: string;
+  bankAccount?: string;
 }
 
 export default ExpenseFormData;

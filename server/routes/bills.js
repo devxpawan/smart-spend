@@ -2,6 +2,8 @@ import { check, validationResult } from "express-validator";
 import express from "express";
 import mongoose from "mongoose";
 import Bill from "../models/Bill.js";
+import Expense from "../models/Expense.js";
+import BankAccount from "../models/BankAccount.js";
 
 const router = express.Router();
 
@@ -25,6 +27,7 @@ router.get("/", async (req, res) => {
 
     const total = await Bill.countDocuments(filter);
     const bills = await Bill.find(filter)
+      .populate("bankAccount", "accountName bankName")
       .sort({ dueDate: 1 })
       .limit(parseInt(limit))
       .skip(skip);
@@ -51,62 +54,96 @@ router.post(
     check("amount", "Amount is required and must be a number").isNumeric(),
     check("dueDate", "Due date is required and must be a valid date").isISO8601().toDate(),
     check("category", "Category is required").notEmpty(),
+    check("bankAccount", "Bank account is required").notEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-  try {
-    const {
-      name,
-      amount,
-      dueDate,
-      category,
-      isPaid,
-      isRecurring,
-      recurringPeriod,
-      reminderDate,
-      notes,
-    } = req.body;
 
-    // Check for duplicate bill name
-    const existingBill = await Bill.isDuplicateName(req.user.id, name);
-    if (existingBill) {
-      return res.status(400).json({
-        error: 'Duplicate bill name',
-        message: 'A bill with this name already exists'
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const {
+        name,
+        amount,
+        dueDate,
+        category,
+        isPaid,
+        reminderDate,
+        notes,
+        bankAccount,
+      } = req.body;
+
+      const existingBill = await Bill.isDuplicateName(req.user.id, name);
+      if (existingBill) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          error: "Duplicate bill name",
+          message: "A bill with this name already exists",
+        });
+      }
+
+      const newBill = new Bill({
+        user: req.user.id,
+        name,
+        amount,
+        dueDate,
+        category,
+        isPaid,
+        reminderDate,
+        notes,
+        bankAccount,
       });
+
+      const bill = await newBill.save({ session });
+
+      if (isPaid && bankAccount) {
+        const expenseCategory = "Paid Bill";
+
+        const newExpense = new Expense({
+          user: req.user.id,
+          amount: bill.amount,
+          description: `Bill Payment: ${bill.name}`,
+          category: expenseCategory,
+          date: new Date(),
+          bankAccount: bill.bankAccount,
+          bill: bill._id,
+        });
+
+        await newExpense.save({ session });
+
+        const account = await BankAccount.findById(bill.bankAccount).session(
+          session
+        );
+        if (!account) {
+          throw new Error("Bank account not found");
+        }
+        account.currentBalance -= bill.amount;
+        await account.save({ session });
+      }
+
+      await session.commitTransaction();
+      session.endSession();
+      res.status(201).json(bill);
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error("Create bill error:", error);
+
+      if (error.name === "DuplicateBillNameError") {
+        return res.status(400).json({
+          error: "Duplicate bill name",
+          message: "A bill with this name already exists",
+        });
+      }
+
+      res.status(500).json({ message: "Server error" });
     }
-
-    const newBill = new Bill({
-      user: req.user.id,
-      name,
-      amount,
-      dueDate,
-      category,
-      isPaid,
-      isRecurring,
-      recurringPeriod,
-      reminderDate,
-      notes,
-    });
-
-    const bill = await newBill.save();
-    res.status(201).json(bill);
-  } catch (error) {
-    console.error("Create bill error:", error);
-
-    if (error.name === 'DuplicateBillNameError') {
-      return res.status(400).json({
-        error: 'Duplicate bill name',
-        message: 'A bill with this name already exists'
-      });
-    }
-
-    res.status(500).json({ message: "Server error" });
   }
-});
+);
 
 // @route   PUT /api/bills/:id
 router.put(
@@ -118,89 +155,199 @@ router.put(
       .notEmpty()
       .matches(/[a-zA-Z]/),
     check("amount", "Amount must be a number").optional().isNumeric(),
-    check("dueDate", "Due date must be a valid date").optional().isISO8601().toDate(),
+    check("dueDate", "Due date must be a valid date")
+      .optional()
+      .isISO8601()
+      .toDate(),
     check("category", "Category is required").optional().notEmpty(),
+    check("bankAccount", "Bank account is required").optional().notEmpty(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-  try {
-    const {
-      name,
-      amount,
-      dueDate,
-      category,
-      isRecurring,
-      recurringPeriod,
-      isPaid,
-      reminderDate,
-      notes,
-    } = req.body;
 
-    const bill = await Bill.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const {
+        name,
+        amount,
+        dueDate,
+        category,
+        isPaid,
+        reminderDate,
+        notes,
+        bankAccount,
+      } = req.body;
 
-    if (!bill) {
-      return res.status(404).json({ message: "Bill not found" });
-    }
+      const bill = await Bill.findOne({
+        _id: req.params.id,
+        user: req.user.id,
+      }).session(session);
 
-    // Check for duplicate bill name if name is being changed
-    if (name && name !== bill.name) {
-      const existingBill = await Bill.isDuplicateName(req.user.id, name, req.params.id);
-      if (existingBill) {
+      if (!bill) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: "Bill not found" });
+      }
+
+      // If marking as unpaid, delete the associated expense
+      if (isPaid === false && bill.isPaid === true) {
+        const expense = await Expense.findOne({ bill: bill._id }).session(
+          session
+        );
+
+        if (expense) {
+          if (expense.bankAccount) {
+            const account = await BankAccount.findById(
+              expense.bankAccount
+            ).session(session);
+            if (account) {
+              account.currentBalance += expense.amount;
+              await account.save({ session });
+            }
+          }
+          await expense.deleteOne({ session });
+        }
+      } else if (bill.isPaid) {
+        // If the bill is already paid and we are not marking it as unpaid,
+        // we might need to update the associated expense.
+        const expense = await Expense.findOne({ bill: bill._id }).session(session);
+
+        if (expense) {
+          const oldExpenseAmount = expense.amount;
+          const oldExpenseBankAccount = expense.bankAccount;
+
+          const newAmount = amount !== undefined ? amount : oldExpenseAmount;
+          const newBankAccount =
+            bankAccount !== undefined ? bankAccount : oldExpenseBankAccount;
+
+          // Revert old transaction
+          if (oldExpenseBankAccount) {
+            const oldAccount = await BankAccount.findById(
+              oldExpenseBankAccount
+            ).session(session);
+            if (oldAccount) {
+              oldAccount.currentBalance += oldExpenseAmount;
+              await oldAccount.save({ session });
+            }
+          }
+
+          // Apply new transaction
+          if (newBankAccount) {
+            const newAccount = await BankAccount.findById(
+              newBankAccount
+            ).session(session);
+            if (newAccount) {
+              newAccount.currentBalance -= newAmount;
+              await newAccount.save({ session });
+            } else {
+              throw new Error("New bank account not found for expense update.");
+            }
+          }
+
+          // Update expense
+          expense.description = `Bill Payment: ${name || bill.name}`;
+          expense.amount = newAmount;
+          expense.bankAccount = newBankAccount;
+          await expense.save({ session });
+        }
+      }
+
+      // Check for duplicate bill name if name is being changed
+      if (name && name !== bill.name) {
+        const existingBill = await Bill.isDuplicateName(
+          req.user.id,
+          name,
+          req.params.id
+        );
+        if (existingBill) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            error: "Duplicate bill name",
+            message: "A bill with this name already exists",
+          });
+        }
+      }
+
+      if (name) bill.name = name;
+      if (amount !== undefined) bill.amount = amount;
+      if (dueDate) bill.dueDate = dueDate;
+      if (category) bill.category = category;
+      if (isPaid !== undefined) bill.isPaid = isPaid;
+      if (reminderDate) bill.reminderDate = reminderDate;
+      if (notes !== undefined) bill.notes = notes;
+      if (bankAccount) bill.bankAccount = bankAccount;
+
+      const updatedBill = await bill.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      res.json(updatedBill);
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error("Update bill error:", error);
+
+      if (error.name === "DuplicateBillNameError") {
         return res.status(400).json({
-          error: 'Duplicate bill name',
-          message: 'A bill with this name already exists'
+          error: "Duplicate bill name",
+          message: "A bill with this name already exists",
         });
       }
+
+      res.status(500).json({ message: "Server error" });
     }
-
-    if (name) bill.name = name;
-    if (amount !== undefined) bill.amount = amount;
-    if (dueDate) bill.dueDate = dueDate;
-    if (category) bill.category = category;
-    if (isRecurring !== undefined) bill.isRecurring = isRecurring;
-    if (recurringPeriod) bill.recurringPeriod = recurringPeriod;
-    if (isPaid !== undefined) bill.isPaid = isPaid;
-    if (reminderDate) bill.reminderDate = reminderDate;
-    if (notes !== undefined) bill.notes = notes;
-
-    const updatedBill = await bill.save();
-    res.json(updatedBill);
-  } catch (error) {
-    console.error("Update bill error:", error);
-
-    if (error.name === 'DuplicateBillNameError') {
-      return res.status(400).json({
-        error: 'Duplicate bill name',
-        message: 'A bill with this name already exists'
-      });
-    }
-
-    res.status(500).json({ message: "Server error" });
   }
-});
+);
 
 
 // @route   DELETE /api/bills/:id
 router.delete("/:id", async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const bill = await Bill.findOne({
       _id: req.params.id,
       user: req.user.id,
-    });
+    }).session(session);
 
     if (!bill) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Bill not found" });
     }
 
-    await bill.deleteOne();
+    // If the bill was paid, delete the associated expense
+    if (bill.isPaid) {
+      const expense = await Expense.findOne({ bill: bill._id }).session(session);
+      if (expense) {
+        if (expense.bankAccount) {
+          const account = await BankAccount.findById(expense.bankAccount).session(
+            session
+          );
+          if (account) {
+            account.currentBalance += expense.amount;
+            await account.save({ session });
+          }
+        }
+        await expense.deleteOne({ session });
+      }
+    }
+
+    await bill.deleteOne({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
     res.json({ message: "Bill removed" });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("Delete bill error:", error);
     res.status(500).json({ message: "Server error" });
   }
@@ -228,81 +375,81 @@ router.get("/upcoming/reminders", async (req, res) => {
 
 // @route   PUT /api/bills/:id/pay
 router.put("/:id/pay", async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     if (!req.user || !req.user.id) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({ message: "Invalid bill ID" });
     }
 
     const bill = await Bill.findOne({
       _id: req.params.id,
       user: req.user.id,
-    });
+    }).session(session);
 
     if (!bill) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({ message: "Bill not found" });
     }
 
+    if (bill.isPaid) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Bill is already paid" });
+    }
+
+    if (!bill.bankAccount) {
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(400)
+        .json({ message: "No bank account selected for this bill." });
+    }
+
+    const expenseCategory = "Paid Bill";
+
+    const newExpense = new Expense({
+      user: req.user.id,
+      amount: bill.amount,
+      description: `Bill Payment: ${bill.name}`,
+      category: expenseCategory,
+      date: new Date(),
+      bankAccount: bill.bankAccount,
+      bill: bill._id, // Add reference to the bill
+    });
+
+    await newExpense.save({ session });
+
+    const account = await BankAccount.findById(bill.bankAccount).session(
+      session
+    );
+    if (!account) {
+      throw new Error("Bank account not found");
+    }
+    account.currentBalance -= bill.amount;
+    await account.save({ session });
+
     bill.isPaid = true;
+    const updatedBill = await bill.save({ session });
 
-    if (bill.isRecurring) {
-      const newDueDate = new Date(bill.dueDate);
+    await session.commitTransaction();
+    session.endSession();
 
-      switch (bill.recurringPeriod) {
-        case "Weekly":
-          newDueDate.setDate(newDueDate.getDate() + 7);
-          break;
-        case "Monthly":
-          newDueDate.setMonth(newDueDate.getMonth() + 1);
-          break;
-        case "Quarterly":
-          newDueDate.setMonth(newDueDate.getMonth() + 3);
-          break;
-        case "Annually":
-          newDueDate.setFullYear(newDueDate.getFullYear() + 1);
-          break;
-        default:
-          newDueDate.setMonth(newDueDate.getMonth() + 1);
-      }
-
-      const newReminderDate = new Date(newDueDate);
-      newReminderDate.setDate(newReminderDate.getDate() - 3);
-
-      const newBill = new Bill({
-        user: bill.user,
-        name: bill.name,
-        amount: bill.amount,
-        dueDate: newDueDate,
-        category: bill.category,
-        isRecurring: bill.isRecurring,
-        recurringPeriod: bill.recurringPeriod,
-        reminderDate: newReminderDate,
-        notes: bill.notes,
-      });
-
-      try {
-        await newBill.save();
-      } catch (newSaveErr) {
-        console.error("Error saving new recurring bill:", newSaveErr);
-        return res
-          .status(500)
-          .json({ message: "Failed to create next recurring bill" });
-      }
-    }
-
-    try {
-      const updatedBill = await bill.save();
-      res.json(updatedBill);
-    } catch (saveError) {
-      console.error("Error saving paid bill:", saveError, saveError.stack);
-      res.status(500).json({ message: "Failed to update bill status" });
-    }
+    res.json(updatedBill);
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error("Pay bill error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -399,6 +546,96 @@ router.post("/check-name", async (req, res) => {
   } catch (error) {
     console.error("Check bill name error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.patch("/bulk-update", async (req, res) => {
+  const { ids, updates } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: "Bill IDs must be a non-empty array." });
+  }
+
+  if (typeof updates !== 'object' || updates === null || Object.keys(updates).length === 0) {
+    return res.status(400).json({ message: "Update data must be a non-empty object." });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const updatePromises = ids.map(async (id) => {
+      const bill = await Bill.findOne({ _id: id, user: req.user.id }).session(session);
+      if (!bill) {
+        console.warn(`Bill with ID ${id} not found for this user.`);
+        return null;
+      }
+
+      const oldIsPaid = bill.isPaid;
+      const newIsPaid = updates.isPaid;
+
+      // Handle marking as paid
+      if (newIsPaid === true && oldIsPaid === false) {
+        if (!bill.bankAccount) {
+          throw new Error(`Bill with ID ${id} does not have a bank account.`);
+        }
+        const expenseCategory = "Paid Bill";
+        const newExpense = new Expense({
+          user: req.user.id,
+          amount: bill.amount,
+          description: `Bill Payment: ${bill.name}`,
+          category: expenseCategory,
+          date: new Date(),
+          bankAccount: bill.bankAccount,
+          bill: bill._id,
+        });
+        await newExpense.save({ session });
+
+        const account = await BankAccount.findById(bill.bankAccount).session(session);
+        if (!account) {
+          throw new Error(`Bank account not found for bill with ID ${id}.`);
+        }
+        account.currentBalance -= bill.amount;
+        await account.save({ session });
+      }
+      // Handle marking as unpaid
+      else if (newIsPaid === false && oldIsPaid === true) {
+        const expense = await Expense.findOne({ bill: bill._id }).session(session);
+        if (expense) {
+          if (expense.bankAccount) {
+            const account = await BankAccount.findById(expense.bankAccount).session(session);
+            if (account) {
+              account.currentBalance += expense.amount;
+              await account.save({ session });
+            }
+          }
+          await expense.deleteOne({ session });
+        }
+      }
+
+      // Apply other updates
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+          bill[key] = updates[key];
+        }
+      });
+
+      return await bill.save({ session });
+    });
+
+    const updatedBills = await Promise.all(updatePromises);
+
+    await session.commitTransaction();
+    res.json({ 
+      message: "Bills updated successfully", 
+      updatedCount: updatedBills.filter(b => b !== null).length 
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Bulk bill update error:", error);
+    res.status(500).json({ message: "Server error during bulk update.", error: error.message });
+  } finally {
+    if (session) session.endSession();
   }
 });
 

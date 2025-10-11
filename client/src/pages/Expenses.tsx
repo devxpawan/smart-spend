@@ -141,14 +141,15 @@ const Expenses: React.FC = () => {
 
   // Memoized filtered and sorted expenses
   const {
-    filteredExpenses,
+    filteredExpenses: regularExpenses,
+    paidBillExpenses,
     totalAmount,
     categories,
     monthlyTotal,
     currentRecords,
     nPages,
   } = useMemo(() => {
-    const filtered = expenses.filter((expense) => {
+    const allFiltered = expenses.filter((expense) => {
       // Search filter
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
@@ -219,8 +220,15 @@ const Expenses: React.FC = () => {
       return true;
     });
 
-    // Sort expenses
-    filtered.sort((a, b) => {
+    const regularExpenses = allFiltered.filter(
+      (expense) => expense.category !== "Paid Bill"
+    );
+    const paidBillExpenses = allFiltered.filter(
+      (expense) => expense.category === "Paid Bill"
+    );
+
+    // Sort regular expenses
+    regularExpenses.sort((a, b) => {
       let valueA: number | string;
       let valueB: number | string;
 
@@ -251,15 +259,15 @@ const Expenses: React.FC = () => {
       return 0;
     });
 
-    const total = filtered.reduce(
+    const total = regularExpenses.reduce(
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
     const categories = expenseCategories;
 
-    // Calculate this month's total
+    // Calculate this month's total for regular expenses
     const now = new Date();
-    const thisMonthExpenses = expenses.filter((expense) => {
+    const thisMonthRegularExpenses = regularExpenses.filter((expense) => {
       const expenseDate = parseISO(expense.date);
       return (
         isValid(expenseDate) &&
@@ -269,22 +277,23 @@ const Expenses: React.FC = () => {
         })
       );
     });
-    const monthlyTotal = thisMonthExpenses.reduce(
+    const monthlyTotal = thisMonthRegularExpenses.reduce(
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
 
-    // Pagination logic
+    // Pagination logic for regular expenses
     const indexOfLastRecord = currentPage * recordsPerPage;
     const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-    const currentRecords = filtered.slice(
+    const currentRecords = regularExpenses.slice(
       indexOfFirstRecord,
       indexOfLastRecord
     );
-    const nPages = Math.ceil(filtered.length / recordsPerPage);
+    const nPages = Math.ceil(regularExpenses.length / recordsPerPage);
 
     return {
-      filteredExpenses: filtered,
+      filteredExpenses: regularExpenses,
+      paidBillExpenses,
       totalAmount: total,
       categories: categories,
       monthlyTotal,
@@ -337,7 +346,9 @@ const Expenses: React.FC = () => {
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const currentPageIds = currentRecords.map((record) => record._id);
+    const currentPageIds = currentRecords
+      .filter((record) => record.category !== "Paid Bill")
+      .map((record) => record._id);
     if (e.target.checked) {
       setSelectedIds((prev) => [...new Set([...prev, ...currentPageIds])]);
     } else {
@@ -370,61 +381,55 @@ const Expenses: React.FC = () => {
 
     setIsBulkEditing(true);
 
-    const updatesToApply: Partial<ExpenseInterface> = {};
-    if (updates.description !== undefined) {
-        updatesToApply.description = updates.description;
-    }
-    if (updates.date !== undefined) {
-        updatesToApply.date = updates.date;
-    }
-    if (updates.category !== undefined) {
-        updatesToApply.category = updates.category;
-    }
-    if (updates.amount !== undefined) {
-        updatesToApply.amount = parseFloat(updates.amount);
-    }
-
     try {
-        const updatePromises = selectedIds.map((id) => {
-            const expenseToUpdate = expenses.find((exp) => exp._id === id);
-            if (!expenseToUpdate) {
-                console.warn(`Expense with id ${id} not found for bulk update.`);
-                return Promise.resolve();
-            }
+      await axios.patch("/api/expenses/bulk-update", { 
+        ids: selectedIds, 
+        updates 
+      });
 
-            const updatedData = {
-                description: updates.description ?? expenseToUpdate.description,
-                amount: updates.amount ? parseFloat(updates.amount) : expenseToUpdate.amount,
-                date: updates.date ?? expenseToUpdate.date,
-                category: updates.category ?? expenseToUpdate.category,
-                notes: expenseToUpdate.notes, // notes are not part of Edit
-            };
+      // Optimistically update local state
+      setExpenses((prevExpenses) =>
+        prevExpenses.map((expense) => {
+          if (selectedIds.includes(expense._id)) {
+            const updatedExpense = { ...expense };
+            if (updates.description) updatedExpense.description = updates.description;
+            if (updates.amount) updatedExpense.amount = parseFloat(updates.amount);
+            if (updates.date) updatedExpense.date = updates.date;
+            if (updates.category) updatedExpense.category = updates.category;
+            return updatedExpense;
+          }
+          return expense;
+        })
+      );
 
-            return axios.put(`/api/expenses/${id}`, updatedData);
-        });
-
-        await Promise.all(updatePromises);
-
-        setExpenses((prevExpenses) =>
-            prevExpenses.map((expense) => {
-                if (selectedIds.includes(expense._id)) {
-                    return { ...expense, ...updatesToApply };
-                }
-                return expense;
-            })
-        );
-
-        setSelectedIds([]);
-        setError("");
+      setSelectedIds([]);
+      setError("");
     } catch (err) {
-        setError("Failed to bulk update expenses. Please refresh and try again.");
-        console.error("Error during bulk update:", err);
-        fetchExpenses(); // Fallback to refetch all data on error
+      setError("Failed to bulk update expenses. Please refresh and try again.");
+      console.error("Error during bulk update:", err);
+      fetchExpenses(); // Fallback to refetch all data on error
     } finally {
-        setIsBulkEditing(false);
-        setIsBulkEditModalOpen(false);
+      setIsBulkEditing(false);
+      setIsBulkEditModalOpen(false);
     }
-};
+  };
+
+  const hasPaidBillInSelection = useMemo(() => {
+    return expenses.some(
+      (expense) =>
+        selectedIds.includes(expense._id) && expense.category === "Paid Bill"
+    );
+  }, [selectedIds, expenses]);
+
+  const selectableRecords = currentRecords.filter(
+    (r) => r.category !== "Paid Bill"
+  );
+  const allSelectableSelected =
+    selectableRecords.length > 0 &&
+    selectableRecords.every((r) => selectedIds.includes(r._id));
+  const isIndeterminate =
+    selectableRecords.some((r) => selectedIds.includes(r._id)) &&
+    !allSelectableSelected;
 
   if (loading && expenses.length === 0) {
     return (
@@ -460,17 +465,30 @@ const Expenses: React.FC = () => {
 
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
+            className="hidden sm:inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 text-sm font-semibold transform hover:scale-[1.02] w-full sm:w-auto"
           >
             <Plus className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
             Add New Expense
           </button>
         </div>
 
+        {/* Floating Action Button for mobile */}
+        <motion.button
+          className="sm:hidden fixed bottom-6 right-6 z-40 p-4 rounded-full bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          onClick={() => setIsAddModalOpen(true)}
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0 }}
+          transition={{ duration: 0.3 }}
+          aria-label="Add New Expense"
+        >
+          <Plus className="w-6 h-6" />
+        </motion.button>
+
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
           <span className="text-slate-500 dark:text-gray-400">
-            {filteredExpenses.length} expenses
+            {regularExpenses.length} expenses
           </span>
           <span className="text-slate-500 dark:text-gray-400 hidden sm:inline">•</span>
           <span className="text-slate-500 dark:text-gray-400">
@@ -709,7 +727,13 @@ const Expenses: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsBulkEditModalOpen(true)}
-                className="px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                className="px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={hasPaidBillInSelection}
+                title={
+                  hasPaidBillInSelection
+                    ? "Cannot bulk edit expenses from paid bills."
+                    : "Bulk edit selected expenses"
+                }
               >
                 Edit
               </button>
@@ -737,7 +761,7 @@ const Expenses: React.FC = () => {
 
       <div className="relative min-h-[600px]">
         {/* Expenses Table or Empty State */}
-        {filteredExpenses.length === 0 && !loading && !error ? (
+        {regularExpenses.length === 0 && !loading && !error ? (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -777,25 +801,41 @@ const Expenses: React.FC = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
-                              checked={selectedIds.includes(expense._id)}
-                              onChange={() => handleSelect(expense._id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
+                            {expense.category !== "Paid Bill" && (
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                checked={selectedIds.includes(expense._id)}
+                                onChange={() => handleSelect(expense._id)}
+                                onClick={(e) => e.stopPropagation()}
+                                disabled={expense.category === "Paid Bill"}
+                              />
+                            )}
                             <button
                               onClick={(e) =>
-                                handleActionClick(e, () =>
-                                  setEditExpenseData(expense)
-                                )
+                                handleActionClick(e, () => {
+                                  if (expense.category !== "Paid Bill") {
+                                    setEditExpenseData(expense);
+                                  }
+                                })
                               }
-                              className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 flex items-center space-x-1 group"
+                              className={`text-sm font-medium text-gray-900 dark:text-white ${
+                                expense.category === "Paid Bill"
+                                  ? "cursor-not-allowed"
+                                  : "hover:text-blue-600 dark:hover:text-blue-400 group"
+                              } flex items-center space-x-1`}
+                              title={
+                                expense.category === "Paid Bill"
+                                  ? "This expense is from a paid bill and cannot be edited here."
+                                  : "Edit expense"
+                              }
                             >
                               <span className="truncate">
                                 {expense.description}
                               </span>
-                              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                              {expense.category !== "Paid Bill" && (
+                                <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                              )}
                             </button>
                           </div>
                           <div className="mt-1 flex items-center space-x-2 ml-7">
@@ -819,6 +859,7 @@ const Expenses: React.FC = () => {
                               : "0.00"}
                           </div>
                         </div>
+                        {expense.category !== "Paid Bill" && (
                         <button
                           onClick={(e) =>
                             handleActionClick(e, () =>
@@ -835,6 +876,7 @@ const Expenses: React.FC = () => {
                             <Trash2 className="w-4 h-4" />
                           )}
                         </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -851,22 +893,12 @@ const Expenses: React.FC = () => {
                           type="checkbox"
                           className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           onChange={handleSelectAll}
-                          checked={
-                            currentRecords.length > 0 &&
-                            currentRecords.every((record) =>
-                              selectedIds.includes(record._id)
-                            )
-                          }
-                          ref={(el) =>
-                            el &&
-                            (el.indeterminate =
-                              currentRecords.some((record) =>
-                                selectedIds.includes(record._id)
-                              ) &&
-                              !currentRecords.every((record) =>
-                                selectedIds.includes(record._id)
-                              ))
-                          }
+                          checked={allSelectableSelected}
+                          ref={(el) => {
+                            if (el) {
+                              el.indeterminate = isIndeterminate;
+                            }
+                          }}
                         />
                       </th>
                       <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
@@ -904,25 +936,41 @@ const Expenses: React.FC = () => {
                         onClick={() => handleSelect(expense._id)}
                       >
                         <td className="p-4 flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            checked={selectedIds.includes(expense._id)}
-                            onChange={() => handleSelect(expense._id)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
+                          {expense.category !== "Paid Bill" && (
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              checked={selectedIds.includes(expense._id)}
+                              onChange={() => handleSelect(expense._id)}
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={expense.category === "Paid Bill"}
+                            />
+                          )}
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={(e) =>
-                              handleActionClick(e, () =>
-                                setEditExpenseData(expense)
-                              )
+                              handleActionClick(e, () => {
+                                if (expense.category !== "Paid Bill") {
+                                  setEditExpenseData(expense);
+                                }
+                              })
                             }
-                            className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 flex items-center space-x-1 group"
+                            className={`text-sm font-medium text-gray-900 dark:text-white ${
+                              expense.category === "Paid Bill"
+                                ? "cursor-not-allowed"
+                                : "hover:text-blue-600 dark:hover:text-blue-400 group"
+                            } flex items-center space-x-1`}
+                            title={
+                              expense.category === "Paid Bill"
+                                ? "This expense is from a paid bill and cannot be edited here."
+                                : "Edit expense"
+                            }
                           >
                             <span>{expense.description}</span>
-                            <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {expense.category !== "Paid Bill" && (
+                              <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
                           </button>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
@@ -942,6 +990,7 @@ const Expenses: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {expense.category !== "Paid Bill" && (
                           <button
                             onClick={(e) =>
                               handleActionClick(e, () =>
@@ -958,6 +1007,7 @@ const Expenses: React.FC = () => {
                               <Trash2 className="w-4 h-4" />
                             )}
                           </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -968,6 +1018,113 @@ const Expenses: React.FC = () => {
           )
         )}
       </div>
+
+      {/* Paid Bills Table */}
+      {paidBillExpenses.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-gray-200 mb-4">
+            Paid Bills (Expenses)
+          </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden">
+            {/* Mobile Card View for Paid Bills */}
+            <div className="block sm:hidden">
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {paidBillExpenses.map((expense) => (
+                  <div key={expense._id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {expense.description}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center space-x-2 ml-0">
+                          <span className="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
+                            {expense.category}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm ml-0">
+                      <div>
+                        <div className="text-gray-600 dark:text-gray-300">
+                          Date:{" "}
+                          {format(parseISO(expense.date), "MMM d, yyyy")}
+                        </div>
+                        <div className="font-semibold text-gray-900 dark:text-white">
+                          {user?.preferences?.currency || "USD"}{" "}
+                          {typeof expense.amount === "number"
+                            ? expense.amount.toFixed(2)
+                            : "0.00"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop Table View for Paid Bills */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <div className="flex items-center space-x-1">
+                        <Receipt className="w-4 h-4" />
+                        <span>Description</span>
+                      </div>
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Category
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>Date</span>
+                      </div>
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <div className="flex items-center justify-end space-x-1">
+                        <DollarSign className="w-4 h-4" />
+                        <span>Amount</span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {paidBillExpenses.map((expense) => (
+                    <tr key={expense._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">
+                          {expense.description}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
+                          {expense.category}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                        {format(parseISO(expense.date), "MMM d, yyyy")}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {user?.preferences?.currency || "USD"}{" "}
+                          {typeof expense.amount === "number"
+                            ? expense.amount.toFixed(2)
+                            : "0.00"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {nPages > 1 && (
         <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -1108,6 +1265,7 @@ const Expenses: React.FC = () => {
                 date: editExpenseData.date,
                 category: editExpenseData.category,
                 notes: editExpenseData.notes,
+                bankAccount: editExpenseData.bankAccount,
               } as ExpenseFormData)
               : undefined
           } 

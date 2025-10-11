@@ -20,22 +20,16 @@ const expenseSchema = new mongoose.Schema({
     required: true,
     enum: [
       "Groceries",
-      "Dining Out",
       "Transportation",
-      "Fuel",
-      "Public Transit",
-      "Shopping",
-      "Entertainment",
-      "Travel",
-      "Health & Fitness",
-      "Subscriptions",
-      "Gifts & Donations",
-      "Education",
-      "Personal Care",
-      "Utilities",
       "Rent/Housing",
+      "Utilities",
+      "Debit",
+      "Health & Fitness",
+      "Dining Out",
+      "Education",
       "Insurance",
-      "Miscellaneous",
+      "Other Expense",
+      "Paid Bill",
     ],
   },
   date: {
@@ -61,6 +55,14 @@ const expenseSchema = new mongoose.Schema({
   notes: {
     type: String,
     trim: true,
+  },
+  bankAccount: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "BankAccount",
+  },
+  bill: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Bill",
   },
 });
 
