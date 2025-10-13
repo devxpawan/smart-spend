@@ -32,7 +32,7 @@ import {
   SkeletonDoughnut,
 } from "../components/SkeletonLoaders";
 import { useAuth } from "../contexts/auth-exports";
-import { useTheme } from "../contexts/ThemeContext";
+import { useTheme } from "../contexts/theme-exports";
 import { retryWithBackoff } from "../utils/retry";
 import BankAccountInterface from "../types/BankAccountInterface";
 import { getBankAccounts } from "../api/bankAccounts";

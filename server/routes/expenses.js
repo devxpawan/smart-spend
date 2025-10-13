@@ -80,7 +80,7 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, paymentMethod, notes, bankAccount } =
+    const { amount, description, category, date, paymentMethod, bankAccount } =
       req.body;
 
     let session;
@@ -104,7 +104,6 @@ router.post(
         category,
         date: date || Date.now(),
         paymentMethod,
-        notes,
         bankAccount: bankAccount || undefined,
       });
 
@@ -146,7 +145,7 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, paymentMethod, notes, bankAccount } =
+    const { amount, description, category, date, paymentMethod, bankAccount } =
       req.body;
 
     let session;
@@ -192,7 +191,6 @@ router.put(
       expense.category = category || expense.category;
       expense.date = date || expense.date;
       expense.paymentMethod = paymentMethod || expense.paymentMethod;
-      expense.notes = notes !== undefined ? notes : expense.notes;
       expense.bankAccount = bankAccount || undefined;
 
       const updatedExpense = await expense.save({ session });

@@ -38,6 +38,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({ onExportCsv, onExportPdf, d
             <Menu.Item>
               {({ active }) => (
                 <button
+                  onClick={onExportCsv}
                   className={`${
                     active
                       ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100"

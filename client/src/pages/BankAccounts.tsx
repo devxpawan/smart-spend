@@ -14,6 +14,7 @@ import { useAuth } from "../contexts/auth-exports";
 import BankAccountInterface from "../types/BankAccountInterface";
 import banksData from "../lib/banks.json"; // Import the banks data
 import toast from "react-hot-toast"; // Import react-hot-toast
+import { AxiosError } from "axios";
 
 interface BankAccountFormState {
   bankName: string;
@@ -307,10 +308,10 @@ const BankAccounts: React.FC = () => {
       fetchBankAccounts();
       toast.success(`Bank account ${id ? "updated" : "created"} successfully!`);
       return undefined; // No error
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.msg || "Failed to save bank account.";
+    } catch (err: unknown) {
+      const errorMessage = (err instanceof AxiosError && err.response?.data?.msg) || "Failed to save bank account.";
       console.error(err);
-      if (err.response && err.response.status === 409) {
+      if (err instanceof AxiosError && err.response && err.response.status === 409) {
         return errorMessage; // Return error message for 409 conflict
       } else {
         toast.error(errorMessage); // Show toast for other errors

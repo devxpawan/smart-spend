@@ -25,7 +25,7 @@ import CurrencySelect from "../components/CurrencySelect";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 import { useAuth } from "../contexts/auth-exports";
-import { useTheme } from "../contexts/ThemeContext";
+import { useTheme } from "../contexts/theme-exports";
 
 // Types
 interface Message {

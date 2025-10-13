@@ -3,7 +3,6 @@ import {
   AlertCircle,
   Calendar,
   DollarSign,
-  FileText,
   Receipt,
   TrendingUp,
   X,
@@ -30,7 +29,7 @@ interface FormErrors {
   amount?: string;
   date?: string;
   category?: string;
-  notes?: string;
+
   bankAccount?: string;
 }
 
@@ -46,9 +45,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
     amount: "",
     date: new Date().toISOString().split("T")[0],
     category: "",
-    notes: "",
-    bankAccount: "",
-  });
+    bankAccount: "",  });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [bankAccounts, setBankAccounts] = useState<BankAccountInterface[]>([]);
@@ -67,18 +64,14 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
           ? new Date(initialData.date).toISOString().split("T")[0]
           : new Date().toISOString().split("T")[0],
         category: initialData.category,
-        notes: initialData.notes || "",
-        bankAccount: initialData.bankAccount || "",
-      });
+        bankAccount: initialData.bankAccount || "",      });
     } else {
       setFormData({
         description: "",
         amount: "",
         date: new Date().toISOString().split("T")[0],
         category: "",
-        notes: "",
-        bankAccount: "",
-      });
+        bankAccount: "",      });
     }
     setErrors({});
   }, [initialData, isOpen]);
@@ -131,9 +124,6 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
       newErrors.category = "Please select a category";
     }
 
-    if (formData.notes && formData.notes.length > 500) {
-      newErrors.notes = "Notes must be less than 500 characters";
-    }
 
     if (!formData.bankAccount) {
       newErrors.bankAccount = "Please select a bank account";
@@ -141,7 +131,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData, bankAccounts]);
+  }, [formData]);
 
   // Handle input changes
   const handleChange = (
@@ -208,11 +198,11 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
           lastFocusableElement.focus();
           e.preventDefault();
         }
-      } else {
-        if (document.activeElement === lastFocusableElement) {
-          firstFocusableElement.focus();
-          e.preventDefault();
-        }
+      }
+    } else {
+      if (document.activeElement === lastFocusableElement) {
+        firstFocusableElement.focus();
+        e.preventDefault();
       }
     }
   }, []);
@@ -481,13 +471,10 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                     Bank Account *
                   </label>
                   <CustomSelect
-                    options={[
-                      { value: "", label: "Select a bank account" },
-                      ...bankAccounts.map((account) => ({
+                    options={bankAccounts.map((account) => ({
                         value: account._id,
                         label: `${account.accountName} (${account.bankName})`,
-                      })),
-                    ]}
+                      }))}
                     value={formData.bankAccount || ""}
                     onChange={(value) =>
                       handleChange({
@@ -518,53 +505,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                   )}
                 </div>
 
-                {/* Notes */}
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="notes"
-                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
-                  >
-                    Notes (Optional)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute top-3 left-3 pointer-events-none">
-                      <FileText className="h-5 w-5 text-slate-400 dark:text-gray-500" />
-                    </div>
-                    <textarea
-                      id="notes"
-                      name="notes"
-                      value={formData.notes}
-                      onChange={handleChange}
-                      rows={3}
-                      maxLength={500}
-                      className={`form-textarea block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out resize-none ${
-                        errors.notes
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-sky-500"
-                      }`}
-                      placeholder="Additional details about this income..."
-                      aria-invalid={errors.notes ? "true" : "false"}
-                      aria-describedby={
-                        errors.notes ? "notes-error" : "notes-help"
-                      }
-                    />
-                  </div>
-                  {errors.notes && (
-                    <div
-                      id="notes-error"
-                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                      <span className="text-sm">{errors.notes}</span>
-                    </div>
-                  )}
-                  <p
-                    id="notes-help"
-                    className="mt-1 text-xs text-slate-500 dark:text-slate-400"
-                  >
-                    {formData.notes?.length || 0}/500 characters
-                  </p>
-                </div>
+
               </div>
 
               {/* Action Buttons */}

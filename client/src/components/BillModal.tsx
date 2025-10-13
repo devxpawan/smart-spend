@@ -189,11 +189,17 @@ const BillModal: React.FC<BillModalProps> = ({
 
     if (!formData.bankAccount) {
       newErrors.bankAccount = "Please select a bank account";
+    } else {
+      const selectedAccount = bankAccounts.find(acc => acc._id === formData.bankAccount);
+      const amount = parseFloat(formData.amount as string) || 0;
+      if (selectedAccount && selectedAccount.currentBalance < amount) {
+        newErrors.bankAccount = "Insufficient balance in the selected account.";
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData, checkForDuplicateName, initialData]);
+  }, [formData, checkForDuplicateName, initialData, bankAccounts]);
 
   // Handle input changes
   const handleChange = (
@@ -582,13 +588,15 @@ const BillModal: React.FC<BillModalProps> = ({
                                       Bank Account *
                                     </label>
                                     <CustomSelect
-                                      options={[
-                                        { value: "", label: "Select a bank account" },
-                                        ...bankAccounts.map((account) => ({
+                                      options={bankAccounts.map((account) => {
+                                        const amount = parseFloat(formData.amount as string) || 0;
+                                        const disabled = account.currentBalance < amount;
+                                        return {
                                           value: account._id,
-                                          label: `${account.accountName} (${account.bankName})`,
-                                        })),
-                                      ]}
+                                          label: `${account.accountName} (${account.bankName}) - Balance: ${account.currentBalance}`,
+                                          disabled,
+                                        };
+                                      })}
                                       value={formData.bankAccount || ""}
                                       onChange={(value) =>
                                         handleChange({

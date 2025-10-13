@@ -285,43 +285,56 @@ const LoginRegister: React.FC = () => {
         <div className="relative z-10 grid lg:grid-cols-2 min-h-screen">
           {/* LEFT BRANDING */}
           <motion.div
-            className="hidden lg:flex flex-col justify-center h-full relative px-16 bg-gradient-to-br from-indigo-50 via-white to-purple-50 overflow-hidden"
+            className="hidden lg:flex flex-col justify-center h-full relative px-16 bg-gradient-to-br from-gray-900 via-indigo-950 to-black overflow-hidden" // DARK MODE: Deep, dark gradient
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
+            {/* --- BACKGROUND BLOBS --- */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
-              <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+              {/* HIGHER CONTRAST: Brighter colors and higher opacity pop against the dark bg */}
+              <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-purple-600/50 to-pink-600/50 rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-600/40 to-indigo-600/40 rounded-full blur-3xl animate-pulse delay-1000"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[30rem] h-[30rem] bg-gradient-to-br from-indigo-500/30 to-purple-500/30 rounded-full blur-3xl animate-pulse delay-500"></div>
             </div>
 
+            {/* --- CONTENT --- */}
             <div className="relative z-10 max-w-lg space-y-8">
               <div className="flex items-center space-x-4">
                 <div className="relative">
                   <img src={logo} alt="SmartSpend" className="w-16 h-16" />
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/50">
+                    {" "}
+                    {/* Added colored shadow */}
                     <Sparkles className="w-3 h-3 text-white" />
                   </div>
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  {/* BRIGHTER TEXT: The same gradient now looks much brighter */}
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
                     SmartSpend
                   </h1>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-400 text-sm">
+                    {" "}
+                    {/* Light text for dark bg */}
                     Financial Intelligence
                   </p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h2 className="text-5xl font-extrabold text-gray-900 leading-tight">
+                <h2 className="text-5xl font-extrabold text-gray-100 leading-tight">
+                  {" "}
+                  {/* Light text */}
                   Take Control of Your
-                  <span className="block bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                  {/* BRIGHTER SPAN: -500 level colors are very vibrant on dark */}
+                  <span className="block bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent mt-1">
                     Financial Future
                   </span>
                 </h2>
-                <p className="text-xl text-gray-600 leading-relaxed">
+                <p className="text-xl text-gray-300 leading-relaxed">
+                  {" "}
+                  {/* Light text */}
                   Join thousands of users who trust SmartSpend to manage their
                   finances intelligently and securely.
                 </p>
@@ -336,7 +349,7 @@ const LoginRegister: React.FC = () => {
                 ].map((feature, i) => (
                   <motion.div
                     key={feature}
-                    className="flex items-center space-x-3 text-gray-700"
+                    className="flex items-center space-x-3 text-gray-200" // Light text
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 + i * 0.1 }}

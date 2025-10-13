@@ -3,7 +3,7 @@ export default interface IncomeFormData {
     description: string;
     category: string;
     date: string;
-    notes?: string;
+
     bankAccount?: string;
   }
   

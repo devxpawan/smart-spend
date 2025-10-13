@@ -35,10 +35,6 @@ const incomeSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  notes: {
-    type: String,
-    trim: true,
-  },
   bankAccount: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "BankAccount",

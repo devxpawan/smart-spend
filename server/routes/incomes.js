@@ -80,7 +80,7 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, notes, bankAccount } =
+    const { amount, description, category, date, bankAccount } =
       req.body;
 
     let session;
@@ -103,7 +103,6 @@ router.post(
         description,
         category,
         date: date || Date.now(),
-        notes,
         bankAccount: bankAccount || undefined,
       });
 
@@ -145,7 +144,7 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, notes, bankAccount } =
+    const { amount, description, category, date, bankAccount } =
       req.body;
 
     let session;
@@ -190,7 +189,6 @@ router.put(
       income.description = description || income.description;
       income.category = category || income.category;
       income.date = date || income.date;
-      income.notes = notes !== undefined ? notes : income.notes;
       income.bankAccount = bankAccount || undefined;
 
       const updatedIncome = await income.save({ session });

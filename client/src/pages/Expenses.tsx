@@ -142,7 +142,6 @@ const Expenses: React.FC = () => {
   // Memoized filtered and sorted expenses
   const {
     filteredExpenses: regularExpenses,
-    paidBillExpenses,
     totalAmount,
     categories,
     monthlyTotal,
@@ -223,9 +222,6 @@ const Expenses: React.FC = () => {
     const regularExpenses = allFiltered.filter(
       (expense) => expense.category !== "Paid Bill"
     );
-    const paidBillExpenses = allFiltered.filter(
-      (expense) => expense.category === "Paid Bill"
-    );
 
     // Sort regular expenses
     regularExpenses.sort((a, b) => {
@@ -293,7 +289,6 @@ const Expenses: React.FC = () => {
 
     return {
       filteredExpenses: regularExpenses,
-      paidBillExpenses,
       totalAmount: total,
       categories: categories,
       monthlyTotal,
@@ -1019,112 +1014,7 @@ const Expenses: React.FC = () => {
         )}
       </div>
 
-      {/* Paid Bills Table */}
-      {paidBillExpenses.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-gray-200 mb-4">
-            Paid Bills (Expenses)
-          </h2>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden">
-            {/* Mobile Card View for Paid Bills */}
-            <div className="block sm:hidden">
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {paidBillExpenses.map((expense) => (
-                  <div key={expense._id} className="p-4 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center">
-                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {expense.description}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center space-x-2 ml-0">
-                          <span className="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
-                            {expense.category}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center justify-between text-sm ml-0">
-                      <div>
-                        <div className="text-gray-600 dark:text-gray-300">
-                          Date:{" "}
-                          {format(parseISO(expense.date), "MMM d, yyyy")}
-                        </div>
-                        <div className="font-semibold text-gray-900 dark:text-white">
-                          {user?.preferences?.currency || "USD"}{" "}
-                          {typeof expense.amount === "number"
-                            ? expense.amount.toFixed(2)
-                            : "0.00"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Desktop Table View for Paid Bills */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      <div className="flex items-center space-x-1">
-                        <Receipt className="w-4 h-4" />
-                        <span>Description</span>
-                      </div>
-                    </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      Category
-                    </th>
-                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      <div className="flex items-center space-x-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>Date</span>
-                      </div>
-                    </th>
-                    <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                      <div className="flex items-center justify-end space-x-1">
-                        <DollarSign className="w-4 h-4" />
-                        <span>Amount</span>
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {paidBillExpenses.map((expense) => (
-                    <tr key={expense._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {expense.description}
-                        </span>
-                      </td>
-                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
-                          {expense.category}
-                        </span>
-                      </td>
-                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                        {format(parseISO(expense.date), "MMM d, yyyy")}
-                      </td>
-                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right">
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {user?.preferences?.currency || "USD"}{" "}
-                          {typeof expense.amount === "number"
-                            ? expense.amount.toFixed(2)
-                            : "0.00"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
 
       {nPages > 1 && (
         <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -1264,7 +1154,6 @@ const Expenses: React.FC = () => {
                 amount: String(editExpenseData.amount),
                 date: editExpenseData.date,
                 category: editExpenseData.category,
-                notes: editExpenseData.notes,
                 bankAccount: editExpenseData.bankAccount,
               } as ExpenseFormData)
               : undefined

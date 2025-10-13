@@ -4,7 +4,7 @@ interface ExpenseInterface {
   amount: number;
   date: string;
   category: string;
-  notes?: string;
+
   bankAccount?: string;
 }
 

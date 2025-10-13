@@ -4,7 +4,7 @@ export default interface IncomeInterface {
     description: string;
     category: string;
     date: string;
-    notes?: string;
+
     bankAccount?: string;
   }
   

@@ -12,6 +12,7 @@ import React, {
 interface Option {
   value: string;
   label: string;
+  disabled?: boolean;
 }
 
 interface CustomSelectProps {
@@ -102,23 +103,42 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
             return;
           }
 
-          const currentIndex = filteredOptions.findIndex(
+          const availableOptions = filteredOptions.filter(
+            (opt) => !opt.disabled
+          );
+          if (availableOptions.length === 0) return;
+
+          const currentIndex = availableOptions.findIndex(
             (option) => option.value === highlightedValue
           );
-          let nextIndex =
-            event.key === "ArrowDown" ? currentIndex + 1 : currentIndex - 1;
 
-          if (nextIndex >= filteredOptions.length) nextIndex = 0;
-          if (nextIndex < 0) nextIndex = filteredOptions.length - 1;
+          let nextIndex;
+          if (currentIndex === -1) {
+            nextIndex = event.key === "ArrowDown" ? 0 : availableOptions.length - 1;
+          } else {
+            nextIndex =
+              event.key === "ArrowDown"
+                ? currentIndex + 1
+                : currentIndex - 1;
+          }
 
-          setHighlightedValue(filteredOptions[nextIndex].value);
+
+          if (nextIndex >= availableOptions.length) nextIndex = 0;
+          if (nextIndex < 0) nextIndex = availableOptions.length - 1;
+
+          setHighlightedValue(availableOptions[nextIndex].value);
           break;
         }
         case "Enter":
           event.preventDefault();
           if (isOpen) {
             if (highlightedValue) {
-              handleSelect(highlightedValue);
+              const selectedOption = filteredOptions.find(
+                (opt) => opt.value === highlightedValue
+              );
+              if (selectedOption && !selectedOption.disabled) {
+                handleSelect(highlightedValue);
+              }
             }
           } else {
             setIsOpen(true);
@@ -272,22 +292,28 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
                 filteredOptions.map((option) => (
                   <li
                     key={option.value}
-                    className={`px-4 py-2 text-sm cursor-pointer rounded-md mx-1 my-0.5
-                      transition-all duration-150
-                      ${
-                        option.value === highlightedValue
-                          ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                          : ""
-                      }
-                      ${
-                        option.value === value
-                          ? "bg-blue-500 dark:bg-blue-600 text-white font-semibold"
-                          : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
-                    onClick={() => handleSelect(option.value)}
-                    onMouseEnter={() => setHighlightedValue(option.value)}
+                    className={`px-4 py-2 text-sm rounded-md mx-1 my-0.5 transition-all duration-150 ${
+                      option.disabled
+                        ? "text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                        : `cursor-pointer ${
+                            option.value === highlightedValue
+                              ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                              : ""
+                          } ${
+                            option.value === value
+                              ? "bg-blue-500 dark:bg-blue-600 text-white font-semibold"
+                              : "text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          }`
+                    }`}
+                    onClick={() => !option.disabled && handleSelect(option.value)}
+                    onMouseEnter={() =>
+                      !option.disabled && setHighlightedValue(option.value)
+                    }
                     role="option"
-                    aria-selected={option.value === highlightedValue}
+                    aria-selected={
+                      !option.disabled && option.value === highlightedValue
+                    }
+                    aria-disabled={option.disabled}
                     id={option.value}
                   >
                     {option.label}

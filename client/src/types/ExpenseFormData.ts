@@ -3,7 +3,7 @@ interface ExpenseFormData {
   amount: string | number;
   date: string;
   category: string;
-  notes?: string;
+
   bankAccount?: string;
 }
 

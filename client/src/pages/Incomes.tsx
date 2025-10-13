@@ -1119,7 +1119,6 @@ const Incomes: React.FC = () => {
                   amount: editIncomeData.amount,
                   date: editIncomeData.date,
                   category: editIncomeData.category,
-                  notes: editIncomeData.notes,
                   bankAccount: editIncomeData.bankAccount,
                 }
               : undefined

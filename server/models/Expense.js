@@ -52,10 +52,6 @@ const expenseSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
-  notes: {
-    type: String,
-    trim: true,
-  },
   bankAccount: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "BankAccount",

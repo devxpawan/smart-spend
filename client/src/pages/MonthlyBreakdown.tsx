@@ -25,7 +25,7 @@ import IncomeInterface from "../types/IncomeInterface";
 import ExportButton from "../components/ExportButton";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Menu, Transition } from "@headlessui/react";
 // Force recompile workaround
 
