@@ -4,6 +4,7 @@ import {
   Calendar,
   DollarSign,
   Receipt,
+  Repeat,
   TrendingDown,
   X,
 } from "lucide-react";
@@ -27,8 +28,9 @@ interface FormErrors {
   amount?: string;
   date?: string;
   category?: string;
-
   bankAccount?: string;
+  recurringInterval?: string;
+  recurringEndDate?: string;
 }
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({
@@ -44,6 +46,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     date: new Date().toISOString().split("T")[0],
     category: "",
     bankAccount: "",
+    isRecurring: false,
+    recurringInterval: "monthly",
+    recurringEndDate: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -76,14 +81,22 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
           ? new Date(initialData.date).toISOString().split("T")[0]
           : new Date().toISOString().split("T")[0],
         category: initialData.category,
-        bankAccount: initialData.bankAccount || "",      });
+        bankAccount: initialData.bankAccount || "",
+        isRecurring: initialData.isRecurring || false,
+        recurringInterval: initialData.recurringInterval || "monthly",
+        recurringEndDate: initialData.recurringEndDate || "",
+      });
     } else {
       setFormData({
         description: "",
         amount: "",
         date: new Date().toISOString().split("T")[0],
         category: "",
-        bankAccount: "",      });
+        bankAccount: "",
+        isRecurring: false,
+        recurringInterval: "monthly",
+        recurringEndDate: "",
+      });
     }
     setErrors({});
   }, [initialData, isOpen]);
@@ -148,6 +161,23 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       }
     }
 
+    // Validate recurring fields if recurring is enabled
+    if (formData.isRecurring) {
+      if (!formData.recurringInterval) {
+        newErrors.recurringInterval = "Please select a recurring interval";
+      }
+      
+      if (formData.recurringEndDate) {
+        const endDate = new Date(formData.recurringEndDate);
+        const startDate = new Date(formData.date);
+        if (isNaN(endDate.getTime())) {
+          newErrors.recurringEndDate = "Please enter a valid end date";
+        } else if (endDate < startDate) {
+          newErrors.recurringEndDate = "End date must be after the start date";
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData, bankAccounts]);
@@ -158,10 +188,12 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
 
     // Clear field-specific error when user starts typing
@@ -187,6 +219,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
         ...formData,
         amount: parseFloat(formData.amount as string),
         bankAccount: formData.bankAccount || undefined,
+        isRecurring: formData.isRecurring,
+        recurringInterval: formData.isRecurring ? formData.recurringInterval : undefined,
+        recurringEndDate: formData.isRecurring && formData.recurringEndDate ? formData.recurringEndDate : undefined,
       });
       onClose();
     } catch (err) {
@@ -525,7 +560,97 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                   )}
                 </div>
 
-
+                {/* Recurring Section */}
+                <div className="md:col-span-2 pt-4 border-t border-slate-200 dark:border-gray-700">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isRecurring"
+                      name="isRecurring"
+                      checked={formData.isRecurring || false}
+                      onChange={handleChange}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-slate-300 rounded"
+                    />
+                    <label
+                      htmlFor="isRecurring"
+                      className="ml-2 block text-sm font-semibold text-slate-700 dark:text-slate-300"
+                    >
+                      <div className="flex items-center">
+                        <Repeat className="w-4 h-4 mr-2" />
+                        Make this a recurring expense
+                      </div>
+                    </label>
+                  </div>
+                  
+                  {formData.isRecurring && (
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
+                      {/* Recurring Interval */}
+                      <div>
+                        <label
+                          htmlFor="recurringInterval"
+                          className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                        >
+                          Recurring Interval
+                        </label>
+                        <CustomSelect
+                          options={[
+                            { value: "daily", label: "Daily" },
+                            { value: "weekly", label: "Weekly" },
+                            { value: "monthly", label: "Monthly" },
+                            { value: "yearly", label: "Yearly" },
+                          ]}
+                          value={formData.recurringInterval || "monthly"}
+                          onChange={(value) =>
+                            handleChange({
+                              target: { name: "recurringInterval", value },
+                            } as React.ChangeEvent<HTMLSelectElement>)
+                          }
+                          className={`${
+                            errors.recurringInterval
+                              ? "border-red-300 focus:ring-red-500"
+                              : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                          }`}
+                          openDirection="top"
+                        />
+                        {errors.recurringInterval && (
+                          <div className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400">
+                            <AlertCircle className="w-4 h-4" />
+                            <span className="text-sm">{errors.recurringInterval}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Recurring End Date */}
+                      <div>
+                        <label
+                          htmlFor="recurringEndDate"
+                          className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                        >
+                          End Date (Optional)
+                        </label>
+                        <input
+                          type="date"
+                          name="recurringEndDate"
+                          id="recurringEndDate"
+                          value={formData.recurringEndDate || ""}
+                          onChange={handleChange}
+                          min={formData.date}
+                          className={`form-input block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
+                            errors.recurringEndDate
+                              ? "border-red-300 focus:ring-red-500"
+                              : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                          }`}
+                        />
+                        {errors.recurringEndDate && (
+                          <div className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400">
+                            <AlertCircle className="w-4 h-4" />
+                            <span className="text-sm">{errors.recurringEndDate}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Action Buttons */}

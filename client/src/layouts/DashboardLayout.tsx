@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   Receipt,
+  Repeat,
   ShieldCheck,
   TrendingUp,
   User,
@@ -26,6 +27,7 @@ import React, {
 import { Link, Outlet, useLocation } from "react-router-dom";
 import LogoutConfirmModal from "../components/LogoutConfirmModal";
 import { useAuth } from "../contexts/auth-exports";
+import NotificationBell from "../components/NotificationBell"; // Import NotificationBell
 
 //
 // HOOK: media query
@@ -98,6 +100,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     path: "/bills",
     icon: <Receipt className="w-4 h-4" />,
     gradient: "from-amber-500 to-orange-600",
+  },
+  {
+    name: "Recurring",
+    path: "/recurring",
+    icon: <Repeat className="w-4 h-4" />,
+    gradient: "from-indigo-500 to-purple-600",
   },
   {
     name: "Monthly View",
@@ -483,7 +491,10 @@ const MobileMenuButton: React.FC<{
           </span>
         </span>
       </div>
-      <div className="w-10" />
+      {/* Notification Bell for mobile */}
+      <div className="w-10 flex justify-end">
+        <NotificationBell />
+      </div>
     </div>
   </div>
 );
@@ -620,6 +631,11 @@ const DashboardLayout: React.FC = () => {
           onClose={() => setSidebarOpen(false)}
           isOpen={sidebarOpen}
         />
+        {/* Desktop header with notification bell */}
+        <div className="hidden md:flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-slate-200/50 dark:border-gray-700/50">
+          <div className="flex-1"></div>
+          <NotificationBell />
+        </div>
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8" role="main">
           <Outlet />
         </main>

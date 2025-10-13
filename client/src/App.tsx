@@ -17,6 +17,7 @@ import Warranties from "./pages/Warranties";
 import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 import BankAccounts from "./pages/BankAccounts";
+import Recurring from "./pages/Recurring";
 
 function App() {
   const { loading } = useAuth();
@@ -58,6 +59,9 @@ function App() {
 
           {/* Monthly Breakdown */}
           <Route path="monthly" element={<MonthlyBreakdown />} />
+
+          {/* Recurring Transactions */}
+          <Route path="recurring" element={<Recurring />} />
 
           {/* Warranty Routes */}
           <Route path="warranties" element={<Warranties />} />

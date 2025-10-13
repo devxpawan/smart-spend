@@ -73,6 +73,14 @@ router.post(
     check("amount", "Amount is required and must be a number").isNumeric(),
     check("category", "Category is required").notEmpty(),
     check("bankAccount", "Bank account is invalid").optional().isMongoId(),
+    check("isRecurring", "isRecurring must be a boolean").optional().isBoolean(),
+    check("recurringInterval", "Invalid recurring interval").optional().isIn([
+      "daily",
+      "weekly",
+      "monthly",
+      "yearly",
+    ]),
+    check("recurringEndDate", "Invalid date").optional().isISO8601(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -80,8 +88,8 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, paymentMethod, bankAccount } =
-      req.body;
+    const { amount, description, category, date, paymentMethod, bankAccount, 
+      isRecurring, recurringInterval, recurringEndDate } = req.body;
 
     let session;
     try {
@@ -97,6 +105,30 @@ router.post(
         await account.save({ session });
       }
 
+      // Calculate next recurring date if recurring
+      let nextRecurringDate = undefined;
+      if (isRecurring && recurringInterval) {
+        const startDate = new Date(date);
+        switch (recurringInterval) {
+          case "daily":
+            nextRecurringDate = new Date(startDate);
+            nextRecurringDate.setDate(startDate.getDate() + 1);
+            break;
+          case "weekly":
+            nextRecurringDate = new Date(startDate);
+            nextRecurringDate.setDate(startDate.getDate() + 7);
+            break;
+          case "monthly":
+            nextRecurringDate = new Date(startDate);
+            nextRecurringDate.setMonth(startDate.getMonth() + 1);
+            break;
+          case "yearly":
+            nextRecurringDate = new Date(startDate);
+            nextRecurringDate.setFullYear(startDate.getFullYear() + 1);
+            break;
+        }
+      }
+
       const newExpense = new Expense({
         user: req.user.id,
         amount,
@@ -105,6 +137,10 @@ router.post(
         date: date || Date.now(),
         paymentMethod,
         bankAccount: bankAccount || undefined,
+        isRecurring: isRecurring || false,
+        recurringInterval: isRecurring ? recurringInterval : undefined,
+        recurringEndDate: isRecurring ? recurringEndDate : undefined,
+        nextRecurringDate: isRecurring ? nextRecurringDate : undefined,
       });
 
       const expense = await newExpense.save({ session });
@@ -138,6 +174,14 @@ router.put(
     check("amount", "Amount must be a number").optional().isNumeric(),
     check("category", "Category is required").optional().notEmpty(),
     check("bankAccount", "Bank account is invalid").optional().isMongoId(),
+    check("isRecurring", "isRecurring must be a boolean").optional().isBoolean(),
+    check("recurringInterval", "Invalid recurring interval").optional().isIn([
+      "daily",
+      "weekly",
+      "monthly",
+      "yearly",
+    ]),
+    check("recurringEndDate", "Invalid date").optional().isISO8601(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -145,8 +189,8 @@ router.put(
       return res.status(400).json({ errors: errors.array() });
     }
   try {
-    const { amount, description, category, date, paymentMethod, bankAccount } =
-      req.body;
+    const { amount, description, category, date, paymentMethod, bankAccount,
+      isRecurring, recurringInterval, recurringEndDate } = req.body;
 
     let session;
     try {
@@ -185,6 +229,35 @@ router.put(
         await newAccount.save({ session });
       }
 
+      // Calculate next recurring date if recurring
+      let nextRecurringDate = expense.nextRecurringDate;
+      if (isRecurring !== undefined) {
+        if (isRecurring && recurringInterval) {
+          const startDate = date ? new Date(date) : new Date(expense.date);
+          switch (recurringInterval) {
+            case "daily":
+              nextRecurringDate = new Date(startDate);
+              nextRecurringDate.setDate(startDate.getDate() + 1);
+              break;
+            case "weekly":
+              nextRecurringDate = new Date(startDate);
+              nextRecurringDate.setDate(startDate.getDate() + 7);
+              break;
+            case "monthly":
+              nextRecurringDate = new Date(startDate);
+              nextRecurringDate.setMonth(startDate.getMonth() + 1);
+              break;
+            case "yearly":
+              nextRecurringDate = new Date(startDate);
+              nextRecurringDate.setFullYear(startDate.getFullYear() + 1);
+              break;
+          }
+        } else {
+          // Not recurring anymore
+          nextRecurringDate = undefined;
+        }
+      }
+
       // Update expense fields
       expense.amount = amount !== undefined ? amount : expense.amount;
       expense.description = description || expense.description;
@@ -192,6 +265,20 @@ router.put(
       expense.date = date || expense.date;
       expense.paymentMethod = paymentMethod || expense.paymentMethod;
       expense.bankAccount = bankAccount || undefined;
+      
+      // Update recurring fields
+      if (isRecurring !== undefined) {
+        expense.isRecurring = isRecurring;
+        if (isRecurring) {
+          expense.recurringInterval = recurringInterval;
+          expense.recurringEndDate = recurringEndDate || undefined;
+          expense.nextRecurringDate = nextRecurringDate;
+        } else {
+          expense.recurringInterval = undefined;
+          expense.recurringEndDate = undefined;
+          expense.nextRecurringDate = undefined;
+        }
+      }
 
       const updatedExpense = await expense.save({ session });
       await session.commitTransaction();
@@ -434,8 +521,6 @@ router.get("/monthly/:year/:month", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
 
 router.patch("/bulk-update", async (req, res) => {
   const { ids, updates } = req.body;

@@ -60,11 +60,27 @@ const expenseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Bill",
   },
+  // Recurring fields
+  isRecurring: {
+    type: Boolean,
+    default: false,
+  },
+  recurringInterval: {
+    type: String,
+    enum: ["daily", "weekly", "monthly", "yearly"],
+  },
+  recurringEndDate: {
+    type: Date,
+  },
+  nextRecurringDate: {
+    type: Date,
+  },
 });
 
 // Index for faster querying
 expenseSchema.index({ user: 1, date: -1 });
 expenseSchema.index({ user: 1, category: 1 });
+expenseSchema.index({ user: 1, isRecurring: 1, nextRecurringDate: 1 });
 
 const Expense = mongoose.model("Expense", expenseSchema);
 
