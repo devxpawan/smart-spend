@@ -39,11 +39,27 @@ const incomeSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "BankAccount",
   },
+  // Recurring fields
+  isRecurring: {
+    type: Boolean,
+    default: false,
+  },
+  recurringInterval: {
+    type: String,
+    enum: ["daily", "weekly", "monthly", "yearly"],
+  },
+  recurringEndDate: {
+    type: Date,
+  },
+  nextRecurringDate: {
+    type: Date,
+  },
 });
 
 // Index for faster querying
 incomeSchema.index({ user: 1, date: -1 });
 incomeSchema.index({ user: 1, category: 1 });
+incomeSchema.index({ user: 1, isRecurring: 1, nextRecurringDate: 1 });
 
 const Income = mongoose.model("Income", incomeSchema);
 

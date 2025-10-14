@@ -13,10 +13,15 @@ import incomeRoutes from "./routes/incomes.js";
 import financialHealthRoutes from "./routes/financialHealth.js";
 import userRoutes from "./routes/user.js";
 import bankAccountRoutes from "./routes/bankAccounts.js";
+import recurringRoutes from "./routes/recurring.js";
+import notificationRoutes from "./routes/notifications.js"; // Add notifications route
 
 // Middleware
 import { authenticateToken } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+
+// Jobs
+import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
 
 // Load environment variables
 dotenv.config();
@@ -110,6 +115,8 @@ app.use("/api/incomes", authenticateToken, incomeRoutes);
 app.use("/api/financial-health", authenticateToken, financialHealthRoutes);
 app.use("/api/user", authenticateToken, userRoutes);
 app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
+app.use("/api/recurring", authenticateToken, recurringRoutes);
+app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
 
 // Default route
 app.get("/", (req, res) => {
@@ -122,4 +129,8 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Start the recurring transaction processor job
+  console.log("Starting recurring transaction processor job...");
+  recurringJob.start();
 });
