@@ -2,46 +2,17 @@
 
 ## Overview
 
-The Recurring Transactions feature in SmartSpend allows users to automatically create income and expense records at regular intervals. This eliminates the need to manually enter transactions that occur on a regular basis, such as monthly subscriptions, salaries, or rent payments.
-
-## How It Works
-
-### 1. Creating Recurring Transactions
-
-Users can create recurring transactions in the Expenses and Incomes sections by:
-
-1. Adding a new transaction or editing an existing one
-2. Checking the "Make this a recurring [expense/income]" checkbox
-3. Selecting a recurring interval (daily, weekly, monthly, or yearly)
-4. Optionally setting an end date for the recurrence
-
-### 2. Managing Recurring Transactions
-
-The "Recurring" section in the navigation allows users to:
-
-- View all current recurring transactions
-- See upcoming transaction dates
-- Remove the recurring status from transactions
-
-### 3. Backend Processing
-
-The system includes a processor that runs daily to:
-
-- Identify recurring transactions due for processing
-- Create new transaction records
-- Update the next occurrence date
-- Handle end dates for recurring transactions
+The recurring transactions feature allows users to set up transactions that automatically repeat at specified intervals. This is useful for regular expenses like subscriptions or regular incomes like salaries.
 
 ## Implementation Details
 
-### Database Schema
+### Data Model
 
-The feature extends the existing Expense and Income models with the following fields:
-
-- `isRecurring`: Boolean indicating if the transaction is recurring
-- `recurringInterval`: String enum ("daily", "weekly", "monthly", "yearly")
-- `recurringEndDate`: Date when the recurrence should stop (optional)
-- `nextRecurringDate`: Date when the next occurrence is due
+Recurring transactions use additional fields in the existing Expense and Income models:
+- `isRecurring` (boolean) - indicates if the transaction is recurring
+- `recurringInterval` (string) - the interval at which the transaction recurs (daily, weekly, monthly, yearly)
+- `nextRecurringDate` (date) - the next date the transaction will recur
+- `recurringEndDate` (date, optional) - the date after which the transaction will no longer recur
 
 ### API Endpoints
 
@@ -52,7 +23,6 @@ The feature extends the existing Expense and Income models with the following fi
 ### Frontend Components
 
 - `Recurring.tsx` - Main page for viewing and managing recurring transactions
-- `RecurringInfo.tsx` - Informational component explaining the feature
 - Modified `ExpenseModal.tsx` and `IncomeModal.tsx` to include recurring options
 
 ## Setup and Configuration

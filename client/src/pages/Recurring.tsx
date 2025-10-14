@@ -22,7 +22,6 @@ import {
 } from "../api/recurring";
 import CustomSelect from "../components/CustomSelect";
 import ConfirmModal from "../components/ConfirmModal";
-import RecurringInfo from "../components/RecurringInfo";
 
 interface FilterConfig {
   type: "all" | "expense" | "income";
@@ -63,7 +62,7 @@ const Recurring: React.FC = () => {
     type: null,
   });
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  
+
   // State for edit modal
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editFormData, setEditFormData] = useState<EditFormData | null>(null);
@@ -74,7 +73,7 @@ const Recurring: React.FC = () => {
     try {
       setLoading(true);
       setError("");
-      
+
       const { expenses, incomes } = await getRecurringTransactions();
 
       // Combine expenses and incomes with type information
@@ -88,11 +87,16 @@ const Recurring: React.FC = () => {
       console.error("Error fetching recurring transactions:", err);
       // Provide user-friendly error messages
       if (err.message.includes("Network error")) {
-        setError("Unable to connect to the server. Please check your internet connection.");
+        setError(
+          "Unable to connect to the server. Please check your internet connection."
+        );
       } else if (err.message.includes("Server Error")) {
         setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
       } else {
-        setError(err.message || "Failed to fetch recurring transactions. Please try again.");
+        setError(
+          err.message ||
+            "Failed to fetch recurring transactions. Please try again."
+        );
       }
     } finally {
       setLoading(false);
@@ -156,11 +160,16 @@ const Recurring: React.FC = () => {
     } catch (err: any) {
       console.error("Error removing recurring transaction:", err);
       if (err.message.includes("Network error")) {
-        setError("Unable to connect to the server. Please check your internet connection.");
+        setError(
+          "Unable to connect to the server. Please check your internet connection."
+        );
       } else if (err.message.includes("Server Error")) {
         setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
       } else {
-        setError(err.message || "Failed to remove recurring transaction. Please try again.");
+        setError(
+          err.message ||
+            "Failed to remove recurring transaction. Please try again."
+        );
       }
     } finally {
       setUpdatingId(null);
@@ -179,11 +188,16 @@ const Recurring: React.FC = () => {
     } catch (err: any) {
       console.error("Error updating recurring transaction:", err);
       if (err.message.includes("Network error")) {
-        setError("Unable to connect to the server. Please check your internet connection.");
+        setError(
+          "Unable to connect to the server. Please check your internet connection."
+        );
       } else if (err.message.includes("Server Error")) {
         setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
       } else {
-        setError(err.message || "Failed to update recurring transaction. Please try again.");
+        setError(
+          err.message ||
+            "Failed to update recurring transaction. Please try again."
+        );
       }
     } finally {
       setUpdatingId(null);
@@ -198,25 +212,31 @@ const Recurring: React.FC = () => {
       description: transaction.description,
       amount: transaction.amount,
       category: transaction.category,
-      recurringInterval: transaction.recurringInterval as "daily" | "weekly" | "monthly" | "yearly",
-      nextRecurringDate: transaction.nextRecurringDate 
-        ? new Date(transaction.nextRecurringDate).toISOString().split('T')[0] 
-        : new Date().toISOString().split('T')[0],
-      recurringEndDate: transaction.recurringEndDate 
-        ? new Date(transaction.recurringEndDate).toISOString().split('T')[0] 
-        : undefined
+      recurringInterval: transaction.recurringInterval as
+        | "daily"
+        | "weekly"
+        | "monthly"
+        | "yearly",
+      nextRecurringDate: transaction.nextRecurringDate
+        ? new Date(transaction.nextRecurringDate).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
+      recurringEndDate: transaction.recurringEndDate
+        ? new Date(transaction.recurringEndDate).toISOString().split("T")[0]
+        : undefined,
     });
     setEditModalOpen(true);
   };
 
   // Handle form input changes
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleEditFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     if (!editFormData) return;
-    
+
     const { name, value } = e.target;
     setEditFormData({
       ...editFormData,
-      [name]: name === 'amount' ? parseFloat(value) || 0 : value
+      [name]: name === "amount" ? parseFloat(value) || 0 : value,
     });
   };
 
@@ -228,7 +248,7 @@ const Recurring: React.FC = () => {
     try {
       setUpdatingId(editFormData._id);
       setEditModalOpen(false);
-      
+
       // Prepare data for update
       const updateData = {
         description: editFormData.description,
@@ -237,22 +257,31 @@ const Recurring: React.FC = () => {
         recurringInterval: editFormData.recurringInterval,
         nextRecurringDate: editFormData.nextRecurringDate,
         recurringEndDate: editFormData.recurringEndDate,
-        isRecurring: true
+        isRecurring: true,
       };
-      
-      await updateRecurringTransaction(editFormData._id, editFormData.type, updateData);
+
+      await updateRecurringTransaction(
+        editFormData._id,
+        editFormData.type,
+        updateData
+      );
       await fetchRecurringTransactions();
-      
+
       // Reset form data
       setEditFormData(null);
     } catch (err: any) {
       console.error("Error updating recurring transaction:", err);
       if (err.message.includes("Network error")) {
-        setError("Unable to connect to the server. Please check your internet connection.");
+        setError(
+          "Unable to connect to the server. Please check your internet connection."
+        );
       } else if (err.message.includes("Server Error")) {
         setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
       } else {
-        setError(err.message || "Failed to update recurring transaction. Please try again.");
+        setError(
+          err.message ||
+            "Failed to update recurring transaction. Please try again."
+        );
       }
     } finally {
       setUpdatingId(null);
@@ -310,47 +339,47 @@ const Recurring: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
-      {/* Header */}
-      <header className="flex flex-col gap-4 sm:gap-6">
+      {/* Header with improved design */}
+      <header className="flex flex-col gap-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <Repeat className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <Repeat className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-gray-200">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-gray-200">
                 Recurring Transactions
               </h1>
-              <p className="text-slate-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
+              <p className="text-slate-600 dark:text-gray-400 mt-1">
                 Manage your recurring incomes and expenses
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm sm:text-base">
-            <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow-sm border dark:border-gray-700">
-              <span className="text-slate-600 dark:text-gray-300">
-                Total Recurring:{" "}
+          <div className="flex items-center">
+            <div className="bg-white dark:bg-gray-800 px-4 py-2.5 rounded-lg shadow-sm border dark:border-gray-700">
+              <span className="text-slate-600 dark:text-gray-400 mr-2">
+                Total Recurring: 
               </span>
-              <span className="font-semibold text-slate-900 dark:text-white">
+              <span className="font-semibold text-slate-900 dark:text-white text-lg">
                 {filteredTransactions.length}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border dark:border-gray-700 shadow-sm">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/50">
-                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+        {/* Enhanced Stats Cards with better design */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-5 rounded-xl border border-green-200 dark:border-green-800/30 shadow-sm">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/30">
+                <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-600 dark:text-gray-400">
+                <p className="text-slate-600 dark:text-gray-400">
                   Recurring Incomes
                 </p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {
                     filteredTransactions.filter((t) => t.type === "income")
                       .length
@@ -360,16 +389,16 @@ const Recurring: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border dark:border-gray-700 shadow-sm">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/50">
-                <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+          <div className="bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20 p-5 rounded-xl border border-rose-200 dark:border-rose-800/30 shadow-sm">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 rounded-lg bg-rose-100 dark:bg-rose-900/30">
+                <TrendingDown className="w-6 h-6 text-rose-600 dark:text-rose-400" />
               </div>
               <div>
-                <p className="text-sm text-slate-600 dark:text-gray-400">
+                <p className="text-slate-600 dark:text-gray-400">
                   Recurring Expenses
                 </p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {
                     filteredTransactions.filter((t) => t.type === "expense")
                       .length
@@ -381,43 +410,54 @@ const Recurring: React.FC = () => {
         </div>
       </header>
 
-      {/* Info Section */}
-      <RecurringInfo />
-
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg border dark:border-gray-700 shadow-sm space-y-3 sm:space-y-4">
-        {/* Search */}
-        <div className="relative">
-          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Search recurring transactions..."
-            value={filters.searchTerm}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))
-            }
-            className="w-full pl-12 pr-10 py-3 bg-slate-100 dark:bg-gray-700 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-800 transition-all duration-300 shadow-sm dark:text-white"
-          />
-          {filters.searchTerm && (
-            <button
-              type="button"
-              onClick={() =>
-                setFilters((prev) => ({ ...prev, searchTerm: "" }))
+      {/* Filters with improved design */}
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border dark:border-gray-700 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Search */}
+          <div className="md:col-span-2 relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Filter className="h-5 w-5 text-slate-400 dark:text-gray-500" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search recurring transactions..."
+              value={filters.searchTerm}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))
               }
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full p-1"
-              aria-label="Clear search"
+              className="block w-full pl-10 pr-3 py-2.5 bg-slate-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-800 transition-all duration-300 shadow-sm dark:text-white"
+            />
+            {filters.searchTerm && (
+              <button
+                type="button"
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, searchTerm: "" }))
+                }
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+              >
+                <X className="h-5 w-5 text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200" />
+              </button>
+            )}
+          </div>
+
+          {/* Refresh Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={fetchRecurringTransactions}
+              disabled={loading}
+              className="flex items-center px-4 py-2.5 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-lg text-sm font-medium text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              <X className="w-4 h-4" />
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
             </button>
-          )}
+          </div>
         </div>
 
         {/* Type and Interval Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          {/* Type Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-            <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
-              Type:
+        <div className="flex flex-col sm:flex-row gap-4 mt-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Transaction Type
             </label>
             <CustomSelect
               options={[
@@ -432,14 +472,13 @@ const Recurring: React.FC = () => {
                   type: value as FilterConfig["type"],
                 }))
               }
-              className="w-full sm:w-40"
+              className="w-full"
             />
           </div>
 
-          {/* Interval Filter */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-            <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
-              Interval:
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Interval
             </label>
             <CustomSelect
               options={[
@@ -456,21 +495,8 @@ const Recurring: React.FC = () => {
                   interval: value as FilterConfig["interval"],
                 }))
               }
-              className="w-full sm:w-40"
+              className="w-full"
             />
-          </div>
-
-          {/* Refresh Button */}
-          <div className="sm:ml-auto">
-            <button
-              onClick={fetchRecurringTransactions}
-              className="flex items-center justify-center px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
-              title="Refresh transactions"
-              disabled={loading}
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              <span className="hidden sm:inline sm:ml-2">Refresh</span>
-            </button>
           </div>
         </div>
       </div>
@@ -514,8 +540,8 @@ const Recurring: React.FC = () => {
         </div>
       )}
 
-      {/* Transactions List */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden">
+      {/* Transactions List with improved design */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow border dark:border-gray-700 overflow-hidden">
         {filteredTransactions.length === 0 && !error ? (
           <div className="text-center py-12">
             <div className="max-w-md mx-auto">
@@ -529,6 +555,53 @@ const Recurring: React.FC = () => {
                 You don't have any recurring transactions yet. Create recurring
                 incomes or expenses in their respective sections.
               </p>
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 mb-6">
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center justify-center">
+                  <span className="mr-2">How to create recurring transactions</span>
+                </h4>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">1</span>
+                      </div>
+                    </div>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm text-left">
+                      Go to Expenses or Incomes section
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">2</span>
+                      </div>
+                    </div>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm text-left">
+                      Create a new transaction
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">3</span>
+                      </div>
+                    </div>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm text-left">
+                      Check "Make this a recurring transaction"
+                    </p>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">4</span>
+                      </div>
+                    </div>
+                    <p className="text-blue-700 dark:text-blue-300 text-sm text-left">
+                      Set the interval and optionally an end date
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -536,34 +609,34 @@ const Recurring: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Description
                   </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Category
                   </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <div className="flex items-center space-x-1">
                       <DollarSign className="w-4 h-4" />
                       <span>Amount</span>
                     </div>
                   </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <div className="flex items-center space-x-1">
                       <Clock className="w-4 h-4" />
                       <span>Interval</span>
                     </div>
                   </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     <div className="flex items-center space-x-1">
                       <Calendar className="w-4 h-4" />
                       <span>Next Date</span>
                     </div>
                   </th>
-                  <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -575,9 +648,9 @@ const Recurring: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/30"
                   >
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div
                           className={`p-2 rounded-lg mr-3 ${getTypeColor(
@@ -586,45 +659,45 @@ const Recurring: React.FC = () => {
                         >
                           {getTypeIcon(transaction.type)}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {transaction.description}
-                          </div>
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {transaction.description}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getTypeColor(
                           transaction.type
                         )}`}
                       >
                         {transaction.type === "expense" ? "Expense" : "Income"}
                       </span>
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded">
                         {transaction.category}
                       </span>
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
                       {formatCurrency(transaction.amount)}
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                       {transaction.recurringInterval
                         ? getIntervalLabel(transaction.recurringInterval)
                         : "N/A"}
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                       {transaction.nextRecurringDate
-                        ? new Date(transaction.nextRecurringDate).toLocaleDateString()
+                        ? new Date(
+                            transaction.nextRecurringDate
+                          ).toLocaleDateString()
                         : "N/A"}
                     </td>
-                    <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => openEditModal(transaction)}
-                          className={`text-blue-600 hover:text-white hover:bg-gradient-to-r hover:from-blue-500 hover:to-indigo-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 ${
+                          className={`text-indigo-600 hover:text-white hover:bg-indigo-600 transition-all duration-200 p-2 rounded-lg ${
                             updatingId === transaction._id
                               ? "opacity-60 cursor-not-allowed"
                               : ""
@@ -646,7 +719,7 @@ const Recurring: React.FC = () => {
                               false
                             )
                           }
-                          className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
+                          className={`text-rose-600 hover:text-white hover:bg-rose-600 transition-all duration-200 p-2 rounded-lg ${
                             updatingId === transaction._id
                               ? "opacity-60 cursor-not-allowed"
                               : ""
@@ -681,7 +754,7 @@ const Recurring: React.FC = () => {
         cancelText="Cancel"
         variant="warning"
       />
-      
+
       {/* Edit Modal */}
       {editModalOpen && editFormData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -698,7 +771,7 @@ const Recurring: React.FC = () => {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-              
+
               <form onSubmit={handleEditFormSubmit}>
                 <div className="space-y-4">
                   <div>
@@ -714,7 +787,7 @@ const Recurring: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Amount
@@ -730,7 +803,7 @@ const Recurring: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Category
@@ -744,7 +817,7 @@ const Recurring: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Interval
@@ -762,7 +835,7 @@ const Recurring: React.FC = () => {
                       <option value="yearly">Yearly</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Next Recurring Date
@@ -776,7 +849,7 @@ const Recurring: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       End Date (Optional)
@@ -790,7 +863,7 @@ const Recurring: React.FC = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="mt-6 flex justify-end space-x-3">
                   <button
                     type="button"
