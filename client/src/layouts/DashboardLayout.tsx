@@ -486,14 +486,14 @@ const MobileMenuButton: React.FC<{
       <div className="flex-1 text-center">
         <span className="text-base font-bold bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
           Smart
-          <span className="bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-400 dark:to-purple-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-indigo-400 dark:to-purple-500 bg-clip-text text-transparent">
             Spend
           </span>
         </span>
       </div>
-      {/* Notification Bell for mobile */}
+      {/* Notification Bell for mobile - REMOVED to show only on Dashboard */}
       <div className="w-10 flex justify-end">
-        <NotificationBell />
+        {/* NotificationBell removed from here */}
       </div>
     </div>
   </div>
@@ -631,11 +631,6 @@ const DashboardLayout: React.FC = () => {
           onClose={() => setSidebarOpen(false)}
           isOpen={sidebarOpen}
         />
-        {/* Desktop header with notification bell */}
-        <div className="hidden md:flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-slate-200/50 dark:border-gray-700/50">
-          <div className="flex-1"></div>
-          <NotificationBell />
-        </div>
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8" role="main">
           <Outlet />
         </main>
