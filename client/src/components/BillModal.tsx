@@ -612,9 +612,7 @@ const BillModal: React.FC<BillModalProps> = ({
                                       disabled={bankAccountsLoading}
                                       placeholder="Select a bank account"
                                     />
-                                    {bankAccountsLoading && (
-                                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Loading bank accounts...</p>
-                                    )}
+                                  
                                     {errors.bankAccount && (
                                       <div
                                         id="bankAccount-error"

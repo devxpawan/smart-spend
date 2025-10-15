@@ -10,13 +10,12 @@ import {
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useAuth } from "../contexts/auth-exports";
-import IncomeFormData from "../types/IncomeFormData";
-import BankAccountInterface from "../types/BankAccountInterface";
-import CustomSelect from "./CustomSelect";
-import { incomeCategories } from "../lib/incomeCategories";
 import { getBankAccounts } from "../api/bankAccounts";
-
+import { useAuth } from "../contexts/auth-exports";
+import { incomeCategories } from "../lib/incomeCategories";
+import BankAccountInterface from "../types/BankAccountInterface";
+import IncomeFormData from "../types/IncomeFormData";
+import CustomSelect from "./CustomSelect";
 
 interface IncomeModalProps {
   isOpen: boolean;
@@ -115,7 +114,8 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
     if (!formData.description.trim()) {
       newErrors.description = "Description is required";
     } else if (!/[a-zA-Z]/.test(formData.description)) {
-      newErrors.description = "Description must contain at least one alphabetic character";
+      newErrors.description =
+        "Description must contain at least one alphabetic character";
     }
 
     if (!formData.amount || parseFloat(formData.amount as string) <= 0) {
@@ -138,7 +138,6 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
       newErrors.category = "Please select a category";
     }
 
-
     if (!formData.bankAccount) {
       newErrors.bankAccount = "Please select a bank account";
     }
@@ -148,7 +147,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
       if (!formData.recurringInterval) {
         newErrors.recurringInterval = "Please select a recurring interval";
       }
-      
+
       if (formData.recurringEndDate) {
         const endDate = new Date(formData.recurringEndDate);
         const startDate = new Date(formData.date);
@@ -171,8 +170,9 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
     >
   ) => {
     const { name, value, type } = e.target;
-    const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
-    
+    const checked =
+      type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -202,8 +202,13 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
         amount: parseFloat(formData.amount as string),
         bankAccount: formData.bankAccount || undefined,
         isRecurring: formData.isRecurring,
-        recurringInterval: formData.isRecurring ? formData.recurringInterval : undefined,
-        recurringEndDate: formData.isRecurring && formData.recurringEndDate ? formData.recurringEndDate : undefined,
+        recurringInterval: formData.isRecurring
+          ? formData.recurringInterval
+          : undefined,
+        recurringEndDate:
+          formData.isRecurring && formData.recurringEndDate
+            ? formData.recurringEndDate
+            : undefined,
       });
       onClose();
     } catch (err) {
@@ -353,9 +358,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       ref={firstInputRef}
                       aria-invalid={errors.description ? "true" : "false"}
                       aria-describedby={
-                        errors.description
-                          ? "description-error"
-                          : undefined
+                        errors.description ? "description-error" : undefined
                       }
                     />
                   </div>
@@ -443,9 +446,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       }`}
                       required
                       aria-invalid={errors.date ? "true" : "false"}
-                      aria-describedby={
-                        errors.date ? "date-error" : undefined
-                      }
+                      aria-describedby={errors.date ? "date-error" : undefined}
                     />
                   </div>
                   {errors.date && (
@@ -508,9 +509,9 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                   </label>
                   <CustomSelect
                     options={bankAccounts.map((account) => ({
-                        value: account._id,
-                        label: `${account.accountName} (${account.bankName})`,
-                      }))}
+                      value: account._id,
+                      label: `${account.accountName} (${account.bankName})`,
+                    }))}
                     value={formData.bankAccount || ""}
                     onChange={(value) =>
                       handleChange({
@@ -527,9 +528,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                     disabled={bankAccountsLoading}
                     placeholder="Select a bank account"
                   />
-                  {bankAccountsLoading && (
-                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Loading bank accounts...</p>
-                  )}
+
                   {errors.bankAccount && (
                     <div
                       id="bankAccount-error"
@@ -562,7 +561,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       </div>
                     </label>
                   </div>
-                  
+
                   {formData.isRecurring && (
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
                       {/* Recurring Interval */}
@@ -596,11 +595,13 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                         {errors.recurringInterval && (
                           <div className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400">
                             <AlertCircle className="w-4 h-4" />
-                            <span className="text-sm">{errors.recurringInterval}</span>
+                            <span className="text-sm">
+                              {errors.recurringInterval}
+                            </span>
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Recurring End Date */}
                       <div>
                         <label
@@ -625,7 +626,9 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                         {errors.recurringEndDate && (
                           <div className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400">
                             <AlertCircle className="w-4 h-4" />
-                            <span className="text-sm">{errors.recurringEndDate}</span>
+                            <span className="text-sm">
+                              {errors.recurringEndDate}
+                            </span>
                           </div>
                         )}
                       </div>
