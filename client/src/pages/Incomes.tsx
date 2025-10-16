@@ -1116,9 +1116,12 @@ const Incomes: React.FC = () => {
             editIncomeData
               ? {
                   description: editIncomeData.description,
-                  amount: editIncomeData.amount,
+                  amount: String(editIncomeData.amount),
                   date: editIncomeData.date,
                   category: editIncomeData.category,
+                  isRecurring: editIncomeData.isRecurring,
+                  recurringInterval: editIncomeData.recurringInterval,
+                  recurringEndDate: editIncomeData.recurringEndDate,
                   bankAccount: editIncomeData.bankAccount,
                 }
               : undefined

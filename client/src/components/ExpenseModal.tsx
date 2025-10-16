@@ -84,7 +84,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
         bankAccount: initialData.bankAccount || "",
         isRecurring: initialData.isRecurring || false,
         recurringInterval: initialData.recurringInterval || "monthly",
-        recurringEndDate: initialData.recurringEndDate || "",
+        recurringEndDate: initialData.recurringEndDate
+          ? new Date(initialData.recurringEndDate).toISOString().split("T")[0]
+          : "",
       });
     } else {
       setFormData({

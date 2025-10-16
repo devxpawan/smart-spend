@@ -4,7 +4,8 @@ export default interface IncomeInterface {
     description: string;
     category: string;
     date: string;
-
+    isRecurring?: boolean;
+    recurringInterval?: "daily" | "weekly" | "monthly" | "yearly";
+    recurringEndDate?: string;
     bankAccount?: string;
   }
-  

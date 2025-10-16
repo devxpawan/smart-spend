@@ -1154,6 +1154,9 @@ const Expenses: React.FC = () => {
                 amount: String(editExpenseData.amount),
                 date: editExpenseData.date,
                 category: editExpenseData.category,
+                isRecurring: editExpenseData.isRecurring,
+                recurringInterval: editExpenseData.recurringInterval,
+                recurringEndDate: editExpenseData.recurringEndDate,
                 bankAccount: editExpenseData.bankAccount,
               } as ExpenseFormData)
               : undefined

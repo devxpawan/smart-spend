@@ -4,7 +4,9 @@ interface ExpenseInterface {
   amount: number;
   date: string;
   category: string;
-
+  isRecurring?: boolean;
+  recurringInterval?: "daily" | "weekly" | "monthly" | "yearly";
+  recurringEndDate?: string;
   bankAccount?: string;
 }
 
