@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getNotifications, markAllNotificationsAsRead } from '../api/notifications';
 import NotificationInterface from '../types/NotificationInterface';
+import { useAuth } from './auth-exports';
 
 interface NotificationContextType {
   notifications: NotificationInterface[];
@@ -27,12 +28,13 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<NotificationInterface[]>([]);
+  const { token } = useAuth();
   
   const unreadCount = notifications.filter(notification => !notification.read).length;
 
   const fetchNotifications = async () => {
     try {
-      const fetchedNotifications = await getNotifications();
+      const fetchedNotifications = await getNotifications(token);
       setNotifications(fetchedNotifications);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
@@ -41,7 +43,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   const markAllAsRead = async () => {
     try {
-      await markAllNotificationsAsRead();
+      await markAllNotificationsAsRead(token);
       setNotifications(prev => 
         prev.map(notification => ({ ...notification, read: true }))
       );
@@ -60,8 +62,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Fetch notifications on component mount
   useEffect(() => {
-    fetchNotifications();
-  }, []);
+    if (token) {
+      fetchNotifications();
+    }
+  }, [token]);
 
   const contextValue: NotificationContextType = {
     notifications,

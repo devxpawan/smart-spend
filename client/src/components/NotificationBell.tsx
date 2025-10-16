@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, Check, Trash2, X } from 'lucide-react';
 import { useNotifications } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/auth-exports';
 import NotificationInterface from '../types/NotificationInterface';
 import { markNotificationAsRead, deleteNotification } from '../api/notifications';
 
@@ -8,6 +9,7 @@ const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const { notifications, unreadCount, fetchNotifications, removeNotification } = useNotifications();
+  const { token } = useAuth();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -25,7 +27,7 @@ const NotificationBell: React.FC = () => {
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      await markNotificationAsRead(id);
+      await markNotificationAsRead(id, token);
       await fetchNotifications();
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -34,7 +36,7 @@ const NotificationBell: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteNotification(id);
+      await deleteNotification(id, token);
       removeNotification(id);
     } catch (error) {
       console.error('Failed to delete notification:', error);

@@ -4,9 +4,10 @@ import NotificationInterface from "../types/NotificationInterface";
 const API_BASE_URL = "/api/notifications";
 
 // Get all notifications for the user
-export const getNotifications = async (): Promise<NotificationInterface[]> => {
+export const getNotifications = async (token?: string): Promise<NotificationInterface[]> => {
   try {
-    const response = await axios.get(API_BASE_URL);
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const response = await axios.get(API_BASE_URL, config);
     return response.data;
   } catch (error: any) {
     console.error("API Error fetching notifications:", error);
@@ -27,9 +28,10 @@ export const getNotifications = async (): Promise<NotificationInterface[]> => {
 };
 
 // Mark a notification as read
-export const markNotificationAsRead = async (id: string): Promise<NotificationInterface> => {
+export const markNotificationAsRead = async (id: string, token?: string): Promise<NotificationInterface> => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/${id}`);
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const response = await axios.put(`${API_BASE_URL}/${id}`, {}, config);
     return response.data;
   } catch (error: any) {
     console.error("API Error marking notification as read:", error);
@@ -50,9 +52,10 @@ export const markNotificationAsRead = async (id: string): Promise<NotificationIn
 };
 
 // Mark all notifications as read
-export const markAllNotificationsAsRead = async (): Promise<{ message: string }> => {
+export const markAllNotificationsAsRead = async (token?: string): Promise<{ message: string }> => {
   try {
-    const response = await axios.put(API_BASE_URL);
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const response = await axios.put(API_BASE_URL, {}, config);
     return response.data;
   } catch (error: any) {
     console.error("API Error marking all notifications as read:", error);
@@ -73,9 +76,10 @@ export const markAllNotificationsAsRead = async (): Promise<{ message: string }>
 };
 
 // Delete a notification
-export const deleteNotification = async (id: string): Promise<{ message: string }> => {
+export const deleteNotification = async (id: string, token?: string): Promise<{ message: string }> => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/${id}`);
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    const response = await axios.delete(`${API_BASE_URL}/${id}`, config);
     return response.data;
   } catch (error: any) {
     console.error("API Error deleting notification:", error);
