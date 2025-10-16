@@ -12,7 +12,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     localStorage.setItem("theme", theme);
-    console.log("Theme changed to:", theme);
     if (theme === "dark") {
       document.documentElement.classList.add("dark");
     } else {
@@ -30,4 +29,3 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 };
-
