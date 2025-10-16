@@ -26,6 +26,7 @@ import { Doughnut, Line } from "react-chartjs-2";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 import FinancialHealthScore from "../components/FinancialHealthScore";
+import NotificationBell from "../components/NotificationBell"; // Import NotificationBell
 import {
   SkeletonCard,
   SkeletonChart,
@@ -451,6 +452,16 @@ const Dashboard: React.FC = () => {
                     Here's your financial snapshot for today.
                   </p>
                 </div>
+                
+                {/* Notification Bell - Only on Dashboard */}
+                <div className="hidden sm:block">
+                  <NotificationBell />
+                </div>
+              </div>
+              
+              {/* Mobile Notification Bell */}
+              <div className="sm:hidden flex justify-end mb-2">
+                <NotificationBell />
               </div>
 
               {/* Mobile-optimized date display */}
