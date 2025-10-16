@@ -8,6 +8,7 @@ import {
   Plus,
   RefreshCw,
   Repeat,
+  Trash2,
   TrendingDown,
   TrendingUp,
   X,
@@ -29,17 +30,7 @@ interface FilterConfig {
   searchTerm: string;
 }
 
-// Define the type for our edit form
-interface EditFormData {
-  _id: string;
-  type: "expense" | "income";
-  description: string;
-  amount: number;
-  category: string;
-  recurringInterval: "daily" | "weekly" | "monthly" | "yearly";
-  nextRecurringDate: string;
-  recurringEndDate?: string;
-}
+
 
 const Recurring: React.FC = () => {
   const [recurringTransactions, setRecurringTransactions] = useState<
@@ -63,9 +54,7 @@ const Recurring: React.FC = () => {
   });
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  // State for edit modal
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState<EditFormData | null>(null);
+
 
   const { user } = useAuth();
 
@@ -204,89 +193,9 @@ const Recurring: React.FC = () => {
     }
   };
 
-  // Open edit modal with transaction data
-  const openEditModal = (transaction: RecurringInterface) => {
-    setEditFormData({
-      _id: transaction._id,
-      type: transaction.type,
-      description: transaction.description,
-      amount: transaction.amount,
-      category: transaction.category,
-      recurringInterval: transaction.recurringInterval as
-        | "daily"
-        | "weekly"
-        | "monthly"
-        | "yearly",
-      nextRecurringDate: transaction.nextRecurringDate
-        ? new Date(transaction.nextRecurringDate).toISOString().split("T")[0]
-        : new Date().toISOString().split("T")[0],
-      recurringEndDate: transaction.recurringEndDate
-        ? new Date(transaction.recurringEndDate).toISOString().split("T")[0]
-        : undefined,
-    });
-    setEditModalOpen(true);
-  };
 
-  // Handle form input changes
-  const handleEditFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    if (!editFormData) return;
 
-    const { name, value } = e.target;
-    setEditFormData({
-      ...editFormData,
-      [name]: name === "amount" ? parseFloat(value) || 0 : value,
-    });
-  };
 
-  // Handle form submission
-  const handleEditFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editFormData) return;
-
-    try {
-      setUpdatingId(editFormData._id);
-      setEditModalOpen(false);
-
-      // Prepare data for update
-      const updateData = {
-        description: editFormData.description,
-        amount: editFormData.amount,
-        category: editFormData.category,
-        recurringInterval: editFormData.recurringInterval,
-        nextRecurringDate: editFormData.nextRecurringDate,
-        recurringEndDate: editFormData.recurringEndDate,
-        isRecurring: true,
-      };
-
-      await updateRecurringTransaction(
-        editFormData._id,
-        editFormData.type,
-        updateData
-      );
-      await fetchRecurringTransactions();
-
-      // Reset form data
-      setEditFormData(null);
-    } catch (err: any) {
-      console.error("Error updating recurring transaction:", err);
-      if (err.message.includes("Network error")) {
-        setError(
-          "Unable to connect to the server. Please check your internet connection."
-        );
-      } else if (err.message.includes("Server Error")) {
-        setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
-      } else {
-        setError(
-          err.message ||
-            "Failed to update recurring transaction. Please try again."
-        );
-      }
-    } finally {
-      setUpdatingId(null);
-    }
-  };
 
   const formatCurrency = useCallback(
     (amount: number) => {
@@ -694,43 +603,27 @@ const Recurring: React.FC = () => {
                         : "N/A"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => openEditModal(transaction)}
-                          className={`text-indigo-600 hover:text-white hover:bg-indigo-600 transition-all duration-200 p-2 rounded-lg ${
-                            updatingId === transaction._id
-                              ? "opacity-60 cursor-not-allowed"
-                              : ""
-                          }`}
-                          title="Edit Transaction"
-                          disabled={updatingId === transaction._id}
-                        >
-                          {updatingId === transaction._id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Edit3 className="w-4 h-4" />
-                          )}
-                        </button>
+                      <div className="flex items-center justify-end">
                         <button
                           onClick={() =>
-                            handleToggleRecurring(
-                              transaction._id,
-                              transaction.type,
-                              false
-                            )
+                            setConfirmModal({
+                              open: true,
+                              id: transaction._id,
+                              type: transaction.type
+                            })
                           }
-                          className={`text-rose-600 hover:text-white hover:bg-rose-600 transition-all duration-200 p-2 rounded-lg ${
+                          className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
                             updatingId === transaction._id
                               ? "opacity-60 cursor-not-allowed"
-                              : ""
+                              : "transform hover:scale-105"
                           }`}
-                          title="Remove Recurring"
+                          title="Delete Recurring Transaction"
                           disabled={updatingId === transaction._id}
                         >
                           {updatingId === transaction._id ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
                           ) : (
-                            <X className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           )}
                         </button>
                       </div>
@@ -746,144 +639,14 @@ const Recurring: React.FC = () => {
       {/* Confirm Modal */}
       <ConfirmModal
         isOpen={confirmModal.open}
-        title="Remove Recurring Transaction"
-        message="Are you sure you want to remove this recurring transaction? This will not delete the transaction itself, but only remove its recurring status."
+        title="Delete Recurring Transaction?"
+        message="Are you sure you want to delete this recurring transaction? This will not delete the transaction itself, but only remove its recurring status."
         onConfirm={handleDeleteRecurring}
         onCancel={() => setConfirmModal({ open: false, id: null, type: null })}
-        confirmText="Remove"
-        cancelText="Cancel"
-        variant="warning"
+        loading={updatingId !== null}
       />
 
-      {/* Edit Modal */}
-      {editModalOpen && editFormData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                  Edit Recurring Transaction
-                </h3>
-                <button
-                  onClick={() => setEditModalOpen(false)}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
 
-              <form onSubmit={handleEditFormSubmit}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      name="description"
-                      value={editFormData.description}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Amount
-                    </label>
-                    <input
-                      type="number"
-                      name="amount"
-                      value={editFormData.amount}
-                      onChange={handleEditFormChange}
-                      min="0"
-                      step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Category
-                    </label>
-                    <input
-                      type="text"
-                      name="category"
-                      value={editFormData.category}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Interval
-                    </label>
-                    <select
-                      name="recurringInterval"
-                      value={editFormData.recurringInterval}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                      required
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                      <option value="yearly">Yearly</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Next Recurring Date
-                    </label>
-                    <input
-                      type="date"
-                      name="nextRecurringDate"
-                      value={editFormData.nextRecurringDate}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      End Date (Optional)
-                    </label>
-                    <input
-                      type="date"
-                      name="recurringEndDate"
-                      value={editFormData.recurringEndDate || ""}
-                      onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-6 flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setEditModalOpen(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Save Changes
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
