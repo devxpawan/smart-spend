@@ -606,11 +606,11 @@ const Recurring: React.FC = () => {
 
                         <button
                           onClick={() =>
-                            handleToggleRecurring(
-                              transaction._id,
-                              transaction.type,
-                              false
-                            )
+                            setConfirmModal({ 
+                              open: true, 
+                              id: transaction._id, 
+                              type: transaction.type 
+                            })
                           }
                           className={`text-rose-600 hover:text-white hover:bg-rose-600 transition-all duration-200 p-2 rounded-lg ${
                             updatingId === transaction._id
@@ -639,13 +639,13 @@ const Recurring: React.FC = () => {
       {/* Confirm Modal */}
       <ConfirmModal
         isOpen={confirmModal.open}
-        title="Remove Recurring Transaction"
-        message="Are you sure you want to remove this recurring transaction? This will not delete the transaction itself, but only remove its recurring status."
+        title="Delete Recurring Transaction"
+        message="Are you sure you want to delete this recurring transaction? This action cannot be undone."
         onConfirm={handleDeleteRecurring}
         onCancel={() => setConfirmModal({ open: false, id: null, type: null })}
-        confirmText="Remove"
+        confirmText="Delete"
         cancelText="Cancel"
-        variant="warning"
+        variant="danger"
       />
 
 

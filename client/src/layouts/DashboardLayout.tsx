@@ -431,8 +431,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   const topIndicatorRef = useRef<HTMLDivElement>(null);
   const bottomIndicatorRef = useRef<HTMLDivElement>(null);
 
+<<<<<<< Updated upstream
   const handleScroll = useCallback(() => {
     if (!scrollContainerRef.current || !topIndicatorRef.current || !bottomIndicatorRef.current) return;
+=======
+        <div className="flex-1 overflow-y-auto py-2 -mx-2 px-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800 scrollbar-thumb-rounded-full">
+          <NavigationSection
+            items={NAVIGATION_ITEMS}
+            isActive={isActive}
+            onNavigate={onClose}
+            isCollapsed={isCollapsed}
+          />
+        </div>
+>>>>>>> Stashed changes
 
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
     const scrollBottom = scrollHeight - clientHeight - scrollTop;
