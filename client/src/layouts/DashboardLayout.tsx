@@ -22,6 +22,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
@@ -425,36 +426,83 @@ const Sidebar: React.FC<SidebarProps> = ({
   user,
   onLogout,
   isActive,
-}) => (
-  <>
-    <CollapseButton isCollapsed={isCollapsed} onToggle={onToggleCollapse} />
-    <div
-      className={`relative flex h-full flex-col bg-slate-900 text-slate-100 transition-all duration-300 ${
-        isCollapsed ? "px-2" : "px-4"
-      }`}
-    >
-      <div className="flex flex-col h-full pt-4 pb-4">
-        <LogoSection isCollapsed={isCollapsed} />
+}) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const topIndicatorRef = useRef<HTMLDivElement>(null);
+  const bottomIndicatorRef = useRef<HTMLDivElement>(null);
 
-        <NavigationSection
-          items={NAVIGATION_ITEMS}
-          isActive={isActive}
-          onNavigate={onClose}
-          isCollapsed={isCollapsed}
-        />
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current || !topIndicatorRef.current || !bottomIndicatorRef.current) return;
 
-        <div className="mt-6 border-t border-white/20 pt-4">
-          <UserMenu
-            user={user}
-            onLogout={onLogout}
-            isCollapsed={isCollapsed}
-            onNavigate={onClose}
-          />
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const scrollBottom = scrollHeight - clientHeight - scrollTop;
+
+    // Show/hide top indicator
+    if (scrollTop > 10) {
+      topIndicatorRef.current.classList.add('opacity-100');
+    } else {
+      topIndicatorRef.current.classList.remove('opacity-100');
+    }
+
+    // Show/hide bottom indicator
+    if (scrollBottom > 10) {
+      bottomIndicatorRef.current.classList.add('opacity-100');
+    } else {
+      bottomIndicatorRef.current.classList.remove('opacity-100');
+    }
+  }, []);
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      // Initial check
+      handleScroll();
+      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
+
+  return (
+    <>
+      <CollapseButton isCollapsed={isCollapsed} onToggle={onToggleCollapse} />
+      <div
+        className={`relative flex h-full flex-col bg-slate-900 text-slate-100 transition-all duration-300 ${
+          isCollapsed ? "px-2" : "px-4"
+        }`}
+      >
+        <div className="flex flex-col h-full pt-4 pb-4">
+          <LogoSection isCollapsed={isCollapsed} />
+
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto py-2 -mx-2 px-2 relative">
+            <div 
+              ref={topIndicatorRef}
+              className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-slate-900 to-transparent z-10 pointer-events-none opacity-0 transition-opacity duration-200"
+            ></div>
+            <div 
+              ref={bottomIndicatorRef}
+              className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-slate-900 to-transparent z-10 pointer-events-none opacity-0 transition-opacity duration-200"
+            ></div>
+            <NavigationSection
+              items={NAVIGATION_ITEMS}
+              isActive={isActive}
+              onNavigate={onClose}
+              isCollapsed={isCollapsed}
+            />
+          </div>
+
+          <div className="mt-6 border-t border-white/20 pt-4">
+            <UserMenu
+              user={user}
+              onLogout={onLogout}
+              isCollapsed={isCollapsed}
+              onNavigate={onClose}
+            />
+          </div>
         </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 //
 // MobileMenuButton
