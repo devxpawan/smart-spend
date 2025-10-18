@@ -52,6 +52,9 @@ const Recurring: React.FC = () => {
     type: null,
   });
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
+
 
 
 
@@ -96,8 +99,8 @@ const Recurring: React.FC = () => {
   }, [fetchRecurringTransactions]);
 
   // Filter and sort transactions
-  const filteredTransactions = useMemo(() => {
-    return recurringTransactions
+  const { paginatedTransactions, nPages, currentRecords } = useMemo(() => {
+    const filtered = recurringTransactions
       .filter((transaction) => {
         // Type filter
         if (filters.type !== "all" && transaction.type !== filters.type) {
@@ -135,7 +138,33 @@ const Recurring: React.FC = () => {
           : 0;
         return dateA - dateB;
       });
-  }, [recurringTransactions, filters]);
+
+    const indexOfLastRecord = currentPage * recordsPerPage;
+    const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+    const currentRecords = filtered.slice(
+      indexOfFirstRecord,
+      indexOfLastRecord
+    );
+    const nPages = Math.ceil(filtered.length / recordsPerPage);
+
+    return {
+      paginatedTransactions: filtered,
+      nPages,
+      currentRecords,
+    };
+  }, [recurringTransactions, filters, currentPage]);
+
+  useEffect(() => {
+    if (nPages === 0 && currentPage !== 1) {
+      setCurrentPage(1); // If no records, ensure we are on page 1
+    } else if (currentPage > nPages && nPages > 0) {
+      setCurrentPage(nPages); // If current page is out of bounds, go to the last valid page
+    }
+  }, [nPages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const handleDeleteRecurring = async () => {
     if (!confirmModal.id || !confirmModal.type) return;
@@ -270,7 +299,7 @@ const Recurring: React.FC = () => {
                 Total Recurring: 
               </span>
               <span className="font-semibold text-slate-900 dark:text-white text-lg">
-                {filteredTransactions.length}
+                {paginatedTransactions.length}
               </span>
             </div>
           </div>
@@ -289,7 +318,7 @@ const Recurring: React.FC = () => {
                 </p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {
-                    filteredTransactions.filter((t) => t.type === "income")
+                    paginatedTransactions.filter((t) => t.type === "income")
                       .length
                   }
                 </p>
@@ -308,7 +337,7 @@ const Recurring: React.FC = () => {
                 </p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {
-                    filteredTransactions.filter((t) => t.type === "expense")
+                    paginatedTransactions.filter((t) => t.type === "expense")
                       .length
                   }
                 </p>
@@ -450,7 +479,7 @@ const Recurring: React.FC = () => {
 
       {/* Transactions List with improved design */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow border dark:border-gray-700 overflow-hidden">
-        {filteredTransactions.length === 0 && !error ? (
+        {paginatedTransactions.length === 0 && !error ? (
           <div className="text-center py-12">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -550,7 +579,7 @@ const Recurring: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredTransactions.map((transaction) => (
+                {currentRecords.map((transaction) => (
                   <motion.tr
                     key={`${transaction._id}-${transaction.type}`}
                     initial={{ opacity: 0, y: 20 }}
@@ -635,6 +664,102 @@ const Recurring: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {nPages > 1 && (
+        <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+          <ul className="flex items-center space-x-1 h-10 text-base">
+            <li>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-800 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                Previous
+              </button>
+            </li>
+            {(() => {
+              const pageNumbers = [];
+              const maxPagesToShow = 5;
+              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500 dark:text-gray-400">...</li>;
+
+              let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+              const endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
+
+              if (endPage - startPage + 1 < maxPagesToShow) {
+                startPage = Math.max(1, endPage - maxPagesToShow + 1);
+              }
+
+              if (startPage > 1) {
+                pageNumbers.push(
+                  <li key={1}>
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
+                        currentPage === 1
+                          ? "text-white bg-indigo-500 hover:bg-indigo-600"
+                          : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      1
+                    </button>
+                  </li>
+                );
+                if (startPage > 2) {
+                  pageNumbers.push(ellipsis);
+                }
+              }
+
+              for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(
+                  <li key={i}>
+                    <button
+                      onClick={() => setCurrentPage(i)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
+                        currentPage === i
+                          ? "text-white bg-indigo-500 hover:bg-indigo-600"
+                          : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  </li>
+                );
+              }
+
+              if (endPage < nPages) {
+                if (endPage < nPages - 1) {
+                  pageNumbers.push(ellipsis);
+                }
+                pageNumbers.push(
+                  <li key={nPages}>
+                    <button
+                      onClick={() => setCurrentPage(nPages)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
+                        currentPage === nPages
+                          ? "text-white bg-indigo-500 hover:bg-indigo-600"
+                          : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {nPages}
+                    </button>
+                  </li>
+                );
+              }
+              return pageNumbers;
+            })()}
+            <li>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, nPages))}
+                disabled={currentPage === nPages}
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-800 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                Next
+              </button>
+            </li>
+          </ul>
+        </nav>
+      )}
 
       {/* Confirm Modal */}
       <ConfirmModal
