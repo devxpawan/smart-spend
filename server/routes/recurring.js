@@ -1,6 +1,5 @@
-import { check, validationResult } from "express-validator";
 import express from "express";
-import mongoose from "mongoose";
+import { check, validationResult } from "express-validator";
 import Expense from "../models/Expense.js";
 import Income from "../models/Income.js";
 
@@ -12,7 +11,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     console.log("Fetching recurring transactions for user:", req.user?.id);
-    
+
     // Validate user
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: "User not authenticated" });
@@ -24,15 +23,11 @@ router.get("/", async (req, res) => {
       isRecurring: true,
     }).sort({ nextRecurringDate: 1 });
 
-    console.log("Found expenses:", expenses.length);
-
     // Get recurring incomes
     const incomes = await Income.find({
       user: req.user.id,
       isRecurring: true,
     }).sort({ nextRecurringDate: 1 });
-
-    console.log("Found incomes:", incomes.length);
 
     res.json({
       expenses,
@@ -41,10 +36,10 @@ router.get("/", async (req, res) => {
   } catch (error) {
     console.error("Get recurring transactions error:", error);
     // Send more detailed error information
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Failed to fetch recurring transactions",
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });
@@ -56,12 +51,9 @@ router.put(
   "/:id",
   [
     check("isRecurring", "isRecurring is required").isBoolean(),
-    check("recurringInterval", "Invalid recurring interval").optional().isIn([
-      "daily",
-      "weekly",
-      "monthly",
-      "yearly",
-    ]),
+    check("recurringInterval", "Invalid recurring interval")
+      .optional()
+      .isIn(["daily", "weekly", "monthly", "yearly"]),
     check("recurringEndDate", "Invalid date").optional().isISO8601(),
     check("nextRecurringDate", "Invalid date").optional().isISO8601(),
   ],
@@ -82,7 +74,11 @@ router.put(
 
       // Validate type parameter
       if (type !== "expense" && type !== "income") {
-        return res.status(400).json({ message: "Invalid transaction type. Must be 'expense' or 'income'" });
+        return res
+          .status(400)
+          .json({
+            message: "Invalid transaction type. Must be 'expense' or 'income'",
+          });
       }
 
       // Validate user
@@ -127,10 +123,10 @@ router.put(
       res.json(updatedTransaction);
     } catch (error) {
       console.error("Update recurring transaction error:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to update recurring transaction",
         error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       });
     }
   }
@@ -145,7 +141,11 @@ router.delete("/:id", async (req, res) => {
 
     // Validate type parameter
     if (type !== "expense" && type !== "income") {
-      return res.status(400).json({ message: "Invalid transaction type. Must be 'expense' or 'income'" });
+      return res
+        .status(400)
+        .json({
+          message: "Invalid transaction type. Must be 'expense' or 'income'",
+        });
     }
 
     // Validate user
@@ -180,10 +180,10 @@ router.delete("/:id", async (req, res) => {
     res.json(updatedTransaction);
   } catch (error) {
     console.error("Delete recurring transaction error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Failed to remove recurring transaction",
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 });

@@ -11,7 +11,6 @@ import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import ResetPasswordModal from "../components/ResetPasswordModal";
 import { useAuth } from "../contexts/auth-exports";
 import { validatePassword } from "../utils/passwordValidation";
-import logo from "/logo.png";
 
 // Types
 type TabType = "login" | "register";
@@ -302,7 +301,11 @@ const LoginRegister: React.FC = () => {
             <div className="relative z-10 max-w-lg space-y-8">
               <div className="flex items-center space-x-4">
                 <div className="relative">
-                  <img src={logo} alt="SmartSpend" className="w-16 h-16" />
+                  <img
+                    src="https://i.postimg.cc/CLV2pkZr/logo.png"
+                    alt="SmartSpend"
+                    className="w-16 h-16"
+                  />
                   <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/50">
                     {" "}
                     {/* Added colored shadow */}
@@ -373,7 +376,11 @@ const LoginRegister: React.FC = () => {
               {/* Mobile branding header */}
               <div className="lg:hidden text-center mb-6">
                 <div className="inline-flex items-center space-x-2">
-                  <img src={logo} alt="SmartSpend" className="w-10 h-10" />
+                  <img
+                    src="https://i.postimg.cc/CLV2pkZr/logo.png"
+                    alt="SmartSpend"
+                    className="w-10 h-10"
+                  />
                   <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                     SmartSpend
                   </h1>

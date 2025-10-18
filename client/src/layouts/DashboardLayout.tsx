@@ -28,7 +28,6 @@ import React, {
 import { Link, Outlet, useLocation } from "react-router-dom";
 import LogoutConfirmModal from "../components/LogoutConfirmModal";
 import { useAuth } from "../contexts/auth-exports";
-import NotificationBell from "../components/NotificationBell"; // Import NotificationBell
 
 //
 // HOOK: media query
@@ -364,7 +363,7 @@ const LogoSection: React.FC<{ isCollapsed: boolean }> = ({ isCollapsed }) => (
     }`}
   >
     <img
-      src="/logo.png"
+      src="https://i.postimg.cc/CLV2pkZr/logo.png"
       alt="SmartSpend Logo"
       className="h-8 w-8 rounded-lg shadow-md"
       onError={(e) => (e.currentTarget.style.display = "none")}
@@ -432,33 +431,39 @@ const Sidebar: React.FC<SidebarProps> = ({
   const bottomIndicatorRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current || !topIndicatorRef.current || !bottomIndicatorRef.current) return;
+    if (
+      !scrollContainerRef.current ||
+      !topIndicatorRef.current ||
+      !bottomIndicatorRef.current
+    )
+      return;
 
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const { scrollTop, scrollHeight, clientHeight } =
+      scrollContainerRef.current;
     const scrollBottom = scrollHeight - clientHeight - scrollTop;
 
     // Show/hide top indicator
     if (scrollTop > 10) {
-      topIndicatorRef.current.classList.add('opacity-100');
+      topIndicatorRef.current.classList.add("opacity-100");
     } else {
-      topIndicatorRef.current.classList.remove('opacity-100');
+      topIndicatorRef.current.classList.remove("opacity-100");
     }
 
     // Show/hide bottom indicator
     if (scrollBottom > 10) {
-      bottomIndicatorRef.current.classList.add('opacity-100');
+      bottomIndicatorRef.current.classList.add("opacity-100");
     } else {
-      bottomIndicatorRef.current.classList.remove('opacity-100');
+      bottomIndicatorRef.current.classList.remove("opacity-100");
     }
   }, []);
 
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
+      scrollContainer.addEventListener("scroll", handleScroll);
       // Initial check
       handleScroll();
-      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+      return () => scrollContainer.removeEventListener("scroll", handleScroll);
     }
   }, [handleScroll]);
 
@@ -473,12 +478,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex flex-col h-full pt-4 pb-4">
           <LogoSection isCollapsed={isCollapsed} />
 
-          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto py-2 -mx-2 px-2 relative">
-            <div 
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto py-2 -mx-2 px-2 relative"
+          >
+            <div
               ref={topIndicatorRef}
               className="absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-slate-900 to-transparent z-10 pointer-events-none opacity-0 transition-opacity duration-200"
             ></div>
-            <div 
+            <div
               ref={bottomIndicatorRef}
               className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-slate-900 to-transparent z-10 pointer-events-none opacity-0 transition-opacity duration-200"
             ></div>
