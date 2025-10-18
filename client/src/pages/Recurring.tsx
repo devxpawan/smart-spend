@@ -4,7 +4,6 @@ import {
   Clock,
   DollarSign,
   Filter,
-  Plus,
   RefreshCw,
   Repeat,
   Trash2,
@@ -53,7 +52,7 @@ const Recurring: React.FC = () => {
   });
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const recordsPerPage = 10;
+  const recordsPerPage = 12;
 
 
 
@@ -193,33 +192,6 @@ const Recurring: React.FC = () => {
     }
   };
 
-  const handleToggleRecurring = async (
-    id: string,
-    type: "expense" | "income",
-    isRecurring: boolean
-  ) => {
-    try {
-      setUpdatingId(id);
-      await updateRecurringTransaction(id, type, { isRecurring });
-      await fetchRecurringTransactions();
-    } catch (err: any) {
-      console.error("Error updating recurring transaction:", err);
-      if (err.message.includes("Network error")) {
-        setError(
-          "Unable to connect to the server. Please check your internet connection."
-        );
-      } else if (err.message.includes("Server Error")) {
-        setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
-      } else {
-        setError(
-          err.message ||
-            "Failed to update recurring transaction. Please try again."
-        );
-      }
-    } finally {
-      setUpdatingId(null);
-    }
-  };
 
 
 

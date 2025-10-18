@@ -355,16 +355,20 @@ const Expenses: React.FC = () => {
     if (selectedIds.length === 0) return;
     setIsBulkDeleting(true);
     try {
-      await Promise.all(
-        selectedIds.map((id) => axios.delete(`/api/expenses/${id}`))
-      );
+      await axios.delete("/api/expenses/bulk-delete", {
+        data: { ids: selectedIds },
+      });
+
       setExpenses((prev) =>
-        prev.filter((exp) => !selectedIds.includes(exp._id))
+        prev.filter((expense) => !selectedIds.includes(expense._id))
       );
       setSelectedIds([]);
       setError("");
-    } catch {
-      setError("Failed to delete selected expenses");
+    } catch (err) {
+      setError("Failed to delete selected expenses. Please refresh and try again.");
+      console.error("Error during bulk delete:", err);
+      // Optionally, refetch to get consistent state from server
+      fetchExpenses();
     } finally {
       setIsBulkDeleteModalOpen(false);
       setIsBulkDeleting(false);

@@ -349,16 +349,20 @@ const Incomes: React.FC = () => {
     if (selectedIds.length === 0) return;
     setIsBulkDeleting(true);
     try {
-      await Promise.all(
-        selectedIds.map((id) => axios.delete(`/api/incomes/${id}`))
-      );
+      await axios.delete("/api/incomes/bulk-delete", {
+        data: { ids: selectedIds },
+      });
+
       setIncomes((prev) =>
-        prev.filter((exp) => !selectedIds.includes(exp._id))
+        prev.filter((income) => !selectedIds.includes(income._id))
       );
       setSelectedIds([]);
       setError("");
-    } catch {
-      setError("Failed to delete selected incomes");
+    } catch (err) {
+      setError("Failed to delete selected incomes. Please refresh and try again.");
+      console.error("Error during bulk delete:", err);
+      // Optionally, refetch to get consistent state from server
+      fetchIncomes();
     } finally {
       setIsBulkDeleteModalOpen(false);
       setIsBulkDeleting(false);

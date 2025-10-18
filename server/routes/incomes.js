@@ -159,6 +159,67 @@ router.post(
   }
 });
 
+router.delete("/bulk-delete", async (req, res) => {
+  const { ids } = req.body;
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ message: "Income IDs must be a non-empty array." });
+  }
+
+  let session;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const incomesToDelete = await Income.find({
+      _id: { $in: ids },
+      user: req.user.id,
+    }).session(session);
+    
+    const foundIds = incomesToDelete.map(i => i._id);
+
+    // Adjust bank account balances
+    const bankUpdates = new Map();
+    for (const income of incomesToDelete) {
+      if (income.bankAccount) {
+        const accountId = income.bankAccount.toString();
+        const amount = bankUpdates.get(accountId) || 0;
+        bankUpdates.set(accountId, amount - income.amount);
+      }
+    }
+
+    const updatePromises = [];
+    for (const [accountId, adjustment] of bankUpdates.entries()) {
+      updatePromises.push(
+        BankAccount.updateOne(
+          { _id: accountId },
+          { $inc: { currentBalance: adjustment } },
+          { session }
+        )
+      );
+    }
+    await Promise.all(updatePromises);
+
+    // Delete the incomes that were found
+    if (foundIds.length > 0) {
+        await Income.deleteMany({
+          _id: { $in: foundIds },
+          user: req.user.id,
+        }, { session });
+    }
+
+    await session.commitTransaction();
+    res.json({ message: `${foundIds.length} incomes removed successfully.` });
+
+  } catch (error) {
+    if (session) await session.abortTransaction();
+    console.error("Bulk income delete error:", error);
+    res.status(500).json({ message: "Server error during bulk delete.", error: error.message });
+  } finally {
+    if (session) session.endSession();
+  }
+});
+
 // @route   PUT /api/incomes/:id
 // @desc    Update income
 // @access  Private
