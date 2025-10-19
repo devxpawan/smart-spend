@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import {
+  AlertCircle,
   Calendar,
   Clock,
   DollarSign,
@@ -10,6 +11,7 @@ import {
   TrendingDown,
   TrendingUp,
   X,
+  XCircle,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/auth-exports";
