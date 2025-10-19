@@ -9,5 +9,4 @@ export const expenseCategories: string[] = [
   "Education",
   "Insurance",
   "Other Expense",
-  "Paid Bill",
 ];

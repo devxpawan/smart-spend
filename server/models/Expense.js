@@ -29,7 +29,6 @@ const expenseSchema = new mongoose.Schema({
       "Education",
       "Insurance",
       "Other Expense",
-      "Paid Bill",
     ],
   },
   date: {
