@@ -247,7 +247,7 @@ const Recurring: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
+    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8">
       {/* Header with improved design */}
       <header className="flex flex-col gap-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -559,7 +559,7 @@ const Recurring: React.FC = () => {
                     transition={{ duration: 0.3 }}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/30"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div
                           className={`p-2 rounded-lg mr-3 ${getTypeColor(
@@ -582,7 +582,7 @@ const Recurring: React.FC = () => {
                         {transaction.type === "expense" ? "Expense" : "Income"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded">
                         {transaction.category}
                       </span>

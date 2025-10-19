@@ -100,30 +100,7 @@ router.post(
 
       const bill = await newBill.save({ session });
 
-      if (isPaid && bankAccount) {
-        const expenseCategory = "Paid Bill";
 
-        const newExpense = new Expense({
-          user: req.user.id,
-          amount: bill.amount,
-          description: `Bill Payment: ${bill.name}`,
-          category: expenseCategory,
-          date: new Date(),
-          bankAccount: bill.bankAccount,
-          bill: bill._id,
-        });
-
-        await newExpense.save({ session });
-
-        const account = await BankAccount.findById(bill.bankAccount).session(
-          session
-        );
-        if (!account) {
-          throw new Error("Bank account not found");
-        }
-        account.currentBalance -= bill.amount;
-        await account.save({ session });
-      }
 
       await session.commitTransaction();
       session.endSession();
@@ -211,50 +188,8 @@ router.put(
           }
           await expense.deleteOne({ session });
         }
-      } else if (bill.isPaid) {
-        // If the bill is already paid and we are not marking it as unpaid,
-        // we might need to update the associated expense.
-        const expense = await Expense.findOne({ bill: bill._id }).session(session);
-
-        if (expense) {
-          const oldExpenseAmount = expense.amount;
-          const oldExpenseBankAccount = expense.bankAccount;
-
-          const newAmount = amount !== undefined ? amount : oldExpenseAmount;
-          const newBankAccount =
-            bankAccount !== undefined ? bankAccount : oldExpenseBankAccount;
-
-          // Revert old transaction
-          if (oldExpenseBankAccount) {
-            const oldAccount = await BankAccount.findById(
-              oldExpenseBankAccount
-            ).session(session);
-            if (oldAccount) {
-              oldAccount.currentBalance += oldExpenseAmount;
-              await oldAccount.save({ session });
-            }
-          }
-
-          // Apply new transaction
-          if (newBankAccount) {
-            const newAccount = await BankAccount.findById(
-              newBankAccount
-            ).session(session);
-            if (newAccount) {
-              newAccount.currentBalance -= newAmount;
-              await newAccount.save({ session });
-            } else {
-              throw new Error("New bank account not found for expense update.");
-            }
-          }
-
-          // Update expense
-          expense.description = `Bill Payment: ${name || bill.name}`;
-          expense.amount = newAmount;
-          expense.bankAccount = newBankAccount;
-          await expense.save({ session });
-        }
       }
+
 
       // Check for duplicate bill name if name is being changed
       if (name && name !== bill.name) {
@@ -322,22 +257,7 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ message: "Bill not found" });
     }
 
-    // If the bill was paid, delete the associated expense
-    if (bill.isPaid) {
-      const expense = await Expense.findOne({ bill: bill._id }).session(session);
-      if (expense) {
-        if (expense.bankAccount) {
-          const account = await BankAccount.findById(expense.bankAccount).session(
-            session
-          );
-          if (account) {
-            account.currentBalance += expense.amount;
-            await account.save({ session });
-          }
-        }
-        await expense.deleteOne({ session });
-      }
-    }
+
 
     await bill.deleteOne({ session });
 
@@ -414,29 +334,6 @@ router.put("/:id/pay", async (req, res) => {
         .status(400)
         .json({ message: "No bank account selected for this bill." });
     }
-
-    const expenseCategory = "Paid Bill";
-
-    const newExpense = new Expense({
-      user: req.user.id,
-      amount: bill.amount,
-      description: `Bill Payment: ${bill.name}`,
-      category: expenseCategory,
-      date: new Date(),
-      bankAccount: bill.bankAccount,
-      bill: bill._id, // Add reference to the bill
-    });
-
-    await newExpense.save({ session });
-
-    const account = await BankAccount.findById(bill.bankAccount).session(
-      session
-    );
-    if (!account) {
-      throw new Error("Bank account not found");
-    }
-    account.currentBalance -= bill.amount;
-    await account.save({ session });
 
     bill.isPaid = true;
     const updatedBill = await bill.save({ session });
@@ -573,32 +470,9 @@ router.patch("/bulk-update", async (req, res) => {
       const oldIsPaid = bill.isPaid;
       const newIsPaid = updates.isPaid;
 
-      // Handle marking as paid
-      if (newIsPaid === true && oldIsPaid === false) {
-        if (!bill.bankAccount) {
-          throw new Error(`Bill with ID ${id} does not have a bank account.`);
-        }
-        const expenseCategory = "Paid Bill";
-        const newExpense = new Expense({
-          user: req.user.id,
-          amount: bill.amount,
-          description: `Bill Payment: ${bill.name}`,
-          category: expenseCategory,
-          date: new Date(),
-          bankAccount: bill.bankAccount,
-          bill: bill._id,
-        });
-        await newExpense.save({ session });
 
-        const account = await BankAccount.findById(bill.bankAccount).session(session);
-        if (!account) {
-          throw new Error(`Bank account not found for bill with ID ${id}.`);
-        }
-        account.currentBalance -= bill.amount;
-        await account.save({ session });
-      }
       // Handle marking as unpaid
-      else if (newIsPaid === false && oldIsPaid === true) {
+      if (newIsPaid === false && oldIsPaid === true) {
         const expense = await Expense.findOne({ bill: bill._id }).session(session);
         if (expense) {
           if (expense.bankAccount) {

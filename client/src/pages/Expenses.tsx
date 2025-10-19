@@ -141,14 +141,14 @@ const Expenses: React.FC = () => {
 
   // Memoized filtered and sorted expenses
   const {
-    filteredExpenses: regularExpenses,
+    filteredExpenses,
     totalAmount,
     categories,
     monthlyTotal,
     currentRecords,
     nPages,
   } = useMemo(() => {
-    const allFiltered = expenses.filter((expense) => {
+    const filtered = expenses.filter((expense) => {
       // Search filter
       if (filters.searchTerm) {
         const searchLower = filters.searchTerm.toLowerCase();
@@ -219,12 +219,8 @@ const Expenses: React.FC = () => {
       return true;
     });
 
-    const regularExpenses = allFiltered.filter(
-      (expense) => expense.category !== "Paid Bill"
-    );
-
-    // Sort regular expenses
-    regularExpenses.sort((a, b) => {
+    // Sort expenses
+    filtered.sort((a, b) => {
       let valueA: number | string;
       let valueB: number | string;
 
@@ -255,15 +251,15 @@ const Expenses: React.FC = () => {
       return 0;
     });
 
-    const total = regularExpenses.reduce(
+    const total = filtered.reduce(
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
     const categories = expenseCategories;
 
-    // Calculate this month's total for regular expenses
+    // Calculate this month's total for expenses
     const now = new Date();
-    const thisMonthRegularExpenses = regularExpenses.filter((expense) => {
+    const thisMonthExpenses = filtered.filter((expense) => {
       const expenseDate = parseISO(expense.date);
       return (
         isValid(expenseDate) &&
@@ -273,22 +269,22 @@ const Expenses: React.FC = () => {
         })
       );
     });
-    const monthlyTotal = thisMonthRegularExpenses.reduce(
+    const monthlyTotal = thisMonthExpenses.reduce(
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
 
-    // Pagination logic for regular expenses
+    // Pagination logic for expenses
     const indexOfLastRecord = currentPage * recordsPerPage;
     const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-    const currentRecords = regularExpenses.slice(
+    const currentRecords = filtered.slice(
       indexOfFirstRecord,
       indexOfLastRecord
     );
-    const nPages = Math.ceil(regularExpenses.length / recordsPerPage);
+    const nPages = Math.ceil(filtered.length / recordsPerPage);
 
     return {
-      filteredExpenses: regularExpenses,
+      filteredExpenses: filtered,
       totalAmount: total,
       categories: categories,
       monthlyTotal,
@@ -342,7 +338,6 @@ const Expenses: React.FC = () => {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     const currentPageIds = currentRecords
-      .filter((record) => record.category !== "Paid Bill")
       .map((record) => record._id);
     if (e.target.checked) {
       setSelectedIds((prev) => [...new Set([...prev, ...currentPageIds])]);
@@ -413,21 +408,11 @@ const Expenses: React.FC = () => {
     }
   };
 
-  const hasPaidBillInSelection = useMemo(() => {
-    return expenses.some(
-      (expense) =>
-        selectedIds.includes(expense._id) && expense.category === "Paid Bill"
-    );
-  }, [selectedIds, expenses]);
-
-  const selectableRecords = currentRecords.filter(
-    (r) => r.category !== "Paid Bill"
-  );
   const allSelectableSelected =
-    selectableRecords.length > 0 &&
-    selectableRecords.every((r) => selectedIds.includes(r._id));
+    currentRecords.length > 0 &&
+    currentRecords.every((r) => selectedIds.includes(r._id));
   const isIndeterminate =
-    selectableRecords.some((r) => selectedIds.includes(r._id)) &&
+    currentRecords.some((r) => selectedIds.includes(r._id)) &&
     !allSelectableSelected;
 
   if (loading && expenses.length === 0) {
@@ -487,7 +472,7 @@ const Expenses: React.FC = () => {
         {/* Stats Row */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
           <span className="text-slate-500 dark:text-gray-400">
-            {regularExpenses.length} expenses
+            {filteredExpenses.length} expenses
           </span>
           <span className="text-slate-500 dark:text-gray-400 hidden sm:inline">•</span>
           <span className="text-slate-500 dark:text-gray-400">
@@ -727,12 +712,7 @@ const Expenses: React.FC = () => {
               <button
                 onClick={() => setIsBulkEditModalOpen(true)}
                 className="px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={hasPaidBillInSelection}
-                title={
-                  hasPaidBillInSelection
-                    ? "Cannot bulk edit expenses from paid bills."
-                    : "Bulk edit selected expenses"
-                }
+                title="Bulk edit selected expenses"
               >
                 Edit
               </button>
@@ -760,7 +740,7 @@ const Expenses: React.FC = () => {
 
       <div className="relative min-h-[600px]">
         {/* Expenses Table or Empty State */}
-        {regularExpenses.length === 0 && !loading && !error ? (
+        {filteredExpenses.length === 0 && !loading && !error ? (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -800,41 +780,26 @@ const Expenses: React.FC = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center">
-                            {expense.category !== "Paid Bill" && (
                               <input
                                 type="checkbox"
-                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
                                 checked={selectedIds.includes(expense._id)}
                                 onChange={() => handleSelect(expense._id)}
                                 onClick={(e) => e.stopPropagation()}
-                                disabled={expense.category === "Paid Bill"}
                               />
-                            )}
                             <button
                               onClick={(e) =>
                                 handleActionClick(e, () => {
-                                  if (expense.category !== "Paid Bill") {
                                     setEditExpenseData(expense);
-                                  }
                                 })
                               }
-                              className={`text-sm font-medium text-gray-900 dark:text-white ${
-                                expense.category === "Paid Bill"
-                                  ? "cursor-not-allowed"
-                                  : "hover:text-blue-600 dark:hover:text-blue-400 group"
-                              } flex items-center space-x-1`}
-                              title={
-                                expense.category === "Paid Bill"
-                                  ? "This expense is from a paid bill and cannot be edited here."
-                                  : "Edit expense"
-                              }
+                              className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 group flex items-center space-x-1"
+                              title="Edit expense"
                             >
                               <span className="truncate">
                                 {expense.description}
                               </span>
-                              {expense.category !== "Paid Bill" && (
                                 <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                              )}
                             </button>
                           </div>
                           <div className="mt-1 flex items-center space-x-2 ml-7">
@@ -858,7 +823,6 @@ const Expenses: React.FC = () => {
                               : "0.00"}
                           </div>
                         </div>
-                        {expense.category !== "Paid Bill" && (
                         <button
                           onClick={(e) =>
                             handleActionClick(e, () =>
@@ -875,7 +839,6 @@ const Expenses: React.FC = () => {
                             <Trash2 className="w-4 h-4" />
                           )}
                         </button>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -935,41 +898,26 @@ const Expenses: React.FC = () => {
                         onClick={() => handleSelect(expense._id)}
                       >
                         <td className="p-4 flex items-center justify-center">
-                          {expense.category !== "Paid Bill" && (
                             <input
                               type="checkbox"
-                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                               checked={selectedIds.includes(expense._id)}
                               onChange={() => handleSelect(expense._id)}
                               onClick={(e) => e.stopPropagation()}
-                              disabled={expense.category === "Paid Bill"}
                             />
-                          )}
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                           <button
                             onClick={(e) =>
                               handleActionClick(e, () => {
-                                if (expense.category !== "Paid Bill") {
                                   setEditExpenseData(expense);
-                                }
                               })
                             }
-                            className={`text-sm font-medium text-gray-900 dark:text-white ${
-                              expense.category === "Paid Bill"
-                                ? "cursor-not-allowed"
-                                : "hover:text-blue-600 dark:hover:text-blue-400 group"
-                            } flex items-center space-x-1`}
-                            title={
-                              expense.category === "Paid Bill"
-                                ? "This expense is from a paid bill and cannot be edited here."
-                                : "Edit expense"
-                            }
+                            className="text-sm font-medium text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 group flex items-center space-x-1"
+                            title="Edit expense"
                           >
                             <span>{expense.description}</span>
-                            {expense.category !== "Paid Bill" && (
                               <Edit3 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
                           </button>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
@@ -989,7 +937,6 @@ const Expenses: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          {expense.category !== "Paid Bill" && (
                           <button
                             onClick={(e) =>
                               handleActionClick(e, () =>
@@ -1006,21 +953,13 @@ const Expenses: React.FC = () => {
                               <Trash2 className="w-4 h-4" />
                             )}
                           </button>
-                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
-          )
-        )}
-      </div>
 
-
-
-      {nPages > 1 && (
+                {nPages > 1 && (
         <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <ul className="flex items-center space-x-1 h-10 text-base">
             <li>
@@ -1117,6 +1056,14 @@ const Expenses: React.FC = () => {
           </ul>
         </nav>
       )}
+              </div>
+            </div>
+          )
+        )}
+      </div>
+
+
+
 
       <ConfirmModal
         isOpen={isModalOpen}

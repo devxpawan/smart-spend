@@ -554,7 +554,7 @@ const BankAccounts: React.FC = () => {
           onConfirm={confirmDelete}
           onCancel={() => setIsConfirmModalOpen(false)}
           title="Delete Bank Account?"
-          message="Are you sure you want to delete this bank account? This action cannot be undone."
+          message="Are you sure you want to delete this bank account? All associated income, expense, and bill records will also be permanently deleted. This action cannot be undone."
         />
       </div>
     </div>

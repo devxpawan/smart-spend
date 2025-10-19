@@ -973,12 +973,7 @@ const Incomes: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )
-        )}
-      </div>
-
-      {nPages > 1 && (
+ {nPages > 1 && (
         <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <ul className="flex items-center space-x-1 h-10 text-base">
             <li>
@@ -1082,6 +1077,10 @@ const Incomes: React.FC = () => {
           </ul>
         </nav>
       )}
+            </div>
+          )
+        )}
+      </div>
 
       <ConfirmModal
         isOpen={isModalOpen}

@@ -3,6 +3,9 @@ import { check, validationResult } from 'express-validator';
 import { authenticateToken } from '../middleware/auth.js';
 import BankAccount from '../models/BankAccount.js';
 import mongoose from 'mongoose';
+import Income from '../models/Income.js';
+import Expense from '../models/Expense.js';
+import Bill from '../models/Bill.js';
 
 const router = express.Router();
 
@@ -155,7 +158,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 
     await BankAccount.findByIdAndDelete(req.params.id);
 
-    res.json({ msg: 'Bank account removed' });
+    // Delete all associated incomes, expenses, and bills
+    await Income.deleteMany({ bankAccount: req.params.id });
+    await Expense.deleteMany({ bankAccount: req.params.id });
+    await Bill.deleteMany({ bankAccount: req.params.id });
+
+    res.json({ msg: 'Bank account removed and associated records deleted' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

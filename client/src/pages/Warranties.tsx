@@ -1264,13 +1264,8 @@ const Warranties: React.FC = () => {
                   })}
                 </tbody>
               </table>
-            </div>
-          </div>
-        )}
-      </div>
 
-      {/* Enhanced Pagination */}
-      {pageCount > 1 && (
+              {pageCount > 1 && (
         <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
           <ul className="flex items-center space-x-1 h-10 text-base">
             <li>
@@ -1365,6 +1360,11 @@ const Warranties: React.FC = () => {
           </ul>
         </nav>
       )}
+            </div>
+          </div>
+        )}
+      </div>
+
 
       {/* Add Modal */}
       <WarrantyModal
