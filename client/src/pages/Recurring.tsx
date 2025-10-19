@@ -247,72 +247,76 @@ const Recurring: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen max-w-7xl mx-auto space-y-6 sm:space-y-8 p-4 sm:p-0">
       {/* Header with improved design */}
-      <header className="flex flex-col gap-5">
+      <header className="flex flex-col gap-4 sm:gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-4">
-            <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <Repeat className="w-6 h-6 text-white" />
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <Repeat className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-gray-200">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-gray-200">
                 Recurring Transactions
               </h1>
-              <p className="text-slate-600 dark:text-gray-400 mt-1">
-                Manage your recurring incomes and expenses
+              <p className="text-slate-600 dark:text-gray-300 mt-1 text-sm sm:text-base">
+                Monitor and manage your recurring incomes and expenses
               </p>
             </div>
           </div>
 
-          <div className="flex items-center">
-            <div className="bg-white dark:bg-gray-800 px-4 py-2.5 rounded-lg shadow-sm border dark:border-gray-700">
-              <span className="text-slate-600 dark:text-gray-400 mr-2">
-                Total Recurring: 
-              </span>
-              <span className="font-semibold text-slate-900 dark:text-white text-lg">
-                {paginatedTransactions.length}
-              </span>
-            </div>
+          <div className="bg-white dark:bg-gray-800 px-4 py-2.5 rounded-lg shadow-sm border dark:border-gray-700">
+            <span className="text-slate-600 dark:text-gray-400 mr-2">
+              Total Recurring:
+            </span>
+            <span className="font-semibold text-slate-900 dark:text-white text-lg">
+              {paginatedTransactions.length}
+            </span>
           </div>
         </div>
 
         {/* Enhanced Stats Cards with better design */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-5 rounded-xl border border-green-200 dark:border-green-800/30 shadow-sm">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/30">
-                <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-slate-600 dark:text-gray-400">
-                  Recurring Incomes
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {
-                    paginatedTransactions.filter((t) => t.type === "income")
-                      .length
-                  }
-                </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-700 border border-green-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden min-h-[120px] sm:min-h-[140px]">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-5">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600"></div>
+            </div>
+            <div className="relative z-10 h-full flex flex-col">
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-wider">
+                    Recurring Incomes
+                  </h3>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
+                    {paginatedTransactions.filter((t) => t.type === "income").length}
+                  </p>
+                </div>
+                <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg flex-shrink-0 ml-2">
+                  <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20 p-5 rounded-xl border border-rose-200 dark:border-rose-800/30 shadow-sm">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-lg bg-rose-100 dark:bg-rose-900/30">
-                <TrendingDown className="w-6 h-6 text-rose-600 dark:text-rose-400" />
-              </div>
-              <div>
-                <p className="text-slate-600 dark:text-gray-400">
-                  Recurring Expenses
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {
-                    paginatedTransactions.filter((t) => t.type === "expense")
-                      .length
-                  }
-                </p>
+          <div className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-rose-50 to-red-50 dark:from-gray-800 dark:to-gray-700 border border-rose-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden min-h-[120px] sm:min-h-[140px]">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-5">
+              <div className="absolute inset-0 bg-gradient-to-br from-rose-500 to-red-600"></div>
+            </div>
+            <div className="relative z-10 h-full flex flex-col">
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-wider">
+                    Recurring Expenses
+                  </h3>
+                  <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
+                    {paginatedTransactions.filter((t) => t.type === "expense").length}
+                  </p>
+                </div>
+                <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-rose-500 to-red-600 shadow-lg flex-shrink-0 ml-2">
+                  <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
               </div>
             </div>
           </div>
@@ -320,50 +324,35 @@ const Recurring: React.FC = () => {
       </header>
 
       {/* Filters with improved design */}
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border dark:border-gray-700 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
-          <div className="md:col-span-2 relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Filter className="h-5 w-5 text-slate-400 dark:text-gray-500" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search recurring transactions..."
-              value={filters.searchTerm}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))
-              }
-              className="block w-full pl-10 pr-3 py-2.5 bg-slate-100 dark:bg-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-800 transition-all duration-300 shadow-sm dark:text-white"
-            />
-            {filters.searchTerm && (
-              <button
-                type="button"
-                onClick={() =>
-                  setFilters((prev) => ({ ...prev, searchTerm: "" }))
-                }
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              >
-                <X className="h-5 w-5 text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-200" />
-              </button>
-            )}
-          </div>
-
-          {/* Refresh Button */}
-          <div className="flex justify-end">
+      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg border dark:border-gray-700 shadow-sm space-y-3 sm:space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search recurring transactions..."
+            value={filters.searchTerm}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, searchTerm: e.target.value }))
+            }
+            className="w-full pl-12 pr-10 py-3 bg-slate-100 dark:bg-gray-700 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white dark:focus:bg-gray-800 transition-all duration-300 shadow-sm dark:text-white"
+          />
+          {filters.searchTerm && (
             <button
-              onClick={fetchRecurringTransactions}
-              disabled={loading}
-              className="flex items-center px-4 py-2.5 bg-white dark:bg-gray-700 border border-slate-300 dark:border-gray-600 rounded-lg text-sm font-medium text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              type="button"
+              onClick={() =>
+                setFilters((prev) => ({ ...prev, searchTerm: "" }))
+              }
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full p-1"
+              aria-label="Clear search"
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              <X className="w-4 h-4" />
             </button>
-          </div>
+          )}
         </div>
 
         {/* Type and Interval Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mt-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Transaction Type
@@ -407,60 +396,54 @@ const Recurring: React.FC = () => {
               className="w-full"
             />
           </div>
+          <div className="flex justify-end sm:justify-start sm:ml-auto">
+            <button
+              onClick={fetchRecurringTransactions}
+              disabled={loading}
+              className="flex items-center px-3 py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              title="Refresh recurring transactions"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              <span className="ml-2">Refresh</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-700 p-4 rounded-md">
+        <div className="bg-red-50 dark:bg-red-900/20 border dark:border-red-800 border-red-200 p-4 rounded-md">
           <div className="flex items-start justify-between">
             <div className="flex items-start space-x-2">
-              <div className="text-red-500 dark:text-red-400 w-5 h-5 flex-shrink-0 mt-0.5">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
+              <AlertCircle className="text-red-500 dark:text-red-400 w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                   Error Occurred
                 </h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                  {error}
-                </p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
               </div>
             </div>
             <button
               onClick={() => setError("")}
               className="text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-300"
             >
-              <X className="w-5 h-5" />
+              <XCircle className="w-5 h-5" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Transactions List with improved design */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow border dark:border-gray-700 overflow-hidden">
+      <div className="relative min-h-[600px]">
         {paginatedTransactions.length === 0 && !error ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
             <div className="max-w-md mx-auto">
               <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Repeat className="w-8 h-8 text-indigo-500" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
                 No Recurring Transactions Found
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 You don't have any recurring transactions yet. Create recurring
                 incomes or expenses in their respective sections.
               </p>
@@ -514,127 +497,123 @@ const Recurring: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700/50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    <div className="flex items-center space-x-1">
-                      <DollarSign className="w-4 h-4" />
-                      <span>Amount</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>Interval</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4" />
-                      <span>Next Date</span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {currentRecords.map((transaction) => (
-                  <motion.tr
-                    key={`${transaction._id}-${transaction.type}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/30"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div
-                          className={`p-2 rounded-lg mr-3 ${getTypeColor(
-                            transaction.type
-                          )}`}
-                        >
-                          {getTypeIcon(transaction.type)}
-                        </div>
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {transaction.description}
-                        </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                          <thead className="bg-gray-50 dark:bg-gray-800">
+                            <tr>
+                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                Description
+                              </th>
+                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                Type
+                              </th>
+                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                Category
+                              </th>
+                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                <div className="flex items-center space-x-1">
+                                  <DollarSign className="w-4 h-4" />
+                                  <span>Amount</span>
+                                </div>
+                              </th>
+                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                <div className="flex items-center space-x-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span>Interval</span>
+                                </div>
+                              </th>
+                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                <div className="flex items-center space-x-1">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>Next Date</span>
+                                </div>
+                              </th>
+                              <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            {currentRecords.map((transaction) => (
+                              <motion.tr
+                                key={`${transaction._id}-${transaction.type}`}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3 }}
+                                className="hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                              >
+                                <td className="px-4 lg:px-6 py-4">
+                                  <div className="flex items-center">
+                                    <div
+                                      className={`p-2 rounded-lg mr-3 ${getTypeColor(
+                                        transaction.type
+                                      )}`}
+                                    >
+                                      {getTypeIcon(transaction.type)}
+                                    </div>
+                                    <div className="font-medium text-gray-900 dark:text-white">
+                                      {transaction.description}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                                  <span
+                                    className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                                      transaction.type
+                                    )}`}
+                                  >
+                                    {transaction.type === "expense" ? "Expense" : "Income"}
+                                  </span>
+                                </td>
+                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                                  <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
+                                    {transaction.category}
+                                  </span>
+                                </td>
+                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                                  {formatCurrency(transaction.amount)}
+                                </td>
+                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                  {transaction.recurringInterval
+                                    ? getIntervalLabel(transaction.recurringInterval)
+                                    : "N/A"}
+                                </td>
+                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                  {transaction.nextRecurringDate
+                                    ? new Date(
+                                        transaction.nextRecurringDate
+                                      ).toLocaleDateString()
+                                    : "N/A"}
+                                </td>
+                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                  <div className="flex items-center justify-end space-x-2">
+                                    <button
+                                      onClick={() =>
+                                        setConfirmModal({
+                                          open: true,
+                                          id: transaction._id,
+                                          type: transaction.type,
+                                        })
+                                      }
+                                      className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${updatingId === transaction._id ? 'opacity-60 cursor-not-allowed' : 'transform hover:scale-105'}`}
+                                      title="Remove Recurring"
+                                      disabled={updatingId === transaction._id}
+                                    >
+                                      {updatingId === transaction._id ? (
+                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </td>
+                              </motion.tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                          transaction.type
-                        )}`}
-                      >
-                        {transaction.type === "expense" ? "Expense" : "Income"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded">
-                        {transaction.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                      {formatCurrency(transaction.amount)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                      {transaction.recurringInterval
-                        ? getIntervalLabel(transaction.recurringInterval)
-                        : "N/A"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                      {transaction.nextRecurringDate
-                        ? new Date(
-                            transaction.nextRecurringDate
-                          ).toLocaleDateString()
-                        : "N/A"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-
-                        <button
-                          onClick={() =>
-                            setConfirmModal({ 
-                              open: true, 
-                              id: transaction._id, 
-                              type: transaction.type 
-                            })
-                          }
-                          className={`text-rose-600 hover:text-white hover:bg-rose-600 transition-all duration-200 p-2 rounded-lg ${
-                            updatingId === transaction._id
-                              ? "opacity-60 cursor-not-allowed"
-                              : ""
-                          }`}
-                          title="Remove Recurring"
-                          disabled={updatingId === transaction._id}
-                        >
-                          {updatingId === transaction._id ? (
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                    </div>        )}
       </div>
 
       {/* Pagination Controls */}
@@ -669,7 +648,7 @@ const Recurring: React.FC = () => {
                       onClick={() => setCurrentPage(1)}
                       className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
                         currentPage === 1
-                          ? "text-white bg-indigo-500 hover:bg-indigo-600"
+                          ? "text-white bg-sky-500 hover:bg-sky-600"
                           : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
                       }`}
                     >
@@ -689,7 +668,7 @@ const Recurring: React.FC = () => {
                       onClick={() => setCurrentPage(i)}
                       className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
                         currentPage === i
-                          ? "text-white bg-indigo-500 hover:bg-indigo-600"
+                          ? "text-white bg-sky-500 hover:bg-sky-600"
                           : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
                       }`}
                     >
@@ -709,7 +688,7 @@ const Recurring: React.FC = () => {
                       onClick={() => setCurrentPage(nPages)}
                       className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
                         currentPage === nPages
-                          ? "text-white bg-indigo-500 hover:bg-indigo-600"
+                          ? "text-white bg-sky-500 hover:bg-sky-600"
                           : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
                       }`}
                     >
