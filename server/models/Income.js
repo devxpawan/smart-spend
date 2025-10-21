@@ -18,18 +18,7 @@ const incomeSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: [
-      "Salary",
-      "Freelance/ Side Jobs",
-      "Business Income",
-      "Rental Income",
-      "Interest / Dividends",
-      "Gifts / Donations",
-      "Pension / Retirement",
-      "Scholarships / Grants",
-      "Refunds / Cashbacks",
-      "Other Income",
-    ],
+    // Removed enum to allow custom categories
   },
   date: {
     type: Date,

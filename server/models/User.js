@@ -35,6 +35,15 @@ const userSchema = new mongoose.Schema({
       default: "Rs",
     },
   },
+  // Custom categories for income and expenses
+  customIncomeCategories: {
+    type: [String],
+    default: [],
+  },
+  customExpenseCategories: {
+    type: [String],
+    default: [],
+  },
   createdAt: {
     type: Date,
     default: Date.now,

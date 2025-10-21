@@ -16,6 +16,8 @@ interface User {
     reminderDaysBefore: number;
     theme: string;
   };
+  customIncomeCategories?: string[];
+  customExpenseCategories?: string[];
 }
 
 export interface AuthContextType {
@@ -30,7 +32,9 @@ export interface AuthContextType {
   updateProfile: (data: FormData, config?: AxiosRequestConfig) => Promise<void>;
   removeAvatar: () => Promise<void>;
   updateCurrency: (currency: string) => Promise<void>;
-  deleteProfile: () => Promise<void>; // ADD THIS LINE
+  deleteProfile: () => Promise<void>;
+  updateCustomIncomeCategories: (categories: string[]) => Promise<void>;
+  updateCustomExpenseCategories: (categories: string[]) => Promise<void>;
   loginWithToken: (token: string, user: User) => void;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (
@@ -318,6 +322,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Function to update custom income categories
+  const updateCustomIncomeCategories = async (categories: string[]) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await axios.put("/api/user/categories/income", { categories });
+      setUser(res.data.user);
+      toast.success("Income categories updated successfully");
+    } catch (err: unknown) {
+      console.error("Custom income categories update error:", err);
+      let errorMessage = "Failed to update income categories";
+      if (err instanceof AxiosError) {
+        if (err.response?.status === 400) {
+          errorMessage = err.response?.data?.message || "Invalid categories data";
+        } else if (err.response?.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else {
+          errorMessage = err.message || "Failed to update income categories";
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to update custom expense categories
+  const updateCustomExpenseCategories = async (categories: string[]) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await axios.put("/api/user/categories/expense", { categories });
+      setUser(res.data.user);
+      toast.success("Expense categories updated successfully");
+    } catch (err: unknown) {
+      console.error("Custom expense categories update error:", err);
+      let errorMessage = "Failed to update expense categories";
+      if (err instanceof AxiosError) {
+        if (err.response?.status === 400) {
+          errorMessage = err.response?.data?.message || "Invalid categories data";
+        } else if (err.response?.status === 500) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (err.response?.data?.message) {
+          errorMessage = err.response.data.message;
+        } else {
+          errorMessage = err.message || "Failed to update expense categories";
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loginWithToken = (token: string, user: User) => {
     localStorage.setItem("token", token);
     setToken(token);
@@ -387,6 +457,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         removeAvatar,
         updateCurrency,
         deleteProfile,
+        updateCustomIncomeCategories,
+        updateCustomExpenseCategories,
         loginWithToken,
         forgotPassword,
         resetPassword,

@@ -59,6 +59,14 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
+  // Create a key that changes when categories change to force re-render
+  const categoryKey = JSON.stringify(user?.customIncomeCategories || []);
+
+  // Determine which categories to use: custom if available, otherwise default
+  const categoriesToUse = user?.customIncomeCategories && user.customIncomeCategories.length > 0 
+    ? user.customIncomeCategories 
+    : incomeCategories;
+
   // Initialize form data
   useEffect(() => {
     if (initialData) {
@@ -471,7 +479,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                     Category *
                   </label>
                   <CustomSelect
-                    options={incomeCategories.map((cat) => ({
+                    options={categoriesToUse.map((cat) => ({
                       value: cat,
                       label: cat,
                     }))}

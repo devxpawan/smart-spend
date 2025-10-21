@@ -144,7 +144,9 @@ const Incomes: React.FC = () => {
     action();
   };
 
-  const categories = incomeCategories;
+  const categories = user?.customIncomeCategories && user.customIncomeCategories.length > 0 
+    ? user.customIncomeCategories 
+    : incomeCategories;
 
   // Memoized filtered and sorted incomes
   const { filteredIncomes, totalAmount, monthlyTotal, currentRecords, nPages } =
@@ -1109,6 +1111,7 @@ const Incomes: React.FC = () => {
 
       {(isAddModalOpen || editIncomeData) && (
         <IncomeModal
+          key={JSON.stringify(user?.customIncomeCategories || [])}
           isOpen={isAddModalOpen || !!editIncomeData}
           onClose={() => {
             setIsAddModalOpen(false);
