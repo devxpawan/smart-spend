@@ -1,43 +1,80 @@
-import express from 'express';
-import Bill from '../models/Bill.js';
-import Expense from '../models/Expense.js';
-import Income from '../models/Income.js';
-import Warranty from '../models/Warranty.js';
+import express from "express";
+import { authenticateToken } from "../middleware/auth.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
-// @route   DELETE api/user/records
-// @desc    Clear user records
+// Apply authentication middleware to all routes in this file
+router.use(authenticateToken);
+
+// @route   PUT api/user/categories/income
+// @desc    Update user's custom income categories
 // @access  Private
-router.delete('/records', async (req, res) => {
+router.put('/categories/income', async (req, res) => {
+  console.log('PUT /api/user/categories/income called');
   try {
-    const { records } = req.body;
+    const { categories } = req.body;
     const userId = req.user.id;
+    
+    console.log('User ID:', userId);
+    console.log('Categories:', categories);
 
-    if (!records || !Array.isArray(records)) {
-      return res.status(400).json({ msg: 'Invalid request' });
+    if (!Array.isArray(categories)) {
+      return res.status(400).json({ msg: 'Categories must be an array' });
     }
 
-    const promises = [];
+    // Validate categories - each should be a non-empty string
+    const validCategories = categories.filter(
+      (cat) => typeof cat === 'string' && cat.trim().length > 0
+    );
+    
+    console.log('Valid categories:', validCategories);
 
-    if (records.includes('bills')) {
-      promises.push(Bill.deleteMany({ user: userId }));
-    }
-    if (records.includes('expenses')) {
-      promises.push(Expense.deleteMany({ user: userId }));
-    }
-    if (records.includes('incomes')) {
-      promises.push(Income.deleteMany({ user: userId }));
-    }
-    if (records.includes('warranties')) {
-      promises.push(Warranty.deleteMany({ user: userId }));
-    }
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { customIncomeCategories: validCategories },
+      { new: true }
+    ).select('-password');
 
-    await Promise.all(promises);
-
-    res.json({ msg: 'Records cleared successfully' });
+    res.json({ user });
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in PUT /api/user/categories/income:', err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/user/categories/expense
+// @desc    Update user's custom expense categories
+// @access  Private
+router.put('/categories/expense', async (req, res) => {
+  console.log('PUT /api/user/categories/expense called');
+  try {
+    const { categories } = req.body;
+    const userId = req.user.id;
+    
+    console.log('User ID:', userId);
+    console.log('Categories:', categories);
+
+    if (!Array.isArray(categories)) {
+      return res.status(400).json({ msg: 'Categories must be an array' });
+    }
+
+    // Validate categories - each should be a non-empty string
+    const validCategories = categories.filter(
+      (cat) => typeof cat === 'string' && cat.trim().length > 0
+    );
+    
+    console.log('Valid categories:', validCategories);
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { customExpenseCategories: validCategories },
+      { new: true }
+    ).select('-password');
+
+    res.json({ user });
+  } catch (err) {
+    console.error('Error in PUT /api/user/categories/expense:', err.message);
     res.status(500).send('Server Error');
   }
 });

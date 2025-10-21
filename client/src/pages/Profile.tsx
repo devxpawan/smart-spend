@@ -10,6 +10,7 @@ import {
   Info,
   Mail,
   Moon,
+  Plus,
   RefreshCw,
   Save,
   ShieldCheck,
@@ -26,6 +27,8 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 import { useAuth } from "../contexts/auth-exports";
 import { useTheme } from "../contexts/theme-exports";
+import { incomeCategories } from "../lib/incomeCategories";
+import { expenseCategories } from "../lib/expenseCategories";
 
 // Types
 interface Message {
@@ -114,10 +117,156 @@ const Toast: React.FC<{ message: Message; onClose: () => void }> = ({
   </AnimatePresence>
 );
 
+// Category Management Component
+const CategoryManager: React.FC<{
+  title: string;
+  categories: string[];
+  defaultCategories: string[];
+  onUpdate: (categories: string[]) => Promise<void>;
+  setMessage: (message: Message) => void;
+  // New prop to track unsaved changes
+  setUnsavedChanges?: (categories: string[] | null) => void;
+}> = ({ title, categories, defaultCategories, onUpdate, setMessage, setUnsavedChanges }) => {
+  const [newCategory, setNewCategory] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempCategories, setTempCategories] = useState<string[]>(categories);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setTempCategories(categories);
+  }, [categories]);
+
+  const handleAddCategory = () => {
+    if (newCategory.trim() && !tempCategories.includes(newCategory.trim())) {
+      const updated = [...tempCategories, newCategory.trim()];
+      setTempCategories(updated);
+      setNewCategory("");
+    }
+  };
+
+  const handleRemoveCategory = (category: string) => {
+    const updated = tempCategories.filter((cat) => cat !== category);
+    setTempCategories(updated);
+  };
+
+  const handleCancel = () => {
+    setTempCategories(categories);
+    setIsEditing(false);
+    setNewCategory("");
+    // Reset unsaved changes tracking
+    if (setUnsavedChanges) {
+      setUnsavedChanges(null);
+    }
+  };
+
+  const handleResetToDefaults = () => {
+    setTempCategories([...defaultCategories]);
+  };
+
+  // When temp categories change, notify parent of unsaved changes
+  useEffect(() => {
+    if (isEditing && setUnsavedChanges) {
+      // Check if categories have actually changed
+      const hasChanges = JSON.stringify(tempCategories.sort()) !== JSON.stringify(categories.sort());
+      setUnsavedChanges(hasChanges ? tempCategories : null);
+    }
+  }, [tempCategories, categories, isEditing, setUnsavedChanges]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">
+          {title} Categories
+        </h3>
+        {!isEditing ? (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
+          >
+            Customize
+          </button>
+        ) : null}
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              placeholder="Add new category"
+              className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
+              disabled={saving}
+            />
+            <button
+              onClick={handleAddCategory}
+              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              disabled={saving}
+              type="button"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {tempCategories.map((category) => (
+              <div
+                key={category}
+                className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-full px-3 py-1 text-sm"
+              >
+                <span className="mr-2">{category}</span>
+                <button
+                  onClick={() => handleRemoveCategory(category)}
+                  className="text-slate-500 hover:text-red-500"
+                  disabled={saving}
+                  type="button"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between pt-2">
+            <button
+              onClick={handleResetToDefaults}
+              className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
+              disabled={saving}
+              type="button"
+            >
+              Reset to defaults
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <span
+              key={category}
+              className="bg-slate-100 dark:bg-slate-700 rounded-full px-3 py-1 text-sm"
+            >
+              {category}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Main Component
 const Profile: React.FC = () => {
-  const { user, updateProfile, removeAvatar, updateCurrency, deleteProfile } =
-    useAuth();
+  const {
+    user,
+    updateProfile,
+    removeAvatar,
+    updateCurrency,
+    deleteProfile,
+    updateCustomIncomeCategories,
+    updateCustomExpenseCategories,
+  } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
   const canHover = useHoverCapable();
@@ -133,6 +282,18 @@ const Profile: React.FC = () => {
   const [pendingCurrency, setPendingCurrency] = useState<string | undefined>(
     undefined
   );
+
+  // Custom categories state
+  const [customIncomeCategories, setCustomIncomeCategories] = useState<string[]>(
+    user?.customIncomeCategories || []
+  );
+  const [customExpenseCategories, setCustomExpenseCategories] = useState<string[]>(
+    user?.customExpenseCategories || []
+  );
+  
+  // Track if there are unsaved category changes
+  const [unsavedIncomeCategories, setUnsavedIncomeCategories] = useState<string[] | null>(null);
+  const [unsavedExpenseCategories, setUnsavedExpenseCategories] = useState<string[] | null>(null);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -206,7 +367,12 @@ const Profile: React.FC = () => {
   useEffect(() => {
     setName(user?.name || "");
     setSelectedCurrency(user?.preferences?.currency || "USD");
-  }, [user?.name, user?.preferences?.currency]);
+    setCustomIncomeCategories(user?.customIncomeCategories || []);
+    setCustomExpenseCategories(user?.customExpenseCategories || []);
+    // Reset unsaved changes when user data changes
+    setUnsavedIncomeCategories(null);
+    setUnsavedExpenseCategories(null);
+  }, [user?.name, user?.preferences?.currency, user?.customIncomeCategories, user?.customExpenseCategories]);
 
   // Create and cleanup avatar preview URL
   useEffect(() => {
@@ -241,8 +407,10 @@ const Profile: React.FC = () => {
   const hasCurrencyChanged = Boolean(
     pendingCurrency && pendingCurrency !== selectedCurrency
   );
+  // Check if there are unsaved category changes
+  const hasUnsavedCategoryChanges = unsavedIncomeCategories !== null || unsavedExpenseCategories !== null;
   const hasChanges =
-    hasNameChanged || hasCurrencyChanged || !!avatar || isAvatarPendingDeletion;
+    hasNameChanged || hasCurrencyChanged || !!avatar || isAvatarPendingDeletion || hasUnsavedCategoryChanges;
 
   const avatarUrl = isAvatarPendingDeletion
     ? `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -338,12 +506,24 @@ const Profile: React.FC = () => {
         promises.push(updateCurrency(pendingCurrency));
       }
 
+      // Save custom categories if there are unsaved changes
+      if (unsavedIncomeCategories !== null) {
+        promises.push(updateCustomIncomeCategories(unsavedIncomeCategories));
+      }
+
+      if (unsavedExpenseCategories !== null) {
+        promises.push(updateCustomExpenseCategories(unsavedExpenseCategories));
+      }
+
       await Promise.all(promises);
 
       setAvatar(null);
       setAvatarPreview(null);
       setPendingCurrency(undefined);
       setIsAvatarPendingDeletion(false);
+      // Reset unsaved category changes
+      setUnsavedIncomeCategories(null);
+      setUnsavedExpenseCategories(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
 
       setSaveSuccess(true);
@@ -372,6 +552,10 @@ const Profile: React.FC = () => {
     updateCurrency,
     updateProfile,
     trimmedName,
+    unsavedIncomeCategories,
+    unsavedExpenseCategories,
+    updateCustomIncomeCategories,
+    updateCustomExpenseCategories,
   ]);
 
   const handleDeleteProfile = useCallback(async () => {
@@ -429,8 +613,6 @@ const Profile: React.FC = () => {
     },
     [fetchStats]
   );
-
-
 
   const handleRevertChanges = useCallback(() => {
     setName(user?.name || "");
@@ -846,6 +1028,39 @@ const Profile: React.FC = () => {
             {/* separator */}
             <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
+            {/* Custom Categories Section */}
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Custom Categories
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Customize your income and expense categories. These will be used in the income and expense forms.
+              </p>
+              
+              <CategoryManager
+                title="Income"
+                categories={customIncomeCategories.length > 0 ? customIncomeCategories : incomeCategories}
+                defaultCategories={incomeCategories}
+                onUpdate={updateCustomIncomeCategories}
+                setMessage={setMessage}
+                // Pass the setter for unsaved changes
+                setUnsavedChanges={setUnsavedIncomeCategories}
+              />
+              
+              <CategoryManager
+                title="Expense"
+                categories={customExpenseCategories.length > 0 ? customExpenseCategories : expenseCategories}
+                defaultCategories={expenseCategories}
+                onUpdate={updateCustomExpenseCategories}
+                setMessage={setMessage}
+                // Pass the setter for unsaved changes
+                setUnsavedChanges={setUnsavedExpenseCategories}
+              />
+            </div>
+
+            {/* separator */}
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
               {hasChanges && (
@@ -1013,8 +1228,6 @@ const Profile: React.FC = () => {
         setDeleteInput={setDeleteInput}
         deleting={deleting}
       />
-
-
 
       {/* Clear Records Modal */}
       <ClearRecordsModal

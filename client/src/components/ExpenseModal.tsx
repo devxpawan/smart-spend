@@ -15,6 +15,7 @@ import ExpenseFormData from "../types/ExpenseFormData";
 import BankAccountInterface from "../types/BankAccountInterface";
 import CustomSelect from "./CustomSelect";
 import { getBankAccounts } from "../api/bankAccounts";
+import { expenseCategories } from "../lib/expenseCategories";
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -58,18 +59,13 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
-  const categories = [
-    "Groceries",
-    "Transportation",
-    "Rent/Housing",
-    "Utilities",
-    "Debit",
-    "Health & Fitness",
-    "Dining Out",
-    "Education",
-    "Insurance",
-    "Other Expense",
-  ];
+  // Create a key that changes when categories change to force re-render
+  const categoryKey = JSON.stringify(user?.customExpenseCategories || []);
+
+  // Determine which categories to use: custom if available, otherwise default
+  const categoriesToUse = user?.customExpenseCategories && user.customExpenseCategories.length > 0 
+    ? user.customExpenseCategories 
+    : expenseCategories;
 
   // Initialize form data
   useEffect(() => {
@@ -484,7 +480,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                     Category *
                   </label>
                   <CustomSelect
-                    options={categories.map((cat) => ({
+                    options={categoriesToUse.map((cat) => ({
                       value: cat,
                       label: cat,
                     }))}

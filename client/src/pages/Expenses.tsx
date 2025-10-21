@@ -255,7 +255,9 @@ const Expenses: React.FC = () => {
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
-    const categories = expenseCategories;
+    const categories = user?.customExpenseCategories && user.customExpenseCategories.length > 0 
+      ? user.customExpenseCategories 
+      : expenseCategories;
 
     // Calculate this month's total for expenses
     const now = new Date();
@@ -1092,6 +1094,7 @@ const Expenses: React.FC = () => {
 
       {(isAddModalOpen || editExpenseData) && (
         <ExpenseModal
+          key={JSON.stringify(user?.customExpenseCategories || [])}
           isOpen={isAddModalOpen || !!editExpenseData}
           onClose={() => {
             setIsAddModalOpen(false);
