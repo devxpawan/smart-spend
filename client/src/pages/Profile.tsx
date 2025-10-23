@@ -124,53 +124,67 @@ const CategoryManager: React.FC<{
   defaultCategories: string[];
   onUpdate: (categories: string[]) => Promise<void>;
   setMessage: (message: Message) => void;
-  // New prop to track unsaved changes
-  setUnsavedChanges?: (categories: string[] | null) => void;
-}> = ({ title, categories, defaultCategories, onUpdate, setMessage, setUnsavedChanges }) => {
+}> = ({ title, categories, defaultCategories, onUpdate, setMessage }) => {
   const [newCategory, setNewCategory] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
   const [tempCategories, setTempCategories] = useState<string[]>(categories);
   const [saving, setSaving] = useState(false);
 
+  // Sync tempCategories with categories prop when it changes
   useEffect(() => {
     setTempCategories(categories);
   }, [categories]);
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (newCategory.trim() && !tempCategories.includes(newCategory.trim())) {
       const updated = [...tempCategories, newCategory.trim()];
       setTempCategories(updated);
       setNewCategory("");
+      
+      // Immediately save the changes
+      try {
+        setSaving(true);
+        await onUpdate(updated);
+        setMessage({ type: "success", text: `${title} category added successfully.` });
+      } catch (error) {
+        setMessage({ type: "error", text: "Failed to save category. Please try again." });
+        // Revert the change if save failed
+        setTempCategories([...tempCategories]);
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
-  const handleRemoveCategory = (category: string) => {
+  const handleRemoveCategory = async (category: string) => {
     const updated = tempCategories.filter((cat) => cat !== category);
     setTempCategories(updated);
-  };
-
-  const handleCancel = () => {
-    setTempCategories(categories);
-    setIsEditing(false);
-    setNewCategory("");
-    // Reset unsaved changes tracking
-    if (setUnsavedChanges) {
-      setUnsavedChanges(null);
+    
+    // Immediately save the changes
+    try {
+      setSaving(true);
+      await onUpdate(updated);
+      setMessage({ type: "success", text: `${title} category removed successfully.` });
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to remove category. Please try again." });
+      // Revert the change if save failed
+      setTempCategories([...tempCategories]);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleResetToDefaults = () => {
-    setTempCategories([...defaultCategories]);
-  };
-
-  // When temp categories change, notify parent of unsaved changes
-  useEffect(() => {
-    if (isEditing && setUnsavedChanges) {
-      // Check if categories have actually changed
-      const hasChanges = JSON.stringify(tempCategories.sort()) !== JSON.stringify(categories.sort());
-      setUnsavedChanges(hasChanges ? tempCategories : null);
+  const handleResetToDefaults = async () => {
+    try {
+      setSaving(true);
+      await onUpdate([...defaultCategories]);
+      setTempCategories([...defaultCategories]);
+      setMessage({ type: "success", text: `${title} categories reset to defaults.` });
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to reset categories. Please try again." });
+    } finally {
+      setSaving(false);
     }
-  }, [tempCategories, categories, isEditing, setUnsavedChanges]);
+  };
 
   return (
     <div className="space-y-4">
@@ -178,80 +192,56 @@ const CategoryManager: React.FC<{
         <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">
           {title} Categories
         </h3>
-        {!isEditing ? (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
-          >
-            Customize
-          </button>
-        ) : null}
+        <button
+          onClick={handleResetToDefaults}
+          className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
+          disabled={saving}
+          type="button"
+        >
+          Reset to defaults
+        </button>
       </div>
 
-      {isEditing ? (
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              placeholder="Add new category"
-              className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
-              disabled={saving}
-            />
-            <button
-              onClick={handleAddCategory}
-              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-              disabled={saving}
-              type="button"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {tempCategories.map((category) => (
-              <div
-                key={category}
-                className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-full px-3 py-1 text-sm"
-              >
-                <span className="mr-2">{category}</span>
-                <button
-                  onClick={() => handleRemoveCategory(category)}
-                  className="text-slate-500 hover:text-red-500"
-                  disabled={saving}
-                  type="button"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-between pt-2">
-            <button
-              onClick={handleResetToDefaults}
-              className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
-              disabled={saving}
-              type="button"
-            >
-              Reset to defaults
-            </button>
-          </div>
+      <div className="space-y-4">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            placeholder="Add new category"
+            className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
+            disabled={saving}
+          />
+          <button
+            onClick={handleAddCategory}
+            className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            disabled={saving}
+            type="button"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
-      ) : (
+
         <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <span
+          {tempCategories.map((category) => (
+            <div
               key={category}
-              className="bg-slate-100 dark:bg-slate-700 rounded-full px-3 py-1 text-sm"
+              className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-full px-3 py-1 text-sm"
             >
-              {category}
-            </span>
+              <span className="mr-2">{category}</span>
+              <button
+                onClick={() => handleRemoveCategory(category)}
+                className="text-slate-500 hover:text-red-500"
+                disabled={saving}
+                type="button"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           ))}
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -290,10 +280,6 @@ const Profile: React.FC = () => {
   const [customExpenseCategories, setCustomExpenseCategories] = useState<string[]>(
     user?.customExpenseCategories || []
   );
-  
-  // Track if there are unsaved category changes
-  const [unsavedIncomeCategories, setUnsavedIncomeCategories] = useState<string[] | null>(null);
-  const [unsavedExpenseCategories, setUnsavedExpenseCategories] = useState<string[] | null>(null);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -369,9 +355,6 @@ const Profile: React.FC = () => {
     setSelectedCurrency(user?.preferences?.currency || "USD");
     setCustomIncomeCategories(user?.customIncomeCategories || []);
     setCustomExpenseCategories(user?.customExpenseCategories || []);
-    // Reset unsaved changes when user data changes
-    setUnsavedIncomeCategories(null);
-    setUnsavedExpenseCategories(null);
   }, [user?.name, user?.preferences?.currency, user?.customIncomeCategories, user?.customExpenseCategories]);
 
   // Create and cleanup avatar preview URL
@@ -407,10 +390,9 @@ const Profile: React.FC = () => {
   const hasCurrencyChanged = Boolean(
     pendingCurrency && pendingCurrency !== selectedCurrency
   );
-  // Check if there are unsaved category changes
-  const hasUnsavedCategoryChanges = unsavedIncomeCategories !== null || unsavedExpenseCategories !== null;
+  // We no longer need to track unsaved category changes since they're saved immediately
   const hasChanges =
-    hasNameChanged || hasCurrencyChanged || !!avatar || isAvatarPendingDeletion || hasUnsavedCategoryChanges;
+    hasNameChanged || hasCurrencyChanged || !!avatar || isAvatarPendingDeletion;
 
   const avatarUrl = isAvatarPendingDeletion
     ? `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -506,24 +488,12 @@ const Profile: React.FC = () => {
         promises.push(updateCurrency(pendingCurrency));
       }
 
-      // Save custom categories if there are unsaved changes
-      if (unsavedIncomeCategories !== null) {
-        promises.push(updateCustomIncomeCategories(unsavedIncomeCategories));
-      }
-
-      if (unsavedExpenseCategories !== null) {
-        promises.push(updateCustomExpenseCategories(unsavedExpenseCategories));
-      }
-
       await Promise.all(promises);
 
       setAvatar(null);
       setAvatarPreview(null);
       setPendingCurrency(undefined);
       setIsAvatarPendingDeletion(false);
-      // Reset unsaved category changes
-      setUnsavedIncomeCategories(null);
-      setUnsavedExpenseCategories(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
 
       setSaveSuccess(true);
@@ -552,10 +522,6 @@ const Profile: React.FC = () => {
     updateCurrency,
     updateProfile,
     trimmedName,
-    unsavedIncomeCategories,
-    unsavedExpenseCategories,
-    updateCustomIncomeCategories,
-    updateCustomExpenseCategories,
   ]);
 
   const handleDeleteProfile = useCallback(async () => {
@@ -1043,8 +1009,6 @@ const Profile: React.FC = () => {
                 defaultCategories={incomeCategories}
                 onUpdate={updateCustomIncomeCategories}
                 setMessage={setMessage}
-                // Pass the setter for unsaved changes
-                setUnsavedChanges={setUnsavedIncomeCategories}
               />
               
               <CategoryManager
@@ -1053,8 +1017,6 @@ const Profile: React.FC = () => {
                 defaultCategories={expenseCategories}
                 onUpdate={updateCustomExpenseCategories}
                 setMessage={setMessage}
-                // Pass the setter for unsaved changes
-                setUnsavedChanges={setUnsavedExpenseCategories}
               />
             </div>
 

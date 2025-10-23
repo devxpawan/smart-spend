@@ -192,6 +192,8 @@ const formatUserResponse = (user) => ({
   email: user.email,
   avatar: user.avatar,
   preferences: user.preferences,
+  customIncomeCategories: user.customIncomeCategories,
+  customExpenseCategories: user.customExpenseCategories,
   createdAt: user.createdAt,
   isGoogleUser: !!user.googleId, // Add this field
 });
@@ -798,3 +800,5 @@ router.get("/profile/stats", authenticateToken, async (req, res) => {
 });
 
 export default router;
+
+
