@@ -5,18 +5,13 @@ import {
   Camera,
   Check,
   CheckCircle,
-  CreditCard,
-  FileText,
   Info,
   Mail,
   Moon,
-  Plus,
   RefreshCw,
   Save,
-  ShieldCheck,
   Sun,
   Trash2,
-  TrendingUp,
   User,
   X,
 } from "lucide-react";
@@ -27,21 +22,11 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 import { useAuth } from "../contexts/auth-exports";
 import { useTheme } from "../contexts/theme-exports";
-import { incomeCategories } from "../lib/incomeCategories";
-import { expenseCategories } from "../lib/expenseCategories";
 
 // Types
 interface Message {
   type: "success" | "error" | "info" | "";
   text: string;
-}
-
-interface ProfileStatsData {
-  bills: number;
-  expenses: number;
-  warranties: number;
-  incomes: number;
-  total: number;
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -117,145 +102,6 @@ const Toast: React.FC<{ message: Message; onClose: () => void }> = ({
   </AnimatePresence>
 );
 
-// Category Management Component
-const CategoryManager: React.FC<{
-  title: string;
-  categories: string[];
-  defaultCategories: string[];
-  onUpdate: (categories: string[]) => Promise<void>;
-  setMessage: (message: Message) => void;
-  // New prop to track unsaved changes
-  setUnsavedChanges?: (categories: string[] | null) => void;
-}> = ({ title, categories, defaultCategories, onUpdate, setMessage, setUnsavedChanges }) => {
-  const [newCategory, setNewCategory] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempCategories, setTempCategories] = useState<string[]>(categories);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setTempCategories(categories);
-  }, [categories]);
-
-  const handleAddCategory = () => {
-    if (newCategory.trim() && !tempCategories.includes(newCategory.trim())) {
-      const updated = [...tempCategories, newCategory.trim()];
-      setTempCategories(updated);
-      setNewCategory("");
-    }
-  };
-
-  const handleRemoveCategory = (category: string) => {
-    const updated = tempCategories.filter((cat) => cat !== category);
-    setTempCategories(updated);
-  };
-
-  const handleCancel = () => {
-    setTempCategories(categories);
-    setIsEditing(false);
-    setNewCategory("");
-    // Reset unsaved changes tracking
-    if (setUnsavedChanges) {
-      setUnsavedChanges(null);
-    }
-  };
-
-  const handleResetToDefaults = () => {
-    setTempCategories([...defaultCategories]);
-  };
-
-  // When temp categories change, notify parent of unsaved changes
-  useEffect(() => {
-    if (isEditing && setUnsavedChanges) {
-      // Check if categories have actually changed
-      const hasChanges = JSON.stringify(tempCategories.sort()) !== JSON.stringify(categories.sort());
-      setUnsavedChanges(hasChanges ? tempCategories : null);
-    }
-  }, [tempCategories, categories, isEditing, setUnsavedChanges]);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">
-          {title} Categories
-        </h3>
-        {!isEditing ? (
-          <button
-            onClick={() => setIsEditing(true)}
-            className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
-          >
-            Customize
-          </button>
-        ) : null}
-      </div>
-
-      {isEditing ? (
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              placeholder="Add new category"
-              className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              onKeyDown={(e) => e.key === "Enter" && handleAddCategory()}
-              disabled={saving}
-            />
-            <button
-              onClick={handleAddCategory}
-              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-              disabled={saving}
-              type="button"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {tempCategories.map((category) => (
-              <div
-                key={category}
-                className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-full px-3 py-1 text-sm"
-              >
-                <span className="mr-2">{category}</span>
-                <button
-                  onClick={() => handleRemoveCategory(category)}
-                  className="text-slate-500 hover:text-red-500"
-                  disabled={saving}
-                  type="button"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex justify-between pt-2">
-            <button
-              onClick={handleResetToDefaults}
-              className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
-              disabled={saving}
-              type="button"
-            >
-              Reset to defaults
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <span
-              key={category}
-              className="bg-slate-100 dark:bg-slate-700 rounded-full px-3 py-1 text-sm"
-            >
-              {category}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // Main Component
 const Profile: React.FC = () => {
   const {
@@ -283,14 +129,6 @@ const Profile: React.FC = () => {
     undefined
   );
 
-  // Custom categories state
-  const [customIncomeCategories, setCustomIncomeCategories] = useState<string[]>(
-    user?.customIncomeCategories || []
-  );
-  const [customExpenseCategories, setCustomExpenseCategories] = useState<string[]>(
-    user?.customExpenseCategories || []
-  );
-  
   // Track if there are unsaved category changes
   const [unsavedIncomeCategories, setUnsavedIncomeCategories] = useState<string[] | null>(null);
   const [unsavedExpenseCategories, setUnsavedExpenseCategories] = useState<string[] | null>(null);
@@ -308,50 +146,9 @@ const Profile: React.FC = () => {
   const [deleteInput, setDeleteInput] = useState("");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isAvatarPendingDeletion, setIsAvatarPendingDeletion] = useState(false);
-  const [stats, setStats] = useState<ProfileStatsData>({
-    bills: 0,
-    expenses: 0,
-    warranties: 0,
-    incomes: 0,
-    total: 0,
-  });
-  const [statsLoading, setStatsLoading] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Cancelable stats fetch
-  const fetchStats = useCallback(async (signal?: AbortSignal) => {
-    try {
-      setStatsLoading(true);
-      const response = await axios.get("/api/auth/profile/stats", { signal });
-      const data = response.data;
-
-      if (data?.activity) {
-        setStats({
-          bills: data.activity.bills || 0,
-          expenses: data.activity.expenses || 0,
-          warranties: data.activity.warranties || 0,
-          incomes: data.activity.incomes || 0,
-          total: data.activity.total || 0,
-        });
-      }
-    } catch (error: unknown) {
-      if (error instanceof AxiosError && error?.code === "ERR_CANCELED") return;
-      console.error("Error fetching profile stats:", error);
-      setMessage((m) =>
-        m.text ? m : { type: "error", text: "Failed to load stats." }
-      );
-    } finally {
-      setStatsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchStats(controller.signal);
-    return () => controller.abort();
-  }, [fetchStats]);
 
   // Auto-clear messages
   useEffect(() => {
@@ -367,8 +164,6 @@ const Profile: React.FC = () => {
   useEffect(() => {
     setName(user?.name || "");
     setSelectedCurrency(user?.preferences?.currency || "USD");
-    setCustomIncomeCategories(user?.customIncomeCategories || []);
-    setCustomExpenseCategories(user?.customExpenseCategories || []);
     // Reset unsaved changes when user data changes
     setUnsavedIncomeCategories(null);
     setUnsavedExpenseCategories(null);
@@ -599,7 +394,6 @@ const Profile: React.FC = () => {
           text: "Selected records have been cleared.",
         });
         setShowClearRecordsModal(false);
-        fetchStats();
       } catch (_err: unknown) {
         setMessage({
           type: "error",
@@ -611,7 +405,7 @@ const Profile: React.FC = () => {
         setIsClearingRecords(false);
       }
     },
-    [fetchStats]
+    []
   );
 
   const handleRevertChanges = useCallback(() => {
@@ -814,115 +608,6 @@ const Profile: React.FC = () => {
                 <span>Updating avatar...</span>
               </motion.div>
             )}
-
-            {/* Compact Stats */}
-            <div className="mt-8 space-y-4 w-full">
-              <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
-
-              {statsLoading ? (
-                <div className="relative flex flex-col items-center justify-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <div className="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm"></div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="relative z-10 flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300"
-                  >
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span className="font-medium">
-                      Loading activity stats...
-                    </span>
-                  </motion.div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      Total Records
-                    </span>
-                    <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                      {stats.total}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-4">
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 }}
-                      className="text-center"
-                    >
-                      <div className="flex items-center justify-center mb-2">
-                        <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-900/50">
-                          <TrendingUp className="w-4 h-4 text-cyan-600" />
-                        </div>
-                      </div>
-                      <div className="text-lg font-semibold text-slate-900 dark:text-slate-200">
-                        {stats.incomes}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        Incomes
-                      </div>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="text-center"
-                    >
-                      <div className="flex items-center justify-center mb-2">
-                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/50">
-                          <CreditCard className="w-4 h-4 text-blue-600" />
-                        </div>
-                      </div>
-                      <div className="text-lg font-semibold text-slate-900 dark:text-slate-200">
-                        {stats.bills}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        Bills
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="text-center"
-                    >
-                      <div className="flex items-center justify-center mb-2">
-                        <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/50">
-                          <FileText className="w-4 h-4 text-green-600" />
-                        </div>
-                      </div>
-                      <div className="text-lg font-semibold text-slate-900 dark:text-slate-200">
-                        {stats.expenses}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        Expenses
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
-                      className="text-center"
-                    >
-                      <div className="flex items-center justify-center mb-2">
-                        <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/50">
-                          <ShieldCheck className="w-4 h-4 text-purple-600" />
-                        </div>
-                      </div>
-                      <div className="text-lg font-semibold text-slate-900 dark:text-slate-200">
-                        {stats.warranties}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">
-                        Warranties
-                      </div>
-                    </motion.div>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -1023,39 +708,6 @@ const Profile: React.FC = () => {
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 This will be used for displaying amounts throughout the app
               </p>
-            </div>
-
-            {/* separator */}
-            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
-
-            {/* Custom Categories Section */}
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                Custom Categories
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Customize your income and expense categories. These will be used in the income and expense forms.
-              </p>
-              
-              <CategoryManager
-                title="Income"
-                categories={customIncomeCategories.length > 0 ? customIncomeCategories : incomeCategories}
-                defaultCategories={incomeCategories}
-                onUpdate={updateCustomIncomeCategories}
-                setMessage={setMessage}
-                // Pass the setter for unsaved changes
-                setUnsavedChanges={setUnsavedIncomeCategories}
-              />
-              
-              <CategoryManager
-                title="Expense"
-                categories={customExpenseCategories.length > 0 ? customExpenseCategories : expenseCategories}
-                defaultCategories={expenseCategories}
-                onUpdate={updateCustomExpenseCategories}
-                setMessage={setMessage}
-                // Pass the setter for unsaved changes
-                setUnsavedChanges={setUnsavedExpenseCategories}
-              />
             </div>
 
             {/* separator */}
@@ -1182,7 +834,7 @@ const Profile: React.FC = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-100 text-red-700 font-semibold border border-red-200 rounded-lg hover:bg-red-200 hover:text-red-800 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-300 ease-in-out text-sm min-h-[44px]"
-              >
+                >
                 <Trash2 className="w-5 h-5" />
                 Delete Account
               </motion.button>
@@ -1235,7 +887,7 @@ const Profile: React.FC = () => {
         onClose={() => setShowClearRecordsModal(false)}
         onConfirm={handleClearRecords}
         clearing={isClearingRecords}
-        recordStats={stats}
+        recordStats={{ bills: 0, expenses: 0, warranties: 0, incomes: 0, total: 0 }}
       />
     </div>
   );

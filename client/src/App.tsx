@@ -18,6 +18,7 @@ import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 import BankAccounts from "./pages/BankAccounts";
 import Recurring from "./pages/Recurring";
+import Customize from "./pages/Customize";
 
 function App() {
   const { loading } = useAuth();
@@ -67,9 +68,11 @@ function App() {
           <Route path="warranties" element={<Warranties />} />
           {/* Profile */}
           <Route path="profile" element={<Profile />} />
+          <Route path="customize" element={<Customize />} />
           <Route path="about" element={<About />} />
           <Route path="bank-accounts" element={<BankAccounts />} />
         </Route>
+
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
