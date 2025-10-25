@@ -22,6 +22,7 @@ import { useAuth } from "../contexts/auth-exports";
 import ExpenseInterface from "../types/ExpenseInterface";
 import BillInterface from "../types/BillInterface";
 import IncomeInterface from "../types/IncomeInterface";
+import BankAccountInterface from "../types/BankAccountInterface";
 import ExportButton from "../components/ExportButton";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -67,6 +68,7 @@ interface MonthlyData {
       averageAmount: number;
     };
   };
+  bankAccounts: BankAccountInterface[];
 }
 
 const MonthlyBreakdown: React.FC = () => {
@@ -102,16 +104,18 @@ const MonthlyBreakdown: React.FC = () => {
       setLoading(true);
       setError("");
 
-      const [expensesRes, billsRes, incomesRes] = await Promise.all([
+      const [expensesRes, billsRes, incomesRes, bankAccountsRes] = await Promise.all([
         axios.get(`/api/expenses/monthly/${currentYear}/${currentMonth}`),
         axios.get(`/api/bills/monthly/${currentYear}/${currentMonth}`),
         axios.get(`/api/incomes/monthly/${currentYear}/${currentMonth}`),
+        axios.get("/api/bank-accounts"),
       ]);
 
       setMonthlyData({
         expenses: expensesRes.data,
         bills: billsRes.data,
         incomes: incomesRes.data,
+        bankAccounts: bankAccountsRes.data,
       });
     } catch (err: unknown) {
       console.error("Error fetching monthly data:", err);
@@ -141,7 +145,7 @@ const MonthlyBreakdown: React.FC = () => {
   const handleExportCsv = () => {
     if (!monthlyData) return;
 
-    const { incomes, expenses, bills } = monthlyData;
+    const { incomes, expenses, bills, bankAccounts } = monthlyData;
 
     const incomeHeader = "Type,Date,Description,Category,Amount,Status\n";
     const incomeRows = incomes.incomes
@@ -212,7 +216,25 @@ const MonthlyBreakdown: React.FC = () => {
       0
     );
 
+    const bankAccountHeader = "Type,Bank Name,Account Name,Account Type,Balance\n";
+    const bankAccountRows = bankAccounts
+      .map((row) =>
+        [
+          "Bank Account",
+          row.bankName,
+          row.accountName,
+          row.accountType,
+          row.currentBalance,
+        ].join(",")
+      )
+      .join("\n");
+    const bankAccountTotal = bankAccounts.reduce((sum, item) => sum + item.currentBalance, 0);
+
     let csvString = "";
+    if (bankAccounts.length > 0) {
+      const bankAccountTotalRow = `\n,,,Total,${bankAccountTotal.toFixed(2)}\n\n`;
+      csvString += "Bank Accounts\n" + bankAccountHeader + bankAccountRows + bankAccountTotalRow;
+    }
     if (incomes.incomes.length > 0) {
       const incomeTotalRow = `\n,,Total,,${incomeTotal.toFixed(2)},\n\n`;
       csvString +=
@@ -261,7 +283,7 @@ const MonthlyBreakdown: React.FC = () => {
   const handleExportPdf = () => {
     if (!monthlyData) return;
 
-    const { incomes, expenses, bills } = monthlyData;
+    const { incomes, expenses, bills, bankAccounts } = monthlyData;
     const doc = new jsPDF();
 
     const monthName = monthNames[currentMonth - 1];
@@ -345,6 +367,24 @@ const MonthlyBreakdown: React.FC = () => {
       });
       return (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
     };
+
+    if (bankAccounts.length > 0) {
+      const totalBalance = bankAccounts.reduce((sum, item) => sum + item.currentBalance, 0);
+      startY = drawTable(
+        "Bank Accounts",
+        ["Bank Name", "Account Name", "Account Type", "Balance"],
+        bankAccounts.map((item) => [
+          item.bankName,
+          item.accountName,
+          item.accountType,
+          formatCurrency(item.currentBalance),
+        ]),
+        ["", "", "Total Balance", formatCurrency(totalBalance)],
+        [139, 0, 139], // DarkMagenta
+        startY,
+        bankAccounts.length
+      );
+    }
 
     if (incomes.incomes.length > 0) {
       const total = incomes.incomes.reduce((sum, item) => sum + item.amount, 0);
@@ -498,7 +538,7 @@ const MonthlyBreakdown: React.FC = () => {
     }
   };
 
-  const isDataEmpty = !monthlyData || (monthlyData.incomes.incomes.length === 0 && monthlyData.expenses.expenses.length === 0 && monthlyData.bills.bills.length === 0);
+  const isDataEmpty = !monthlyData || (monthlyData.incomes.incomes.length === 0 && monthlyData.expenses.expenses.length === 0 && monthlyData.bills.bills.length === 0 && monthlyData.bankAccounts.length === 0);
 
   if (loading) {
     return (
