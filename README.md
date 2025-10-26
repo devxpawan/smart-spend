@@ -73,12 +73,6 @@ VITE_WEB3FORMS_ACCESS_KEY=<your_web3forms_access_key>
 
 The client-side is a React application built with Vite.
 
--   **To install dependencies:**
-    ```bash
-    cd client
-    npm install
-    ```
-
 -   **To run in development mode (with hot-reloading):**
     ```bash
     cd client
@@ -86,27 +80,9 @@ The client-side is a React application built with Vite.
     ```
     This will start the development server, typically at `http://localhost:5173`.
 
--   **To build for production:**
-    ```bash
-    cd client
-    npm run build
-    ```
-
--   **To lint the code:**
-    ```bash
-    cd client
-    npm run lint
-    ```
-
 ### Server (Backend)
 
 The server-side is a Node.js application using Express.
-
--   **To install dependencies:**
-    ```bash
-    cd server
-    npm install
-    ```
 
 - **To run in development mode (with auto-restarting via nodemon):**
   ```bash
