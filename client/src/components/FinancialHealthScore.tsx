@@ -123,13 +123,13 @@ const FinancialHealthScore: React.FC = () => {
   const getSuggestionBorderColor = (type: string) => {
     switch (type) {
       case "critical":
-        return "border-red-200 bg-red-50 dark:bg-red-900/30 dark:border-red-700";
+        return "border-red-200 bg-red-50/50 dark:bg-red-900/50 dark:border-red-700 backdrop-blur-lg";
       case "warning":
-        return "border-yellow-200 bg-yellow-50 dark:bg-yellow-900/30 dark:border-yellow-700";
+        return "border-yellow-200 bg-yellow-50/50 dark:bg-yellow-900/50 dark:border-yellow-700 backdrop-blur-lg";
       case "success":
-        return "border-emerald-200 bg-emerald-50 dark:bg-emerald-900/30 dark:border-emerald-700";
+        return "border-emerald-200 bg-emerald-50/50 dark:bg-emerald-900/50 dark:border-emerald-700 backdrop-blur-lg";
       default:
-        return "border-blue-200 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700";
+        return "border-blue-200 bg-blue-50/50 dark:bg-blue-900/50 dark:border-blue-700 backdrop-blur-lg";
     }
   };
 
@@ -161,7 +161,7 @@ const FinancialHealthScore: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="bg-gradient-to-r from-emerald-50 to-teal-50 p-8 rounded-2xl shadow-xl border border-emerald-200 dark:from-emerald-950 dark:to-teal-950 dark:border-emerald-700"
+      className="bg-white/50 dark:bg-gray-800/50 p-8 rounded-2xl shadow-xl border border-emerald-200 dark:border-emerald-700 backdrop-blur-lg"
     >
       {/* Header */}
       <div className="flex items-center space-x-3 mb-6">
@@ -183,7 +183,7 @@ const FinancialHealthScore: React.FC = () => {
         {/* Score Circle */}
         <div className="lg:col-span-1 flex flex-col items-center justify-center">
           <div className="relative mb-4">
-            <div className="w-44 h-44 rounded-full bg-white dark:bg-slate-800 shadow-lg flex items-center justify-center">
+            <div className="w-44 h-44 rounded-full bg-gradient-to-br from-white/80 to-white/60 dark:from-slate-800/80 dark:to-slate-800/60 shadow-2xl flex items-center justify-center backdrop-blur-sm">
               <div className="text-center">
                 <div
                   className={`text-4xl font-bold ${getScoreColor(
@@ -200,7 +200,7 @@ const FinancialHealthScore: React.FC = () => {
             <div
               className={`absolute inset-0 rounded-full bg-gradient-to-r ${getScoreGradient(
                 healthData.healthScore
-              )} opacity-20`}
+              )} opacity-30 blur-xl`}
             ></div>
           </div>
           <div className="text-center">
@@ -230,9 +230,9 @@ const FinancialHealthScore: React.FC = () => {
           <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
             This Month vs Last Month
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800">
+            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800 backdrop-blur-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Incomes
@@ -263,7 +263,7 @@ const FinancialHealthScore: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800">
+            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800 backdrop-blur-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Expenses
@@ -296,7 +296,7 @@ const FinancialHealthScore: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800">
+            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800 backdrop-blur-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Bills
@@ -327,7 +327,7 @@ const FinancialHealthScore: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800">
+            <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800 backdrop-blur-lg">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Payment Rate

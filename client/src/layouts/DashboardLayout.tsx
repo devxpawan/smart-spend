@@ -471,7 +471,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       <CollapseButton isCollapsed={isCollapsed} onToggle={onToggleCollapse} />
       <div
-        className={`relative flex h-full flex-col bg-slate-900 text-slate-100 transition-all duration-300 ${
+        className={`relative flex h-full flex-col bg-gray-800 text-slate-100 transition-all duration-300 ${
           isCollapsed ? "px-2" : "px-4"
         }`}
       >
