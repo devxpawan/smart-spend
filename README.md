@@ -1,7 +1,5 @@
 # Smart Spend
 
-A full-stack web application for comprehensive personal finance management, including tracking bills, expenses, income, and warranties. Built with React, Node.js, and MongoDB, it offers a secure and user-friendly platform to manage your financial data.
-
 ## Features
 
 -   **Financial Tracking**: Manage income, expenses, and bills with categorization and analytics.
