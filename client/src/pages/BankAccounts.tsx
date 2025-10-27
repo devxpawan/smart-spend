@@ -129,7 +129,7 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-700">
+          <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 backdrop-blur-lg">
             <div className="flex items-center space-x-3">
               <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
                 <Landmark className="w-5 h-5 text-white" />
@@ -385,7 +385,7 @@ const BankAccounts: React.FC = () => {
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 p-4">
         {/* Header */}
         <header className="mb-6 sm:mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 border border-gray-200 dark:border-gray-700 shadow-lg shadow-gray-200/20 dark:shadow-gray-900/20">
+          <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 border border-gray-200 dark:border-gray-700 shadow-lg shadow-gray-200/20 dark:shadow-gray-900/20 backdrop-blur-lg">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center space-x-3 sm:space-x-4">
                 <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
@@ -454,12 +454,10 @@ const BankAccounts: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 border border-indigo-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden min-h-[180px] flex flex-col"
+                className="group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border border-indigo-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden min-h-[180px] flex flex-col backdrop-blur-lg"
               >
-                {/* Background Pattern */}
-                <div className="absolute inset-0 opacity-5">
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600"></div>
-                </div>
+                {/* Background Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-500 opacity-20 dark:opacity-10 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300"></div>
 
                 <div className="relative z-10 flex-grow">
                   <div className="flex items-start justify-between mb-2">

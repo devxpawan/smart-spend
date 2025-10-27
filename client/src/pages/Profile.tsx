@@ -27,8 +27,8 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 import { useAuth } from "../contexts/auth-exports";
 import { useTheme } from "../contexts/theme-exports";
-import { incomeCategories } from "../lib/incomeCategories";
 import { expenseCategories } from "../lib/expenseCategories";
+import { incomeCategories } from "../lib/incomeCategories";
 
 // Types
 interface Message {
@@ -139,14 +139,20 @@ const CategoryManager: React.FC<{
       const updated = [...tempCategories, newCategory.trim()];
       setTempCategories(updated);
       setNewCategory("");
-      
+
       // Immediately save the changes
       try {
         setSaving(true);
         await onUpdate(updated);
-        setMessage({ type: "success", text: `${title} category added successfully.` });
+        setMessage({
+          type: "success",
+          text: `${title} category added successfully.`,
+        });
       } catch (error) {
-        setMessage({ type: "error", text: "Failed to save category. Please try again." });
+        setMessage({
+          type: "error",
+          text: "Failed to save category. Please try again.",
+        });
         // Revert the change if save failed
         setTempCategories([...tempCategories]);
       } finally {
@@ -158,14 +164,20 @@ const CategoryManager: React.FC<{
   const handleRemoveCategory = async (category: string) => {
     const updated = tempCategories.filter((cat) => cat !== category);
     setTempCategories(updated);
-    
+
     // Immediately save the changes
     try {
       setSaving(true);
       await onUpdate(updated);
-      setMessage({ type: "success", text: `${title} category removed successfully.` });
+      setMessage({
+        type: "success",
+        text: `${title} category removed successfully.`,
+      });
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to remove category. Please try again." });
+      setMessage({
+        type: "error",
+        text: "Failed to remove category. Please try again.",
+      });
       // Revert the change if save failed
       setTempCategories([...tempCategories]);
     } finally {
@@ -178,9 +190,15 @@ const CategoryManager: React.FC<{
       setSaving(true);
       await onUpdate([...defaultCategories]);
       setTempCategories([...defaultCategories]);
-      setMessage({ type: "success", text: `${title} categories reset to defaults.` });
+      setMessage({
+        type: "success",
+        text: `${title} categories reset to defaults.`,
+      });
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to reset categories. Please try again." });
+      setMessage({
+        type: "error",
+        text: "Failed to reset categories. Please try again.",
+      });
     } finally {
       setSaving(false);
     }
@@ -274,12 +292,12 @@ const Profile: React.FC = () => {
   );
 
   // Custom categories state
-  const [customIncomeCategories, setCustomIncomeCategories] = useState<string[]>(
-    user?.customIncomeCategories || []
-  );
-  const [customExpenseCategories, setCustomExpenseCategories] = useState<string[]>(
-    user?.customExpenseCategories || []
-  );
+  const [customIncomeCategories, setCustomIncomeCategories] = useState<
+    string[]
+  >(user?.customIncomeCategories || []);
+  const [customExpenseCategories, setCustomExpenseCategories] = useState<
+    string[]
+  >(user?.customExpenseCategories || []);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -355,7 +373,12 @@ const Profile: React.FC = () => {
     setSelectedCurrency(user?.preferences?.currency || "USD");
     setCustomIncomeCategories(user?.customIncomeCategories || []);
     setCustomExpenseCategories(user?.customExpenseCategories || []);
-  }, [user?.name, user?.preferences?.currency, user?.customIncomeCategories, user?.customExpenseCategories]);
+  }, [
+    user?.name,
+    user?.preferences?.currency,
+    user?.customIncomeCategories,
+    user?.customExpenseCategories,
+  ]);
 
   // Create and cleanup avatar preview URL
   useEffect(() => {
@@ -1000,20 +1023,29 @@ const Profile: React.FC = () => {
                 Custom Categories
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Customize your income and expense categories. These will be used in the income and expense forms.
+                Customize your income and expense categories. These will be used
+                in the income and expense forms.
               </p>
-              
+
               <CategoryManager
                 title="Income"
-                categories={customIncomeCategories.length > 0 ? customIncomeCategories : incomeCategories}
+                categories={
+                  customIncomeCategories.length > 0
+                    ? customIncomeCategories
+                    : incomeCategories
+                }
                 defaultCategories={incomeCategories}
                 onUpdate={updateCustomIncomeCategories}
                 setMessage={setMessage}
               />
-              
+
               <CategoryManager
                 title="Expense"
-                categories={customExpenseCategories.length > 0 ? customExpenseCategories : expenseCategories}
+                categories={
+                  customExpenseCategories.length > 0
+                    ? customExpenseCategories
+                    : expenseCategories
+                }
                 defaultCategories={expenseCategories}
                 onUpdate={updateCustomExpenseCategories}
                 setMessage={setMessage}
@@ -1085,7 +1117,7 @@ const Profile: React.FC = () => {
                   type="button"
                   onClick={toggleTheme}
                   aria-pressed={theme === "dark"}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                     theme === "dark" ? "bg-indigo-600" : "bg-gray-200"
                   }`}
                 >

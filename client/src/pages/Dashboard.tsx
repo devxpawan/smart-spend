@@ -92,6 +92,59 @@ interface ErrorState {
   charts: string;
 }
 
+const doughnutChartOptions = (
+  theme: string,
+  formatCurrency: (amount: number) => string
+) => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: "70%",
+  plugins: {
+    legend: {
+      display: false,
+    },
+    tooltip: {
+      enabled: true,
+      backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
+      titleColor: theme === "dark" ? "#f9fafb" : "#1f2937",
+      bodyColor: theme === "dark" ? "#d1d5db" : "#374151",
+      borderColor: theme === "dark" ? "#4b5563" : "#e5e7eb",
+      borderWidth: 1,
+      titleFont: {
+        size: 13,
+        family: "Inter, sans-serif",
+        weight: 600,
+      },
+      bodyFont: {
+        size: 12,
+        family: "Inter, sans-serif",
+        weight: 500,
+      },
+      padding: 12,
+      cornerRadius: 8,
+      displayColors: true,
+      caretSize: 6,
+      caretPadding: 8,
+      callbacks: {
+        label: (context: any) => {
+          const label = context.label || "";
+          const value = context.parsed;
+          const total = context.dataset.data.reduce(
+            (a: number, b: number) => a + b,
+            0
+          );
+          const percentage = ((value / total) * 100).toFixed(1);
+          return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+        },
+      },
+    },
+  },
+  animation: {
+    animateRotate: true,
+    animateScale: true,
+  },
+});
+
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
@@ -244,27 +297,17 @@ const Dashboard: React.FC = () => {
         {
           data: dashboardData.categoryData.map((cat) => cat.total),
           backgroundColor: [
-            "#3B82F6",
-            "#EF4444",
-            "#F59E0B",
-            "#8B5CF6",
-            "#10B981",
-            "#6366F1",
-            "#14B8A6",
-            "#F97316",
-            "#EC4899",
-            "#84CC16",
-            "#06B6D4",
-            "#8B5A2B",
+            "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
           ],
-          borderColor: "#FFFFFF",
+          borderColor: theme === 'dark' ? "#1f2937" : "#ffffff",
           borderWidth: 2,
           hoverBorderWidth: 3,
-          hoverOffset: 4,
+          hoverOffset: 8,
         },
       ],
     }),
-    [dashboardData.categoryData]
+    [dashboardData.categoryData, theme]
   );
 
   const incomeCategoryChartData = useMemo(
@@ -274,27 +317,17 @@ const Dashboard: React.FC = () => {
         {
           data: dashboardData.incomeCategoryData.map((cat) => cat.total),
           backgroundColor: [
-            "#10B981",
-            "#3B82F6",
-            "#F97316",
-            "#EC4899",
-            "#84CC16",
-            "#06B6D4",
-            "#8B5A2B",
-            "#6366F1",
-            "#14B8A6",
-            "#F59E0B",
-            "#8B5CF6",
-            "#EF4444",
+            "#2ca02c", "#1f77b4", "#ff7f0e", "#d62728", "#9467bd",
+            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
           ],
-          borderColor: "#FFFFFF",
+          borderColor: theme === 'dark' ? "#1f2937" : "#ffffff",
           borderWidth: 2,
           hoverBorderWidth: 3,
-          hoverOffset: 4,
+          hoverOffset: 8,
         },
       ],
     }),
-    [dashboardData.incomeCategoryData]
+    [dashboardData.incomeCategoryData, theme]
   );
 
   const monthlyChartData = useMemo(
@@ -319,19 +352,19 @@ const Dashboard: React.FC = () => {
           data: dashboardData.monthlyExpenseData.map(
             (month: MonthlyData) => month.total
           ),
-          borderColor: "#3B82F6", // Keep original blue color
-          backgroundColor: "rgba(59, 130, 246, 0.1)", // Keep original blue fill
+          borderColor: "#3B82F6",
+          backgroundColor: "rgba(59, 130, 246, 0.2)",
           pointBackgroundColor: "#3B82F6",
           pointBorderColor: "#ffffff",
           pointBorderWidth: 2,
-          pointRadius: 4, // Smaller, more professional points
+          pointRadius: 4,
           pointHoverRadius: 6,
           pointHoverBackgroundColor: "#3B82F6",
           pointHoverBorderColor: "#ffffff",
           pointHoverBorderWidth: 2,
-          tension: 0.1, // Less curved, more business-like
+          tension: 0.4,
           fill: true,
-          borderWidth: 2, // Thinner line for professional look
+          borderWidth: 2,
         },
         {
           label: "Monthly Incomes",
@@ -339,7 +372,7 @@ const Dashboard: React.FC = () => {
             (month: MonthlyData) => month.total
           ),
           borderColor: "#10B981",
-          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          backgroundColor: "rgba(16, 185, 129, 0.2)",
           pointBackgroundColor: "#10B981",
           pointBorderColor: "#ffffff",
           pointBorderWidth: 2,
@@ -348,7 +381,7 @@ const Dashboard: React.FC = () => {
           pointHoverBackgroundColor: "#10B981",
           pointHoverBorderColor: "#ffffff",
           pointHoverBorderWidth: 2,
-          tension: 0.1,
+          tension: 0.4,
           fill: true,
           borderWidth: 2,
         },
@@ -366,10 +399,10 @@ const Dashboard: React.FC = () => {
         value: formatCurrency(dashboardData.totalIncomes),
         rawValue: dashboardData.totalIncomes,
         link: "/incomes",
-        gradient: "from-sky-500 to-cyan-600",
+        gradient: "from-sky-400 to-cyan-500",
         bgGradient: "from-sky-50 to-cyan-50",
         borderColor: "border-sky-200",
-        darkBgGradient: "from-gray-800 to-gray-700",
+        darkBgGradient: "from-gray-800 to-gray-900",
         darkBorderColor: "border-gray-700",
       },
       {
@@ -379,10 +412,10 @@ const Dashboard: React.FC = () => {
         value: formatCurrency(dashboardData.totalExpenses),
         rawValue: dashboardData.totalExpenses,
         link: "/expenses",
-        gradient: "from-blue-500 to-indigo-600",
-        bgGradient: "from-blue-50 to-indigo-50",
-        borderColor: "border-blue-200",
-        darkBgGradient: "from-gray-800 to-gray-700",
+        gradient: "from-green-400 to-green-500",
+        bgGradient: "from-green-50 to-green-50",
+        borderColor: "border-green-200",
+        darkBgGradient: "from-gray-800 to-gray-900",
         darkBorderColor: "border-gray-700",
       },
       {
@@ -392,10 +425,10 @@ const Dashboard: React.FC = () => {
         value: dashboardData.upcomingBills.length,
         rawValue: dashboardData.upcomingBills.length,
         link: "/bills",
-        gradient: "from-amber-500 to-orange-600",
-        bgGradient: "from-amber-50 to-orange-50",
-        borderColor: "border-amber-200",
-        darkBgGradient: "from-gray-800 to-gray-700",
+        gradient: "from-orange-400 to-orange-500",
+        bgGradient: "from-orange-50 to-orange-50",
+        borderColor: "border-orange-200",
+        darkBgGradient: "from-gray-800 to-gray-900",
         darkBorderColor: "border-gray-700",
         urgent: dashboardData.upcomingBills.some((bill) => {
           const dueDate = new Date(bill.dueDate);
@@ -412,10 +445,10 @@ const Dashboard: React.FC = () => {
         value: dashboardData.expiringWarranties.length,
         rawValue: dashboardData.expiringWarranties.length,
         link: "/warranties",
-        gradient: "from-emerald-500 to-teal-600",
-        bgGradient: "from-emerald-50 to-teal-50",
-        borderColor: "border-emerald-200",
-        darkBgGradient: "from-gray-800 to-gray-700",
+        gradient: "from-purple-400 to-purple-500",
+        bgGradient: "from-purple-50 to-purple-50",
+        borderColor: "border-purple-200",
+        darkBgGradient: "from-gray-800 to-gray-900",
         darkBorderColor: "border-gray-700",
       },
     ],
@@ -554,22 +587,16 @@ const Dashboard: React.FC = () => {
                 <Link
                   to={item.link}
                   key={idx}
-                  className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br ${
-                    item.bgGradient
-                  } dark:${item.darkBgGradient} border ${
+                  className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border ${
                     item.borderColor
                   } dark:${
                     item.darkBorderColor
-                  } hover:scale-[1.02] overflow-hidden ${
+                  } hover:scale-[1.02] overflow-hidden backdrop-blur-lg ${
                     item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
                   } min-h-[120px] sm:min-h-[140px]`}
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-br ${item.gradient}`}
-                    ></div>
-                  </div>
+                  {/* Background Gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-20 dark:opacity-10 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300`}></div>
 
                   {/* Urgent indicator */}
                   {item.urgent && (
@@ -640,14 +667,10 @@ const Dashboard: React.FC = () => {
               {bankAccounts.map((account) => (
                 <div
                   key={account._id}
-                  className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 border border-indigo-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden min-h-[120px] sm:min-h-[140px]"
+                  className="group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border border-indigo-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden backdrop-blur-lg min-h-[120px] sm:min-h-[140px]"
                 >
-                  {/* Background Pattern */}
-                  <div className="absolute inset-0 opacity-5">
-                    <div
-                      className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600"
-                    ></div>
-                  </div>
+                  {/* Background Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-500 opacity-20 dark:opacity-10 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300"></div>
 
                   <div className="relative z-10 h-full flex flex-col">
                     <div className="flex items-start justify-between mb-3 sm:mb-4">
@@ -752,7 +775,7 @@ const Dashboard: React.FC = () => {
                           y: {
                             beginAtZero: true,
                             grid: {
-                              color: theme === "dark" ? "#374151" : "#f1f5f9",
+                              color: theme === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
                               lineWidth: 1,
                               drawTicks: false,
                             },
@@ -914,82 +937,20 @@ const Dashboard: React.FC = () => {
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Expenses
                     </h4>
-                    <div className="w-full h-48">
+                    <div className="w-full h-48 relative">
                       {dashboardData.categoryData.length > 0 ? (
-                        <Doughnut
-                          data={expenseCategoryChartData}
-                          options={{
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: "65%",
-                            plugins: {
-                              legend: {
-                                position: "bottom",
-                                labels: {
-                                  color:
-                                    theme === "dark" ? "#FFFFFF" : "#475569",
-                                  font: {
-                                    size: 10,
-                                    family: "Inter, sans-serif",
-                                    weight: 500,
-                                  },
-                                  boxWidth: 8,
-                                  generateLabels: (chart) => {
-                                    const data = chart.data;
-                                    if (data.labels && data.datasets.length) {
-                                      return data.labels.map((label, i) => {
-                                        const dataset = data.datasets[0];
-                                        const value = dataset.data[i] as number;
-                                        const total = (
-                                          dataset.data as number[]
-                                        ).reduce((a, b) => a + b, 0);
-                                        const percentage = (
-                                          (value / total) *
-                                          100
-                                        ).toFixed(1);
-                                        return {
-                                          text: `${label} (${percentage}%)`,
-                                          fillStyle:
-                                            (
-                                              dataset.backgroundColor as string[]
-                                            )[i] || "#000",
-                                          strokeStyle:
-                                            dataset.borderColor as string,
-                                          lineWidth: 1,
-                                          hidden: false,
-                                          index: i,
-                                          fontColor:
-                                            theme === "dark"
-                                              ? "#ffffff"
-                                              : "#475569",
-                                        };
-                                      });
-                                    }
-                                    return [];
-                                  },
-                                },
-                              },
-                              tooltip: {
-                                callbacks: {
-                                  label: (context) => {
-                                    const label = context.label || "";
-                                    const value = context.parsed;
-                                    const total = (
-                                      context.dataset.data as number[]
-                                    ).reduce((a, b) => a + b, 0);
-                                    const percentage = (
-                                      (value / total) *
-                                      100
-                                    ).toFixed(1);
-                                    return `${label}: ${formatCurrency(
-                                      value
-                                    )} (${percentage}%)`;
-                                  },
-                                },
-                              },
-                            },
-                          }}
-                        />
+                        <>
+                          <Doughnut
+                            data={expenseCategoryChartData}
+                            options={doughnutChartOptions(theme, formatCurrency)}
+                          />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Total</span>
+                            <span className="text-lg font-bold text-gray-800 dark:text-white">
+                              {formatCurrency(dashboardData.categoryData.reduce((acc, cat) => acc + cat.total, 0))}
+                            </span>
+                          </div>
+                        </>
                       ) : (
                         <div className="h-full flex items-center justify-center text-center text-xs text-slate-500 dark:text-gray-400">
                           No expense data
@@ -1001,78 +962,20 @@ const Dashboard: React.FC = () => {
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Incomes
                     </h4>
-                    <div className="w-full h-48">
+                    <div className="w-full h-48 relative">
                       {dashboardData.incomeCategoryData.length > 0 ? (
-                        <Doughnut
-                          data={incomeCategoryChartData}
-                          options={{
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: "65%",
-                            plugins: {
-                              legend: {
-                                position: "bottom",
-                                labels: {
-                                  color:
-                                    theme === "dark" ? "#ffffff" : "#475569",
-                                  font: { size: 10 },
-                                  boxWidth: 8,
-                                  generateLabels: (chart) => {
-                                    const data = chart.data;
-                                    if (data.labels && data.datasets.length) {
-                                      return data.labels.map((label, i) => {
-                                        const dataset = data.datasets[0];
-                                        const value = dataset.data[i] as number;
-                                        const total = (
-                                          dataset.data as number[]
-                                        ).reduce((a, b) => a + b, 0);
-                                        const percentage = (
-                                          (value / total) *
-                                          100
-                                        ).toFixed(1);
-                                        return {
-                                          text: `${label} (${percentage}%)`,
-                                          fillStyle:
-                                            (
-                                              dataset.backgroundColor as string[]
-                                            )[i] || "#000",
-                                          strokeStyle:
-                                            dataset.borderColor as string,
-                                          lineWidth: 1,
-                                          hidden: false,
-                                          index: i,
-                                          fontColor:
-                                            theme === "dark"
-                                              ? "#ffffff"
-                                              : "#475569",
-                                        };
-                                      });
-                                    }
-                                    return [];
-                                  },
-                                },
-                              },
-                              tooltip: {
-                                callbacks: {
-                                  label: (context) => {
-                                    const label = context.label || "";
-                                    const value = context.parsed;
-                                    const total = (
-                                      context.dataset.data as number[]
-                                    ).reduce((a, b) => a + b, 0);
-                                    const percentage = (
-                                      (value / total) *
-                                      100
-                                    ).toFixed(1);
-                                    return `${label}: ${formatCurrency(
-                                      value
-                                    )} (${percentage}%)`;
-                                  },
-                                },
-                              },
-                            },
-                          }}
-                        />
+                        <>
+                          <Doughnut
+                            data={incomeCategoryChartData}
+                            options={doughnutChartOptions(theme, formatCurrency)}
+                          />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">Total</span>
+                            <span className="text-lg font-bold text-gray-800 dark:text-white">
+                              {formatCurrency(dashboardData.incomeCategoryData.reduce((acc, cat) => acc + cat.total, 0))}
+                            </span>
+                          </div>
+                        </>
                       ) : (
                         <div className="h-full flex items-center justify-center text-center text-xs text-slate-500 dark:text-gray-400">
                           No income data

@@ -1,119 +1,68 @@
 # Smart Spend
 
-A web application for managing personal finances, including bills, expenses, income, and warranties. This project is a full-stack application built with React, Node.js, and MongoDB. It provides a secure and user-friendly way to track and manage your financial data.
-
 ## Features
 
-- **User Authentication**
-  - Secure login/registration system
-  - Google OAuth integration
-  - Protected routes
-
-- **Income Management**
-  - Record and categorize income
-  - Track income sources
-  - Analyze income trends
-
-- **Expense Management**
-  - Record and categorize expenses
-  - Visual expense analytics
-  - Track spending patterns
-
-- **Bills Management**
-  - Track recurring bills
-  - Set due dates and payment reminders
-  - View bill history and payment status
-
-- **Warranty Management**
-  - Store warranty information for products
-  - Set warranty expiration reminders
-  - Upload and store warranty documents
-  - Automatic QR code generation for warranties
-  - Public warranty access via QR codes
-  - QR codes stored in Cloudinary for reliability
-
-- **Image Upload & Storage**
-  - Warranty document image uploads
-  - User avatar uploads
-  - Cloudinary integration for optimized storage
-
-- **Data Analytics**
-  - Expense management with visual charts
-  - Monthly spending analysis
-  - Income trend analysis and reporting
-  - Bill payment management
-  - Warranty expiration monitoring
-
-- **Security Features**
-  - JWT-based authentication
-  - Password hashing with bcrypt
-  - Protected API routes
-  - Input validation and sanitization
+-   **Financial Tracking**: Manage income, expenses, and bills with categorization and analytics.
+-   **Warranty Management**: Store product warranty details, set reminders, and generate QR codes for public access.
+-   **User Authentication**: Secure login/registration, Google OAuth, and protected routes.
+-   **Data & Security**: Visual analytics, JWT authentication, password hashing, and input validation.
+-   **Cloud Integration**: Cloudinary for image uploads (warranty documents, user avatars).
 
 ## Tech Stack
 
-### Frontend
-
-- React with TypeScript
-- Vite
-- Tailwind CSS
-- Framer Motion
-- Chart.js
-- Axios
-
-### Backend
-
-- Node.js
-- Express
-- MongoDB
-- JWT Authentication
-- Express Validator
+-   **Frontend**: React with TypeScript, Vite, Tailwind CSS, Framer Motion, Chart.js, Axios.
+-   **Backend**: Node.js, Express, MongoDB, JWT Authentication, Express Validator.
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- MongoDB database
-- npm
-- Cloudinary account (for image storage)
-- Google OAuth credentials (for authentication)
-
-## Project Structure
-
-The project is structured as a monorepo with two main directories:
-
-- `client/`: A React (with TypeScript and Vite) single-page application for the frontend.
-- `server/`: An Express.js backend providing a RESTful API.
-
-```
-├── client/               # Frontend React application
-│   ├── src/
-│   │   ├── components/   # Reusable UI components
-│   │   ├── contexts/     # React context providers
-│   │   ├── layouts/      # Page layouts
-│   │   ├── pages/        # Application pages
-│   │   └── types/        # TypeScript type definitions
-│
-└── server/              # Backend Node.js application
-    ├── middleware/      # Express middlewares
-    ├── models/          # MongoDB models
-    ├── routes/          # API routes
-    └── utils/           # Utility functions
-```
+-   Node.js (v14 or higher)
+-   MongoDB database
+-   npm
+-   Cloudinary account
+-   Google OAuth credentials
 
 ## Environment Setup
+
+### Backend (`server/.env`)
 
 The backend requires a `.env` file in the `server/` directory with the following variables:
 
 ```
+# MongoDB connection string
 MONGODB_URI=<your_mongodb_connection_string>
+
+# JWT secret for signing tokens
 JWT_SECRET=<your_jwt_secret>
+
+# Cloudinary credentials for image storage
 CLOUDINARY_CLOUD_NAME=<your_cloudinary_cloud_name>
 CLOUDINARY_API_KEY=<your_cloudinary_api_key>
 CLOUDINARY_API_SECRET=<your_cloudinary_api_secret>
+
+# Google OAuth client ID for authentication
 GOOGLE_CLIENT_ID=<your_google_client_id>
+
+# CORS origins for allowing frontend requests
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+
+# Email credentials for sending OTPs and other notifications
 EMAIL_USER=<your_email_address>
 EMAIL_PASS=<your_email_password>
+```
+
+### Frontend (`client/.env`)
+
+The frontend requires a `.env` file in the `client/` directory with the following variables:
+
+```
+# The URL of the backend API
+VITE_API_URL=<your_backend_api_url>
+
+# Google OAuth client ID for authentication
+VITE_GOOGLE_CLIENT_ID=<your_google_client_id>
+
+# Web3Forms access key (for contact forms or similar)
+VITE_WEB3FORMS_ACCESS_KEY=<your_web3forms_access_key>
 ```
 
 ## Building and Running
@@ -122,40 +71,16 @@ EMAIL_PASS=<your_email_password>
 
 The client-side is a React application built with Vite.
 
-- **To install dependencies:**
-  ```bash
-  cd client
-  npm install
-  ```
-
-- **To run in development mode (with hot-reloading):**
-  ```bash
-  cd client
-  npm run dev
-  ```
-  This will start the development server, typically at `http://localhost:5173`.
-
-- **To build for production:**
-  ```bash
-  cd client
-  npm run build
-  ```
-
-- **To lint the code:**
-  ```bash
-  cd client
-  npm run lint
-  ```
+-   **To run in development mode (with hot-reloading):**
+    ```bash
+    cd client
+    npm run dev
+    ```
+    This will start the development server, typically at `http://localhost:5173`.
 
 ### Server (Backend)
 
 The server-side is a Node.js application using Express.
-
-- **To install dependencies:**
-  ```bash
-  cd server
-  npm install
-  ```
 
 - **To run in development mode (with auto-restarting via nodemon):**
   ```bash
@@ -169,22 +94,6 @@ The server-side is a Node.js application using Express.
   cd server
   npm run start
   ```
-
-## Development Conventions
-
-- **Frontend:**
-  - The frontend is built with React and TypeScript.
-  - Styling is done using Tailwind CSS.
-  - Components are located in `client/src/components`.
-  - Pages are in `client/src/pages`.
-  - The Vite development server proxies API requests from `/api` to the backend at `http://localhost:5000`.
-
-- **Backend:**
-  - The backend is built with Express and uses ES Modules.
-  - It follows a standard structure with `routes`, `models`, and `middleware`.
-  - Authentication is handled via JWTs.
-  - Mongoose is used for MongoDB object modeling.
-  - Input validation is performed using `express-validator`.
 
 ## License
 

@@ -471,7 +471,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       <CollapseButton isCollapsed={isCollapsed} onToggle={onToggleCollapse} />
       <div
-        className={`relative flex h-full flex-col bg-slate-900 text-slate-100 transition-all duration-300 ${
+        className={`relative flex h-full flex-col bg-gray-800 text-slate-100 transition-all duration-300 ${
           isCollapsed ? "px-2" : "px-4"
         }`}
       >
@@ -480,7 +480,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto py-2 -mx-2 px-2 relative"
+            className="flex-1 overflow-y-auto overflow-x-hidden py-2 px-2 relative"
           >
             <div
               ref={topIndicatorRef}
@@ -618,7 +618,7 @@ const DashboardLayout: React.FC = () => {
   }, [logout]);
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 font-sans">
+    <div className="h-screen flex overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 font-sans">
       {/* Mobile Sidebar */}
       {/* Mobile Sidebar */}
       <AnimatePresence>
@@ -687,7 +687,10 @@ const DashboardLayout: React.FC = () => {
           onClose={() => setSidebarOpen(false)}
           isOpen={sidebarOpen}
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8" role="main">
+        <main
+          className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 lg:p-8"
+          role="main"
+        >
           <Outlet />
         </main>
       </div>
