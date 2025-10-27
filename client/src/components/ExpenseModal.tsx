@@ -7,6 +7,9 @@ import {
   Repeat,
   TrendingDown,
   X,
+  Upload,
+  Camera,
+  Loader2,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -16,6 +19,9 @@ import BankAccountInterface from "../types/BankAccountInterface";
 import CustomSelect from "./CustomSelect";
 import { getBankAccounts } from "../api/bankAccounts";
 import { expenseCategories } from "../lib/expenseCategories";
+import { analyzeReceipt } from "../api/gemini";
+import ScanResultCard from "./ScanResultCard";
+import { set } from "date-fns";
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -55,16 +61,28 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
   const [bankAccounts, setBankAccounts] = useState<BankAccountInterface[]>([]);
   const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
+  const [scanningReceipt, setScanningReceipt] = useState(false);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [scanResult, setScanResult] = useState<{
+    show: boolean;
+    data?: {
+      description: string;
+      amount: string;
+      category: string;
+      date: string;
+    };
+  }>({ show: false });
 
   // Create a key that changes when categories change to force re-render
   const categoryKey = JSON.stringify(user?.customExpenseCategories || []);
 
   // Determine which categories to use: custom if available, otherwise default
-  const categoriesToUse = user?.customExpenseCategories && user.customExpenseCategories.length > 0 
-    ? user.customExpenseCategories 
+  const categoriesToUse = user?.customExpenseCategories && user.customExpenseCategories.length > 0
+    ? user.customExpenseCategories
     : expenseCategories;
 
   // Initialize form data
@@ -97,6 +115,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       });
     }
     setErrors({});
+    setReceiptPreview(null);
+    setScanResult({ show: false });
   }, [initialData, isOpen]);
 
   useEffect(() => {
@@ -164,7 +184,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       if (!formData.recurringInterval) {
         newErrors.recurringInterval = "Please select a recurring interval";
       }
-      
+
       if (formData.recurringEndDate) {
         const endDate = new Date(formData.recurringEndDate);
         const startDate = new Date(formData.date);
@@ -180,6 +200,95 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     return Object.keys(newErrors).length === 0;
   }, [formData, bankAccounts]);
 
+  const handleReceiptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setReceiptPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Analyze receipt
+    setScanningReceipt(true);
+    try {
+      const result = await analyzeReceipt(file);
+
+      // Parse and format the date (MM/DD/YYYY to YYYY-MM-DD)
+      let formattedDate = new Date().toISOString().split("T")[0];
+      if (result.date) {
+        try {
+          const [month, day, year] = result.date.split('/');
+          if (month && day && year) {
+            formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          }
+        } catch (e) {
+          console.error('Date parsing error:', e);
+        }
+      }
+
+      // Update form data with the analyzed receipt data
+      setFormData((prev) => ({
+        ...prev,
+        description: result.expenseDescription || prev.description,
+        amount: result.amount || prev.amount,
+        date: formattedDate,
+        category: result.suggestedCategory || prev.category,
+      }));
+
+      // Show success message
+      setScanResult({
+        show: true,
+        data: {
+          description: result.expenseDescription,
+          amount: result.amount,
+          category: result.suggestedCategory,
+          date: formattedDate,
+        }
+      });
+
+      // Auto-hide after 8 seconds
+      setTimeout(() => setScanResult({ show: false }), 8000);
+    } catch (error: any) {
+      console.error('Receipt scanning failed:', error);
+      alert(error.message || 'Failed to scan receipt. Please try again or enter details manually.');
+      setReceiptPreview(null);
+    } finally {
+      setScanningReceipt(false);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Trigger file input click
+  const handleScanReceiptClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Remove receipt preview
+  const handleRemoveReceipt = () => {
+    setReceiptPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   // Handle input changes
   const handleChange = (
     e: React.ChangeEvent<
@@ -188,7 +297,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   ) => {
     const { name, value, type } = e.target;
     const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
-    
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -339,6 +448,73 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
           {/* Form Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            {/* Receipt Scanner Section */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Camera className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                      Smart Receipt Scanner
+                    </h3>
+                  </div>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
+                    Upload a photo of your receipt and we'll automatically extract the details for you
+                  </p>
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleReceiptUpload}
+                    className="hidden"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleScanReceiptClick}
+                    disabled={scanningReceipt}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors duration-150 shadow-sm"
+                  >
+                    {scanningReceipt ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Scanning Receipt...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Scan Receipt
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Receipt Preview */}
+                {receiptPreview && (
+                  <div className="ml-4 relative">
+                    <img
+                      src={receiptPreview}
+                      alt="Receipt preview"
+                      className="w-20 h-20 object-cover rounded-lg border-2 border-blue-300 dark:border-blue-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveReceipt}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <ScanResultCard
+              show={scanResult.show}
+              data={scanResult.data}
+              onClose={() => setScanResult({ show: false })}
+            />
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Description */}
@@ -360,11 +536,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       value={formData.description}
                       onChange={handleChange}
                       placeholder="e.g., Groceries, Dinner with friends"
-                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
-                        errors.description
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
-                      }`}
+                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${errors.description
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                        }`}
                       required
                       ref={firstInputRef}
                       aria-invalid={errors.description ? "true" : "false"}
@@ -405,11 +580,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
-                        errors.amount
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
-                      }`}
+                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${errors.amount
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                        }`}
                       required
                       aria-invalid={errors.amount ? "true" : "false"}
                       aria-describedby={
@@ -450,11 +624,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       value={formData.date}
                       onChange={handleChange}
                       max={new Date().toISOString().split("T")[0]}
-                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
-                        errors.date
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
-                      }`}
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${errors.date
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                        }`}
                       required
                       aria-invalid={errors.date ? "true" : "false"}
                       aria-describedby={errors.date ? "date-error" : undefined}
@@ -490,11 +663,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                         target: { name: "category", value },
                       } as React.ChangeEvent<HTMLSelectElement>)
                     }
-                    className={`${
-                      errors.category
-                        ? "border-red-300 focus:ring-red-500"
-                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
-                    }`}
+                    className={`${errors.category
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                      }`}
                     openDirection="top"
                     isSearchable={true}
                     placeholder="Select a category"
@@ -534,17 +706,16 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                         target: { name: "bankAccount", value },
                       } as React.ChangeEvent<HTMLSelectElement>)
                     }
-                    className={`${
-                      errors.bankAccount
-                        ? "border-red-300 focus:ring-red-500"
-                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
-                    }`}
+                    className={`${errors.bankAccount
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                      }`}
                     openDirection="top"
                     isSearchable={true}
                     disabled={bankAccountsLoading}
                     placeholder="Select a bank account"
                   />
-                  
+
                   {errors.bankAccount && (
                     <div
                       id="bankAccount-error"
@@ -577,7 +748,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       </div>
                     </label>
                   </div>
-                  
+
                   {formData.isRecurring && (
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 pl-6">
                       {/* Recurring Interval */}
@@ -601,11 +772,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                               target: { name: "recurringInterval", value },
                             } as React.ChangeEvent<HTMLSelectElement>)
                           }
-                          className={`${
-                            errors.recurringInterval
-                              ? "border-red-300 focus:ring-red-500"
-                              : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
-                          }`}
+                          className={`${errors.recurringInterval
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                            }`}
                           openDirection="top"
                         />
                         {errors.recurringInterval && (
@@ -615,7 +785,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Recurring End Date */}
                       <div>
                         <label
@@ -631,11 +801,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                           value={formData.recurringEndDate || ""}
                           onChange={handleChange}
                           min={formData.date}
-                          className={`form-input block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${
-                            errors.recurringEndDate
-                              ? "border-red-300 focus:ring-red-500"
-                              : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
-                          }`}
+                          className={`form-input block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${errors.recurringEndDate
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                            }`}
                         />
                         {errors.recurringEndDate && (
                           <div className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400">
@@ -660,7 +829,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || scanningReceipt}
                   className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-lg hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed text-sm transform hover:scale-[1.02]"
                 >
                   {loading ? (
