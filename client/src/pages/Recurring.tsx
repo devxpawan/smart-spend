@@ -19,7 +19,6 @@ import RecurringInterface from "../types/RecurringInterface";
 import {
   deleteRecurringTransaction,
   getRecurringTransactions,
-  updateRecurringTransaction,
 } from "../api/recurring";
 import CustomSelect from "../components/CustomSelect";
 import ConfirmModal from "../components/ConfirmModal";
@@ -29,8 +28,6 @@ interface FilterConfig {
   interval: "all" | "daily" | "weekly" | "monthly" | "yearly";
   searchTerm: string;
 }
-
-
 
 const Recurring: React.FC = () => {
   const [recurringTransactions, setRecurringTransactions] = useState<
@@ -55,9 +52,6 @@ const Recurring: React.FC = () => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 12;
-
-
-
 
   const { user } = useAuth();
 
@@ -194,11 +188,6 @@ const Recurring: React.FC = () => {
     }
   };
 
-
-
-
-
-
   const formatCurrency = useCallback(
     (amount: number) => {
       return `${user?.preferences?.currency || "USD"} ${amount.toFixed(2)}`;
@@ -291,7 +280,10 @@ const Recurring: React.FC = () => {
                     Recurring Incomes
                   </h3>
                   <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
-                    {paginatedTransactions.filter((t) => t.type === "income").length}
+                    {
+                      paginatedTransactions.filter((t) => t.type === "income")
+                        .length
+                    }
                   </p>
                 </div>
                 <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg flex-shrink-0 ml-2">
@@ -313,7 +305,10 @@ const Recurring: React.FC = () => {
                     Recurring Expenses
                   </h3>
                   <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
-                    {paginatedTransactions.filter((t) => t.type === "expense").length}
+                    {
+                      paginatedTransactions.filter((t) => t.type === "expense")
+                        .length
+                    }
                   </p>
                 </div>
                 <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-rose-500 to-red-600 shadow-lg flex-shrink-0 ml-2">
@@ -405,7 +400,9 @@ const Recurring: React.FC = () => {
               className="flex items-center px-3 py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
               title="Refresh recurring transactions"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
               <span className="ml-2">Refresh</span>
             </button>
           </div>
@@ -422,7 +419,9 @@ const Recurring: React.FC = () => {
                 <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                   Error Occurred
                 </h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  {error}
+                </p>
               </div>
             </div>
             <button
@@ -451,13 +450,17 @@ const Recurring: React.FC = () => {
               </p>
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 mb-6">
                 <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center justify-center">
-                  <span className="mr-2">How to create recurring transactions</span>
+                  <span className="mr-2">
+                    How to create recurring transactions
+                  </span>
                 </h4>
                 <div className="grid grid-cols-1 gap-3">
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0 mt-1">
                       <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">1</span>
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                          1
+                        </span>
                       </div>
                     </div>
                     <p className="text-blue-700 dark:text-blue-300 text-sm text-left">
@@ -467,7 +470,9 @@ const Recurring: React.FC = () => {
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0 mt-1">
                       <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">2</span>
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                          2
+                        </span>
                       </div>
                     </div>
                     <p className="text-blue-700 dark:text-blue-300 text-sm text-left">
@@ -477,7 +482,9 @@ const Recurring: React.FC = () => {
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0 mt-1">
                       <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">3</span>
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                          3
+                        </span>
                       </div>
                     </div>
                     <p className="text-blue-700 dark:text-blue-300 text-sm text-left">
@@ -487,7 +494,9 @@ const Recurring: React.FC = () => {
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0 mt-1">
                       <div className="h-5 w-5 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">4</span>
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                          4
+                        </span>
                       </div>
                     </div>
                     <p className="text-blue-700 dark:text-blue-300 text-sm text-left">
@@ -499,123 +508,130 @@ const Recurring: React.FC = () => {
             </div>
           </div>
         ) : (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                          <thead className="bg-gray-50 dark:bg-gray-800">
-                            <tr>
-                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                Description
-                              </th>
-                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                Type
-                              </th>
-                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                Category
-                              </th>
-                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                <div className="flex items-center space-x-1">
-                                  <DollarSign className="w-4 h-4" />
-                                  <span>Amount</span>
-                                </div>
-                              </th>
-                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                <div className="flex items-center space-x-1">
-                                  <Clock className="w-4 h-4" />
-                                  <span>Interval</span>
-                                </div>
-                              </th>
-                              <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                <div className="flex items-center space-x-1">
-                                  <Calendar className="w-4 h-4" />
-                                  <span>Next Date</span>
-                                </div>
-                              </th>
-                              <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                Actions
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {currentRecords.map((transaction) => (
-                              <motion.tr
-                                key={`${transaction._id}-${transaction.type}`}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="hover:bg-gray-50 dark:hover:bg-gray-700/30"
-                              >
-                                <td className="px-4 lg:px-6 py-4">
-                                  <div className="flex items-center">
-                                    <div
-                                      className={`p-2 rounded-lg mr-3 ${getTypeColor(
-                                        transaction.type
-                                      )}`}
-                                    >
-                                      {getTypeIcon(transaction.type)}
-                                    </div>
-                                    <div className="font-medium text-gray-900 dark:text-white">
-                                      {transaction.description}
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                                  <span
-                                    className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                                      transaction.type
-                                    )}`}
-                                  >
-                                    {transaction.type === "expense" ? "Expense" : "Income"}
-                                  </span>
-                                </td>
-                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
-                                  <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
-                                    {transaction.category}
-                                  </span>
-                                </td>
-                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
-                                  {formatCurrency(transaction.amount)}
-                                </td>
-                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                                  {transaction.recurringInterval
-                                    ? getIntervalLabel(transaction.recurringInterval)
-                                    : "N/A"}
-                                </td>
-                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                                  {transaction.nextRecurringDate
-                                    ? new Date(
-                                        transaction.nextRecurringDate
-                                      ).toLocaleDateString()
-                                    : "N/A"}
-                                </td>
-                                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                  <div className="flex items-center justify-end space-x-2">
-                                    <button
-                                      onClick={() =>
-                                        setConfirmModal({
-                                          open: true,
-                                          id: transaction._id,
-                                          type: transaction.type,
-                                        })
-                                      }
-                                      className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${updatingId === transaction._id ? 'opacity-60 cursor-not-allowed' : 'transform hover:scale-105'}`}
-                                      title="Remove Recurring"
-                                      disabled={updatingId === transaction._id}
-                                    >
-                                      {updatingId === transaction._id ? (
-                                        <RefreshCw className="w-4 h-4 animate-spin" />
-                                      ) : (
-                                        <Trash2 className="w-4 h-4" />
-                                      )}
-                                    </button>
-                                  </div>
-                                </td>
-                              </motion.tr>
-                            ))}
-                          </tbody>
-                        </table>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border dark:border-gray-700 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Description
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Type
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Category
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <div className="flex items-center space-x-1">
+                        <DollarSign className="w-4 h-4" />
+                        <span>Amount</span>
                       </div>
-                    </div>        )}
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-4 h-4" />
+                        <span>Interval</span>
+                      </div>
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="w-4 h-4" />
+                        <span>Next Date</span>
+                      </div>
+                    </th>
+                    <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                  {currentRecords.map((transaction) => (
+                    <motion.tr
+                      key={`${transaction._id}-${transaction.type}`}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                    >
+                      <td className="px-4 lg:px-6 py-4">
+                        <div className="flex items-center">
+                          <div
+                            className={`p-2 rounded-lg mr-3 ${getTypeColor(
+                              transaction.type
+                            )}`}
+                          >
+                            {getTypeIcon(transaction.type)}
+                          </div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {transaction.description}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                            transaction.type
+                          )}`}
+                        >
+                          {transaction.type === "expense"
+                            ? "Expense"
+                            : "Income"}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-medium">
+                          {transaction.category}
+                        </span>
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
+                        {formatCurrency(transaction.amount)}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                        {transaction.recurringInterval
+                          ? getIntervalLabel(transaction.recurringInterval)
+                          : "N/A"}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                        {transaction.nextRecurringDate
+                          ? new Date(
+                              transaction.nextRecurringDate
+                            ).toLocaleDateString()
+                          : "N/A"}
+                      </td>
+                      <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() =>
+                              setConfirmModal({
+                                open: true,
+                                id: transaction._id,
+                                type: transaction.type,
+                              })
+                            }
+                            className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
+                              updatingId === transaction._id
+                                ? "opacity-60 cursor-not-allowed"
+                                : "transform hover:scale-105"
+                            }`}
+                            title="Remove Recurring"
+                            disabled={updatingId === transaction._id}
+                          >
+                            {updatingId === transaction._id ? (
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pagination Controls */}
@@ -634,9 +650,19 @@ const Recurring: React.FC = () => {
             {(() => {
               const pageNumbers = [];
               const maxPagesToShow = 5;
-              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500 dark:text-gray-400">...</li>;
+              const ellipsis = (
+                <li
+                  key="ellipsis"
+                  className="px-2 text-gray-500 dark:text-gray-400"
+                >
+                  ...
+                </li>
+              );
 
-              let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+              let startPage = Math.max(
+                1,
+                currentPage - Math.floor(maxPagesToShow / 2)
+              );
               const endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
 
               if (endPage - startPage + 1 < maxPagesToShow) {
@@ -703,7 +729,9 @@ const Recurring: React.FC = () => {
             })()}
             <li>
               <button
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, nPages))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, nPages))
+                }
                 disabled={currentPage === nPages}
                 className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-800 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
               >
@@ -725,8 +753,6 @@ const Recurring: React.FC = () => {
         cancelText="Cancel"
         variant="danger"
       />
-
-
     </div>
   );
 };
