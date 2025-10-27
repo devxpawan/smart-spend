@@ -20,6 +20,8 @@ import CustomSelect from "./CustomSelect";
 import { getBankAccounts } from "../api/bankAccounts";
 import { expenseCategories } from "../lib/expenseCategories";
 import { analyzeReceipt } from "../api/gemini";
+import ScanResultCard from "./ScanResultCard";
+import { set } from "date-fns";
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -65,6 +67,15 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [scanResult, setScanResult] = useState<{
+    show: boolean;
+    data?: {
+      description: string;
+      amount: string;
+      category: string;
+      date: string;
+    };
+  }>({ show: false });
 
   // Create a key that changes when categories change to force re-render
   const categoryKey = JSON.stringify(user?.customExpenseCategories || []);
@@ -105,6 +116,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     }
     setErrors({});
     setReceiptPreview(null);
+    setScanResult({ show: false });
   }, [initialData, isOpen]);
 
   useEffect(() => {
@@ -239,7 +251,18 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       }));
 
       // Show success message
-      alert('Receipt scanned successfully! Please review the details.');
+      setScanResult({
+        show: true,
+        data: {
+          description: result.expenseDescription,
+          amount: result.amount,
+          category: result.suggestedCategory,
+          date: formattedDate,
+        }
+      });
+
+      // Auto-hide after 8 seconds
+      setTimeout(() => setScanResult({ show: false }), 8000);
     } catch (error: any) {
       console.error('Receipt scanning failed:', error);
       alert(error.message || 'Failed to scan receipt. Please try again or enter details manually.');
@@ -487,6 +510,11 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 )}
               </div>
             </div>
+            <ScanResultCard
+              show={scanResult.show}
+              data={scanResult.data}
+              onClose={() => setScanResult({ show: false })}
+            />
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Description */}
@@ -509,8 +537,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       onChange={handleChange}
                       placeholder="e.g., Groceries, Dinner with friends"
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${errors.description
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
                         }`}
                       required
                       ref={firstInputRef}
@@ -553,8 +581,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       step="0.01"
                       min="0"
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${errors.amount
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
                         }`}
                       required
                       aria-invalid={errors.amount ? "true" : "false"}
@@ -597,8 +625,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       onChange={handleChange}
                       max={new Date().toISOString().split("T")[0]}
                       className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${errors.date
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
                         }`}
                       required
                       aria-invalid={errors.date ? "true" : "false"}
@@ -636,8 +664,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       } as React.ChangeEvent<HTMLSelectElement>)
                     }
                     className={`${errors.category
-                        ? "border-red-300 focus:ring-red-500"
-                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
                       }`}
                     openDirection="top"
                     isSearchable={true}
@@ -679,8 +707,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                       } as React.ChangeEvent<HTMLSelectElement>)
                     }
                     className={`${errors.bankAccount
-                        ? "border-red-300 focus:ring-red-500"
-                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
                       }`}
                     openDirection="top"
                     isSearchable={true}
@@ -745,8 +773,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                             } as React.ChangeEvent<HTMLSelectElement>)
                           }
                           className={`${errors.recurringInterval
-                              ? "border-red-300 focus:ring-red-500"
-                              : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
                             }`}
                           openDirection="top"
                         />
@@ -774,8 +802,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                           onChange={handleChange}
                           min={formData.date}
                           className={`form-input block w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${errors.recurringEndDate
-                              ? "border-red-300 focus:ring-red-500"
-                              : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                            ? "border-red-300 focus:ring-red-500"
+                            : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
                             }`}
                         />
                         {errors.recurringEndDate && (
