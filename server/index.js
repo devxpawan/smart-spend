@@ -82,7 +82,7 @@ app.use(
   })
 );
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
+
 
 // CSP middleware
 app.use((req, res, next) => {

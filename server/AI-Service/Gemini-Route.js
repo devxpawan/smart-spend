@@ -26,17 +26,17 @@ const sessions = new Map();
 
 // 🔹 Middleware for handling image uploads (with size limit)
 const upload = multer({
-  dest: "uploads/",
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
 });
 
-// Helper function to convert local file to a GoogleGenerativeAI.Part object
-function fileToGenerativePart(path, mimeType) {
+// Helper function to convert a buffer to a GoogleGenerativeAI.Part object
+function bufferToGenerativePart(buffer, mimeType) {
   return {
     inlineData: {
-      data: Buffer.from(fs.readFileSync(path)).toString("base64"),
+      data: buffer.toString("base64"),
       mimeType,
     },
   };
@@ -52,12 +52,11 @@ GPTRouter.post("/analyze-receipt", upload.single("receiptImage"), async (req, re
         return res.status(400).json({ error: "No receipt image uploaded." });
     }
 
-    const imagePath = req.file.path;
     const mimeType = req.file.mimetype;
 
     try {
         // 2. Prepare the image part and the text prompt
-        const imagePart = fileToGenerativePart(imagePath, mimeType);
+        const imagePart = bufferToGenerativePart(req.file.buffer, mimeType);
         
         // 3. Call the vision model with correct structure
         const result = await visionModel.generateContent({
@@ -89,11 +88,6 @@ GPTRouter.post("/analyze-receipt", upload.single("receiptImage"), async (req, re
             error: "Failed to analyze receipt. Please ensure the image is clear.",
             rawError: error.message,
         });
-    } finally {
-        // 6. Clean up the uploaded file
-        if (fs.existsSync(imagePath)) {
-            fs.unlinkSync(imagePath);
-        }
     }
 });
 

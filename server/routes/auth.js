@@ -198,21 +198,6 @@ const formatUserResponse = (user) => ({
   isGoogleUser: !!user.googleId, // Add this field
 });
 
-// Helper function to delete avatar file
-const deleteAvatarFile = (avatarPath) => {
-  try {
-    if (!avatarPath || !avatarPath.includes("/uploads/")) return;
-
-    const fullPath = path.join(process.cwd(), avatarPath.replace(/^\//, ""));
-    if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath);
-      console.log("Avatar deleted:", fullPath);
-    }
-  } catch (error) {
-    console.error("Error deleting avatar:", error);
-  }
-};
-
 // Helper to extract Cloudinary public ID from URL
 const getCloudinaryPublicId = (url) => {
   if (!url) return null;
@@ -635,8 +620,6 @@ router.delete("/profile/avatar", authenticateToken, async (req, res) => {
             await cloudinary.uploader.destroy(publicId);
             console.log(`Avatar deleted from Cloudinary: ${publicId}`);
           }
-        } else if (user.avatar.startsWith("/uploads/")) {
-          deleteAvatarFile(user.avatar);
         }
         user.avatar = undefined;
         await user.save();
@@ -696,8 +679,6 @@ router.delete("/profile", authenticateToken, async (req, res) => {
             await cloudinary.uploader.destroy(publicId);
             console.log(`User avatar deleted from Cloudinary: ${publicId}`);
           }
-        } else if (user.avatar.startsWith("/uploads/")) {
-          deleteAvatarFile(user.avatar);
         }
       } catch (avatarError) {
         console.error("Error deleting user avatar:", avatarError);
