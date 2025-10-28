@@ -39,6 +39,7 @@ import { useAuth } from "../contexts/auth-exports";
 import { billCategories } from "../lib/billCategories";
 import BillFormData from "../types/BillFormData";
 import BillInterface from "../types/BillInterface";
+import { retryWithBackoff } from "../utils/retry";
 
 // Types
 interface SortConfig {
@@ -134,8 +135,11 @@ const Bills: React.FC = () => {
     if (!confirmModal.id) return;
     const idToDelete = confirmModal.id;
     setDeletingId(idToDelete);
+
+    const apiCall = () => axios.delete(`/api/bills/${idToDelete}`);
+
     try {
-      await axios.delete(`/api/bills/${idToDelete}`);
+      await retryWithBackoff(apiCall);
       setBills((prev) => prev.filter((bill) => bill._id !== idToDelete));
       setError("");
     } catch {
@@ -402,13 +406,17 @@ const Bills: React.FC = () => {
 
   const handleSubmit = useCallback(
     async (data: BillFormData) => {
+      const apiCall = () => {
+        if (editBillData) {
+          return axios.put(`/api/bills/${editBillData._id}`, data);
+        } else {
+          return axios.post("/api/bills", data);
+        }
+      };
+
       try {
         setLoading(true);
-        if (editBillData) {
-          await axios.put(`/api/bills/${editBillData._id}`, data);
-        } else {
-          await axios.post("/api/bills", data);
-        }
+        await retryWithBackoff(apiCall);
         await fetchBills();
       } catch (_err) {
         console.error("Error submitting bill:", _err);
@@ -442,10 +450,13 @@ const Bills: React.FC = () => {
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     setIsBulkDeleting(true);
+
+    const apiCall = () => Promise.all(
+      selectedIds.map((id) => axios.delete(`/api/bills/${id}`))
+    );
+
     try {
-      await Promise.all(
-        selectedIds.map((id) => axios.delete(`/api/bills/${id}`))
-      );
+      await retryWithBackoff(apiCall);
       setBills((prev) =>
         prev.filter((bill) => !selectedIds.includes(bill._id))
       );

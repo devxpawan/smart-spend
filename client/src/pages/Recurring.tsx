@@ -20,6 +20,7 @@ import {
   deleteRecurringTransaction,
   getRecurringTransactions,
 } from "../api/recurring";
+import { retryWithBackoff } from "../utils/retry";
 import CustomSelect from "../components/CustomSelect";
 import ConfirmModal from "../components/ConfirmModal";
 
@@ -164,9 +165,11 @@ const Recurring: React.FC = () => {
   const handleDeleteRecurring = async () => {
     if (!confirmModal.id || !confirmModal.type) return;
 
+    const apiCall = () => deleteRecurringTransaction(confirmModal.id!, confirmModal.type!);
+
     try {
       setUpdatingId(confirmModal.id);
-      await deleteRecurringTransaction(confirmModal.id, confirmModal.type);
+      await retryWithBackoff(apiCall);
       await fetchRecurringTransactions();
       setConfirmModal({ open: false, id: null, type: null });
     } catch (err: any) {

@@ -15,6 +15,7 @@ import BankAccountInterface from "../types/BankAccountInterface";
 import banksData from "../lib/banks.json"; // Import the banks data
 import toast from "react-hot-toast"; // Import react-hot-toast
 import { AxiosError } from "axios";
+import { retryWithBackoff } from "../utils/retry";
 
 interface BankAccountFormState {
   bankName: string;
@@ -296,13 +297,17 @@ const BankAccounts: React.FC = () => {
   };
 
   const handleSaveAccount = async (data: BankAccountFormState, id?: string): Promise<string | undefined> => {
+    const apiCall = () => {
+      if (id) {
+        return updateBankAccount(id, data);
+      } else {
+        return createBankAccount(data);
+      }
+    };
+
     try {
       setIsSaving(true);
-      if (id) {
-        await updateBankAccount(id, data);
-      } else {
-        await createBankAccount(data);
-      }
+      await retryWithBackoff(apiCall);
       setIsModalOpen(false);
       setEditingAccount(undefined);
       fetchBankAccounts();
@@ -329,9 +334,12 @@ const BankAccounts: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!accountToDeleteId) return;
+
+    const apiCall = () => deleteBankAccount(accountToDeleteId);
+
     try {
       setLoading(true);
-      await deleteBankAccount(accountToDeleteId);
+      await retryWithBackoff(apiCall);
       fetchBankAccounts();
     } catch (err) {
       setError("Failed to delete bank account.");

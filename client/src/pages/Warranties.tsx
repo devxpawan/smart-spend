@@ -33,6 +33,7 @@ import WarrantyQRCodeModal from "../components/WarrantyQRCodeModal";
 import { useAuth } from "../contexts/auth-exports";
 import { WarrantyImage } from "../types/WarrantyFormData";
 import WarrantyInterface from "../types/WarrantyInterface";
+import { retryWithBackoff } from "../utils/retry";
 
 // Using WarrantyInterface from types
 
@@ -316,10 +317,7 @@ const Warranties: React.FC = () => {
 
   // Event handlers
   const handleSubmit = async (data: LocalWarrantyFormData) => {
-    try {
-      setLoading(true);
-      setError("");
-
+    const apiCall = () => {
       const warrantyData = {
         productName: data.productName?.trim(),
         expirationDate: data.expirationDate,
@@ -339,15 +337,24 @@ const Warranties: React.FC = () => {
         )
       );
 
-      let createdWarranty = null;
-
       if (selectedWarrantyToEdit) {
-        await axios.put(
+        return axios.put(
           `/api/warranties/${selectedWarrantyToEdit._id}`,
           cleanedData
         );
       } else {
-        const response = await axios.post("/api/warranties", cleanedData);
+        return axios.post("/api/warranties", cleanedData);
+      }
+    };
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await retryWithBackoff(apiCall);
+
+      let createdWarranty = null;
+      if (!selectedWarrantyToEdit) {
         createdWarranty = response.data;
       }
 
@@ -454,10 +461,13 @@ const Warranties: React.FC = () => {
 
   const confirmDelete = async (id: string) => {
     setDeletingId(id); // Set deleting state
+
+    const apiCall = () => axios.delete(`/api/warranties/${id}`);
+
     try {
       setLoading(true);
       setConfirmModal({ open: false, id: "" });
-      await axios.delete(`/api/warranties/${id}`);
+      await retryWithBackoff(apiCall);
       await fetchWarranties();
 
       if (selectedWarrantyForDetail?._id === id) {
@@ -503,10 +513,13 @@ const Warranties: React.FC = () => {
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     setIsBulkDeleting(true);
+
+    const apiCall = () => Promise.all(
+      selectedIds.map((id) => axios.delete(`/api/warranties/${id}`))
+    );
+
     try {
-      await Promise.all(
-        selectedIds.map((id) => axios.delete(`/api/warranties/${id}`))
-      );
+      await retryWithBackoff(apiCall);
       await fetchWarranties();
       setSelectedIds([]);
       setError("");

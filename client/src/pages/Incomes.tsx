@@ -36,6 +36,7 @@ import { useAuth } from "../contexts/auth-exports";
 import { incomeCategories } from "../lib/incomeCategories";
 import IncomeFormData from "../types/IncomeFormData";
 import IncomeInterface from "../types/IncomeInterface";
+import { retryWithBackoff } from "../utils/retry";
 
 // Types
 interface SortConfig {
@@ -125,8 +126,11 @@ const Incomes: React.FC = () => {
     if (!selectedId) return;
     const idToDelete = selectedId; // Capture ID before modal closes
     setDeletingId(idToDelete); // Set deleting state
+
+    const apiCall = () => axios.delete(`/api/incomes/${idToDelete}`);
+
     try {
-      await axios.delete(`/api/incomes/${idToDelete}`);
+      await retryWithBackoff(apiCall);
       setIncomes((prev) => prev.filter((income) => income._id !== idToDelete));
       setIsModalOpen(false);
       setSelectedId(null);
@@ -304,16 +308,20 @@ const Incomes: React.FC = () => {
 
   const handleSubmit = useCallback(
     async (data: IncomeFormData) => {
-      try {
-        setLoading(true);
+      const apiCall = () => {
         if (editIncomeData) {
-          await axios.put(`/api/incomes/${editIncomeData._id}`, {
+          return axios.put(`/api/incomes/${editIncomeData._id}`, {
             ...data,
             amount: data.amount || 0,
           });
         } else {
-          await axios.post("/api/incomes", data);
+          return axios.post("/api/incomes", data);
         }
+      };
+
+      try {
+        setLoading(true);
+        await retryWithBackoff(apiCall);
         await fetchIncomes();
       } catch (error) {
         console.error("Error submitting income:", error);
@@ -350,10 +358,13 @@ const Incomes: React.FC = () => {
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     setIsBulkDeleting(true);
+
+    const apiCall = () => axios.delete("/api/incomes/bulk-delete", {
+      data: { ids: selectedIds },
+    });
+
     try {
-      await axios.delete("/api/incomes/bulk-delete", {
-        data: { ids: selectedIds },
-      });
+      await retryWithBackoff(apiCall);
 
       setIncomes((prev) =>
         prev.filter((income) => !selectedIds.includes(income._id))

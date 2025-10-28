@@ -34,6 +34,7 @@ import { useAuth } from "../contexts/auth-exports";
 import { expenseCategories } from "../lib/expenseCategories";
 import ExpenseFormData from "../types/ExpenseFormData";
 import ExpenseInterface from "../types/ExpenseInterface";
+import { retryWithBackoff } from "../utils/retry";
 
 
 // Types
@@ -117,8 +118,11 @@ const Expenses: React.FC = () => {
     if (!selectedId) return;
     const idToDelete = selectedId; // Capture ID before modal closes
     setDeletingId(idToDelete); // Set deleting state
+
+    const apiCall = () => axios.delete(`/api/expenses/${idToDelete}`);
+
     try {
-      await axios.delete(`/api/expenses/${idToDelete}`);
+      await retryWithBackoff(apiCall);
       setExpenses((prev) =>
         prev.filter((expense) => expense._id !== idToDelete)
       );
@@ -306,16 +310,20 @@ const Expenses: React.FC = () => {
 
   const handleSubmit = useCallback(
     async (data: ExpenseFormData) => {
-      try {
-        setLoading(true);
+      const apiCall = () => {
         if (editExpenseData) {
-          await axios.put(`/api/expenses/${editExpenseData._id}`, {
+          return axios.put(`/api/expenses/${editExpenseData._id}`, {
             ...data,
             amount: data.amount || 0,
           });
         } else {
-          await axios.post("/api/expenses", data);
+          return axios.post("/api/expenses", data);
         }
+      };
+
+      try {
+        setLoading(true);
+        await retryWithBackoff(apiCall);
         await fetchExpenses();
       } catch (error) {
         console.error("Error submitting expense:", error);
@@ -351,10 +359,13 @@ const Expenses: React.FC = () => {
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     setIsBulkDeleting(true);
+
+    const apiCall = () => axios.delete("/api/expenses/bulk-delete", {
+      data: { ids: selectedIds },
+    });
+
     try {
-      await axios.delete("/api/expenses/bulk-delete", {
-        data: { ids: selectedIds },
-      });
+      await retryWithBackoff(apiCall);
 
       setExpenses((prev) =>
         prev.filter((expense) => !selectedIds.includes(expense._id))
