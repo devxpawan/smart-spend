@@ -19,7 +19,7 @@ import BankAccountInterface from "../types/BankAccountInterface";
 import CustomSelect from "./CustomSelect";
 import { getBankAccounts } from "../api/bankAccounts";
 import { expenseCategories } from "../lib/expenseCategories";
-import { analyzeReceipt } from "../api/gemini";
+import { analyzeReceipt, isErrorResponse } from "../api/gemini";
 import ScanResultCard from "./ScanResultCard";
 import { set } from "date-fns";
 
@@ -76,6 +76,11 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       date: string;
     };
   }>({ show: false });
+  const [scanError, setScanError] = useState<{
+    show: boolean;
+    message: string;
+    type?: string;
+  }>({ show: false, message: '' });
 
   // Create a key that changes when categories change to force re-render
   const categoryKey = JSON.stringify(user?.customExpenseCategories || []);
@@ -204,15 +209,19 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Reset previous errors
+    setScanError({ show: false, message: '' });
+    setScanResult({ show: false });
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file');
+      setScanError({ show: true, message: 'Please upload a valid image file.', type: 'invalid_file' });
       return;
     }
 
     // Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB');
+      setScanError({ show: true, message: 'File size exceeds 10MB limit.', type: 'file_too_large' });
       return;
     }
 
@@ -228,29 +237,53 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     try {
       const result = await analyzeReceipt(file);
 
-      // Parse and format the date (MM/DD/YYYY to YYYY-MM-DD)
-      let formattedDate = new Date().toISOString().split("T")[0];
-      if (result.date) {
+      //check if result is an error using type guard
+      if (isErrorResponse(result)) {
+        setScanError({
+          show: true,
+          message: result.message,
+          type: result.type
+        });
+        setReceiptPreview(null);
+
+        // Handle partial data if available
+        if (result.partialData && result.type === 'incomplete_data') {
+          // Optionally pre-fill whatever data was extracted
+          setFormData((prev) => ({
+            ...prev,
+            description: result.partialData?.expenseDescription || prev.description,
+            amount: result.partialData?.amount || prev.amount,
+          }));
+        }
+
+        return;
+      }
+
+      // Helper function for date formatting
+      const formatDate = (dateString: string): string => {
         try {
-          const [month, day, year] = result.date.split('/');
+          const [month, day, year] = dateString.split('/');
           if (month && day && year) {
-            formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
           }
         } catch (e) {
           console.error('Date parsing error:', e);
         }
-      }
+        return new Date().toISOString().split("T")[0];
+      };
 
-      // Update form data with the analyzed receipt data
+
+      // Parse and format the date (MM/DD/YYYY to YYYY-MM-DD)
+      const formattedDate = formatDate(result.date);
+
       setFormData((prev) => ({
         ...prev,
-        description: result.expenseDescription || prev.description,
-        amount: result.amount || prev.amount,
+        description: result.expenseDescription,
+        amount: result.amount,
         date: formattedDate,
-        category: result.suggestedCategory || prev.category,
+        category: result.suggestedCategory,
       }));
 
-      // Show success message
       setScanResult({
         show: true,
         data: {
@@ -263,14 +296,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
       // Auto-hide after 8 seconds
       setTimeout(() => setScanResult({ show: false }), 8000);
-    } catch (error: any) {
-      console.error('Receipt scanning failed:', error);
-      alert(error.message || 'Failed to scan receipt. Please try again or enter details manually.');
-      setReceiptPreview(null);
-    } finally {
+    } finally{
       setScanningReceipt(false);
-      // Clear the file input
-      if (fileInputRef.current) {
+      if(fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
@@ -284,6 +312,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   // Remove receipt preview
   const handleRemoveReceipt = () => {
     setReceiptPreview(null);
+    setScanError({ show: false, message: '' });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -449,6 +478,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
           {/* Form Content */}
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
             {/* Receipt Scanner Section */}
+            {/* Receipt Scanner Section */}
             <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -461,6 +491,30 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                   <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
                     Upload a photo of your receipt and we'll automatically extract the details for you
                   </p>
+
+                  {/* Error Message Display */}
+                  {scanError.show && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                    >
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm text-red-800 dark:text-red-200 font-medium">
+                            {scanError.message}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setScanError({ show: false, message: '' })}
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
 
                   {/* Hidden file input */}
                   <input
@@ -510,6 +564,8 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Success Result Card */}
             <ScanResultCard
               show={scanResult.show}
               data={scanResult.data}
