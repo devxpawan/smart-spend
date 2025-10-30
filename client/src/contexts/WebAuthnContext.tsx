@@ -57,12 +57,28 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
         toast.success("Fingerprint login enabled successfully!");
         return true;
       } else {
-        toast.error("Failed to enable fingerprint login");
+        toast.error(verificationResponse.data.message || "Failed to enable fingerprint login");
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("WebAuthn registration error:", error);
-      toast.error("Failed to enable fingerprint login. Please try again.");
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to enable fingerprint login. Please try again.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.code === "ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED") {
+        errorMessage = "This authenticator is already registered. Please use a different biometric method.";
+      } else if (error?.code === "ERROR_CEREMONY_ABORTED") {
+        errorMessage = "Registration was cancelled. Please try again.";
+      } else if (error?.code === "ERROR_INVALID_DOMAIN") {
+        errorMessage = "Invalid domain. Please ensure you're using the correct URL.";
+      }
+      
+      toast.error(errorMessage);
       return false;
     }
   };
@@ -97,12 +113,28 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
         toast.success("Logged in successfully with fingerprint!");
         return true;
       } else {
-        toast.error("Fingerprint authentication failed");
+        toast.error(verificationResponse.data.message || "Fingerprint authentication failed");
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("WebAuthn authentication error:", error);
-      toast.error("Fingerprint authentication failed. Please try again.");
+      
+      // Provide more specific error messages
+      let errorMessage = "Fingerprint authentication failed. Please try again.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.code === "ERROR_AUTHENTICATOR_NOT_FOUND") {
+        errorMessage = "No registered authenticator found. Please register your biometric first.";
+      } else if (error?.code === "ERROR_CEREMONY_ABORTED") {
+        errorMessage = "Authentication was cancelled. Please try again.";
+      } else if (error?.code === "ERROR_INVALID_DOMAIN") {
+        errorMessage = "Invalid domain. Please ensure you're using the correct URL.";
+      }
+      
+      toast.error(errorMessage);
       return false;
     }
   };

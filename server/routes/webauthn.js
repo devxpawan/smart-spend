@@ -71,7 +71,7 @@ router.get("/register-options", authenticateToken, async (req, res) => {
     res.json(options);
   } catch (error) {
     console.error("WebAuthn registration options error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Failed to generate registration options. Please try again." });
   }
 });
 
@@ -87,6 +87,11 @@ router.post("/register", authenticateToken, async (req, res) => {
 
     const { body } = req;
 
+    // Check if currentChallenge exists
+    if (!user.currentChallenge) {
+      return res.status(400).json({ message: "No registration challenge found. Please try again." });
+    }
+
     // Verify the registration response
     const verification = await verifyRegistrationResponse({
       response: body,
@@ -98,25 +103,27 @@ router.post("/register", authenticateToken, async (req, res) => {
     const { verified, registrationInfo } = verification;
 
     if (verified && registrationInfo) {
-      const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = registrationInfo;
+      const { credentialID, credentialPublicKey, counter } = registrationInfo;
 
       // Save the credential to the user's account
       user.webauthnCredentials.push({
         id: isoBase64URL.fromBuffer(credentialID),
         publicKey: credentialPublicKey,
         counter,
-        transports: body.response.transports,
+        transports: body.response.transports || [],
       });
 
+      // Clear the challenge
+      user.currentChallenge = undefined;
       await user.save();
 
       res.json({ success: true });
     } else {
-      res.status(400).json({ success: false, message: "Verification failed" });
+      res.status(400).json({ success: false, message: "Verification failed. Please try again." });
     }
   } catch (error) {
     console.error("WebAuthn registration error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Failed to register fingerprint. Please try again." });
   }
 });
 
@@ -134,11 +141,19 @@ router.get("/login-options", async (req, res) => {
 
     // Store the challenge in the session for verification later
     req.session.currentChallenge = options.challenge;
-
-    res.json(options);
+    
+    // Save session
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save error:", err);
+        return res.status(500).json({ message: "Failed to save session. Please try again." });
+      }
+      
+      res.json(options);
+    });
   } catch (error) {
     console.error("WebAuthn login options error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Failed to generate login options. Please try again." });
   }
 });
 
@@ -150,10 +165,20 @@ router.post("/login", async (req, res) => {
     const { body } = req;
     const { email } = body;
 
+    // Validate input
+    if (!email) {
+      return res.status(400).json({ message: "Email is required for authentication." });
+    }
+
     // Find the user by email
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(400).json({ message: "User not found. Please check your email." });
+    }
+
+    // Check if the user has any WebAuthn credentials
+    if (!user.webauthnCredentials || user.webauthnCredentials.length === 0) {
+      return res.status(400).json({ message: "No biometric credentials found. Please enable fingerprint login first." });
     }
 
     // Find the credential matching the credential ID
@@ -162,7 +187,12 @@ router.post("/login", async (req, res) => {
     );
 
     if (!credential) {
-      return res.status(400).json({ message: "Credential not found" });
+      return res.status(400).json({ message: "Credential not found. Please try again." });
+    }
+
+    // Check if currentChallenge exists in session
+    if (!req.session.currentChallenge) {
+      return res.status(400).json({ message: "No authentication challenge found. Please try again." });
     }
 
     // Verify the authentication response
@@ -183,6 +213,10 @@ router.post("/login", async (req, res) => {
     if (verified) {
       // Update the counter to prevent replay attacks
       credential.counter = authenticationInfo.newCounter;
+      
+      // Clear the challenge
+      req.session.currentChallenge = undefined;
+      
       await user.save();
 
       // Generate JWT token
@@ -208,11 +242,11 @@ router.post("/login", async (req, res) => {
         user: formatUserResponse(user),
       });
     } else {
-      res.status(400).json({ success: false, message: "Verification failed" });
+      res.status(400).json({ success: false, message: "Authentication failed. Please try again." });
     }
   } catch (error) {
     console.error("WebAuthn login error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ success: false, message: "Failed to authenticate. Please try again." });
   }
 });
 

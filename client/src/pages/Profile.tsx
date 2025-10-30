@@ -634,12 +634,21 @@ const Profile: React.FC = () => {
           type: "success",
           text: "Fingerprint login enabled successfully!",
         });
+      } else {
+        // The error message is now handled in the WebAuthnContext
+        // Just make sure we don't show a generic message here
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error enabling fingerprint login:", error);
+      let errorMessage = "Failed to enable fingerprint login. Please try again.";
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       setMessage({
         type: "error",
-        text: "Failed to enable fingerprint login. Please try again.",
+        text: errorMessage,
       });
     }
   };
