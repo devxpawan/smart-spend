@@ -1017,44 +1017,6 @@ const Profile: React.FC = () => {
             {/* separator */}
             <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
-            {/* Custom Categories Section */}
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                Custom Categories
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Customize your income and expense categories. These will be used
-                in the income and expense forms.
-              </p>
-
-              <CategoryManager
-                title="Income"
-                categories={
-                  customIncomeCategories.length > 0
-                    ? customIncomeCategories
-                    : incomeCategories
-                }
-                defaultCategories={incomeCategories}
-                onUpdate={updateCustomIncomeCategories}
-                setMessage={setMessage}
-              />
-
-              <CategoryManager
-                title="Expense"
-                categories={
-                  customExpenseCategories.length > 0
-                    ? customExpenseCategories
-                    : expenseCategories
-                }
-                defaultCategories={expenseCategories}
-                onUpdate={updateCustomExpenseCategories}
-                setMessage={setMessage}
-              />
-            </div>
-
-            {/* separator */}
-            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
-
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
               {hasChanges && (

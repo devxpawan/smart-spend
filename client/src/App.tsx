@@ -18,6 +18,7 @@ import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 import BankAccounts from "./pages/BankAccounts";
 import Recurring from "./pages/Recurring";
+import CustomCategories from "./pages/CustomCategories";
 
 function App() {
   const { loading } = useAuth();
@@ -69,6 +70,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="about" element={<About />} />
           <Route path="bank-accounts" element={<BankAccounts />} />
+          <Route path="customcategories" element={<CustomCategories/>}/>
         </Route>
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
