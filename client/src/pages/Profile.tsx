@@ -632,12 +632,10 @@ const Profile: React.FC = () => {
       if (success) {
         setMessage({
           type: "success",
-          text: "Fingerprint login enabled successfully!",
+          text: "Fingerprint login enabled successfully! You can now use biometric authentication to log in.",
         });
-      } else {
-        // The error message is now handled in the WebAuthnContext
-        // Just make sure we don't show a generic message here
       }
+      // If not successful, the error is handled in the WebAuthnContext
     } catch (error: any) {
       console.error("Error enabling fingerprint login:", error);
       let errorMessage = "Failed to enable fingerprint login. Please try again.";

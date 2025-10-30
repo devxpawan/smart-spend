@@ -1,7 +1,7 @@
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import axios from "axios";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye, EyeOff, Lock, Mail, Sparkles, User } from "lucide-react";
+import { Eye, EyeOff, Fingerprint, Lock, Mail, Sparkles, User } from "lucide-react";
 import React, { useState } from "react";
 import toast from "react-hot-toast";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
@@ -11,7 +11,7 @@ import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import ResetPasswordModal from "../components/ResetPasswordModal";
 import { useAuth } from "../contexts/auth-exports";
 import { useWebAuthn } from "../contexts/webauthn-exports";
-import { Fingerprint } from "lucide-react";
+import BiometricAuthButton from "../components/BiometricAuthButton";
 import { validatePassword } from "../utils/passwordValidation";
 
 // Types
@@ -259,6 +259,7 @@ const LoginRegister: React.FC = () => {
       showPassword: false,
       passwordValidation: validatePassword(""),
     });
+    setEmailForWebAuthn("");
     clearError();
   };
 
@@ -479,14 +480,13 @@ const LoginRegister: React.FC = () => {
                         </div>
                       </div>
                       
-                      <button
-                        type="button"
-                        onClick={handleFingerprintLogin}
-                        className="w-full py-3 bg-indigo-100 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-200 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition flex items-center justify-center gap-2"
-                      >
-                        <Fingerprint className="w-5 h-5" />
-                        Login with Fingerprint
-                      </button>
+                      <BiometricAuthButton 
+                        email={emailForWebAuthn} 
+                        onAuthSuccess={() => {
+                          // User is already logged in by the authenticate function
+                          // The redirect is handled automatically
+                        }} 
+                      />
                     </div>
                   </div>
                 )}

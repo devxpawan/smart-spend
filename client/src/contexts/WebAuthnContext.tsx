@@ -31,8 +31,19 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Check WebAuthn support
   React.useEffect(() => {
-    if (window.PublicKeyCredential) {
-      setIsWebAuthnSupported(true);
+    // Check if we're in a browser environment and if PublicKeyCredential is available
+    if (typeof window !== 'undefined' && window.PublicKeyCredential) {
+      // Additional check for platform authenticator support
+      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        .then((supported) => {
+          console.log("Platform authenticator support:", supported);
+          setIsWebAuthnSupported(supported);
+        })
+        .catch((error) => {
+          console.error("Error checking platform authenticator support:", error);
+          // Fallback to basic WebAuthn support check
+          setIsWebAuthnSupported(true);
+        });
     } else {
       setIsWebAuthnSupported(false);
     }
@@ -40,24 +51,58 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const registerCredential = async (): Promise<boolean> => {
     try {
+      // Check if we're in a secure context (HTTPS or localhost)
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        const errorMessage = "Biometric authentication requires a secure context (HTTPS or localhost). Please ensure you're using a secure connection.";
+        console.error("WebAuthn registration error:", errorMessage);
+        toast.error(errorMessage);
+        return false;
+      }
+      
+      console.log("Requesting registration options from server");
+      
       // Get registration options from the server
       const optionsResponse = await axios.get("/api/webauthn/register-options");
+      console.log("Received registration options response:", optionsResponse.status);
+      
       const options = optionsResponse.data;
+      console.log("Registration options:", Object.keys(options));
+      
+      // Check if options and challenge exist
+      if (!options) {
+        console.error("No registration options received from server");
+        toast.error("Failed to get registration options from server. Please try again.");
+        return false;
+      }
+      
+      if (!options.challenge) {
+        console.error("No challenge in registration options");
+        toast.error("Registration options are invalid. Please try again.");
+        return false;
+      }
 
+      console.log("Starting WebAuthn registration process");
+      
       // Start the registration process
       const attestationResponse = await startRegistration(options);
+      console.log("Received attestation response");
 
       // Send the response to the server for verification
+      console.log("Sending attestation response to server");
       const verificationResponse = await axios.post(
         "/api/webauthn/register",
         attestationResponse
       );
+      
+      console.log("Received verification response:", verificationResponse.status);
 
       if (verificationResponse.data.success) {
         toast.success("Fingerprint login enabled successfully!");
         return true;
       } else {
-        toast.error(verificationResponse.data.message || "Failed to enable fingerprint login");
+        const errorMessage = verificationResponse.data.message || "Failed to enable fingerprint login";
+        console.error("Registration verification failed:", errorMessage);
+        toast.error(errorMessage);
         return false;
       }
     } catch (error: any) {
@@ -66,7 +111,9 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
       // Provide more specific error messages
       let errorMessage = "Failed to enable fingerprint login. Please try again.";
       
-      if (error?.response?.data?.message) {
+      if (error?.response?.status === 404) {
+        errorMessage = "User not found. Please log in again.";
+      } else if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error?.message) {
         errorMessage = error.message;
@@ -76,6 +123,16 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
         errorMessage = "Registration was cancelled. Please try again.";
       } else if (error?.code === "ERROR_INVALID_DOMAIN") {
         errorMessage = "Invalid domain. Please ensure you're using the correct URL.";
+      } else if (error?.name === "InvalidStateError") {
+        errorMessage = "This authenticator is already registered. Please use a different biometric method or device.";
+      } else if (error?.name === "NotAllowedError") {
+        errorMessage = "Biometric authentication was denied. Please try again and ensure you're using a supported device.";
+      } else if (error?.name === "AbortError") {
+        errorMessage = "Biometric authentication was cancelled. Please try again.";
+      } else if (error?.name === "SecurityError") {
+        errorMessage = "Security error. Please ensure you're using HTTPS in production.";
+      } else if (error?.name === "TypeError") {
+        errorMessage = "Connection error. Please check your network connection and try again.";
       }
       
       toast.error(errorMessage);
@@ -85,12 +142,41 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const authenticate = async (email: string): Promise<boolean> => {
     try {
+      // Check if we're in a secure context (HTTPS or localhost)
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        const errorMessage = "Biometric authentication requires a secure context (HTTPS or localhost). Please ensure you're using a secure connection.";
+        console.error("WebAuthn authentication error:", errorMessage);
+        toast.error(errorMessage);
+        return false;
+      }
+      
+      console.log("Requesting authentication options from server");
+      
       // Get authentication options from the server
       const optionsResponse = await axios.get("/api/webauthn/login-options");
+      console.log("Received authentication options response:", optionsResponse.status);
+      
       const options = optionsResponse.data;
+      console.log("Authentication options:", Object.keys(options));
+      
+      // Check if options and challenge exist
+      if (!options) {
+        console.error("No authentication options received from server");
+        toast.error("Failed to get authentication options from server. Please try again.");
+        return false;
+      }
+      
+      if (!options.challenge) {
+        console.error("No challenge in authentication options");
+        toast.error("Authentication options are invalid. Please try again.");
+        return false;
+      }
 
+      console.log("Starting WebAuthn authentication process");
+      
       // Start the authentication process
       const assertionResponse = await startAuthentication(options);
+      console.log("Received assertion response");
 
       // Add email to the assertion response
       const responseWithEmail = {
@@ -99,10 +185,13 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
       };
 
       // Send the response to the server for verification
+      console.log("Sending assertion response to server");
       const verificationResponse = await axios.post(
         "/api/webauthn/login",
         responseWithEmail
       );
+      
+      console.log("Received verification response:", verificationResponse.status);
 
       if (verificationResponse.data.token) {
         // Login successful, set the token and user
@@ -113,7 +202,9 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
         toast.success("Logged in successfully with fingerprint!");
         return true;
       } else {
-        toast.error(verificationResponse.data.message || "Fingerprint authentication failed");
+        const errorMessage = verificationResponse.data.message || "Fingerprint authentication failed";
+        console.error("Authentication verification failed:", errorMessage);
+        toast.error(errorMessage);
         return false;
       }
     } catch (error: any) {
@@ -122,7 +213,11 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
       // Provide more specific error messages
       let errorMessage = "Fingerprint authentication failed. Please try again.";
       
-      if (error?.response?.data?.message) {
+      if (error?.response?.status === 400) {
+        errorMessage = error.response.data.message || "Invalid authentication request.";
+      } else if (error?.response?.status === 404) {
+        errorMessage = "User not found. Please check your email.";
+      } else if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error?.message) {
         errorMessage = error.message;
@@ -132,6 +227,16 @@ export const WebAuthnProvider: React.FC<{ children: React.ReactNode }> = ({
         errorMessage = "Authentication was cancelled. Please try again.";
       } else if (error?.code === "ERROR_INVALID_DOMAIN") {
         errorMessage = "Invalid domain. Please ensure you're using the correct URL.";
+      } else if (error?.name === "NotFoundError") {
+        errorMessage = "No registered biometric found. Please register your fingerprint first.";
+      } else if (error?.name === "NotAllowedError") {
+        errorMessage = "Biometric authentication was denied. Please try again.";
+      } else if (error?.name === "AbortError") {
+        errorMessage = "Biometric authentication was cancelled. Please try again.";
+      } else if (error?.name === "SecurityError") {
+        errorMessage = "Security error. Please ensure you're using HTTPS in production.";
+      } else if (error?.name === "TypeError") {
+        errorMessage = "Connection error. Please check your network connection and try again.";
       }
       
       toast.error(errorMessage);

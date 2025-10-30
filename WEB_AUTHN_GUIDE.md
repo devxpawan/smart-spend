@@ -1,81 +1,105 @@
-# Fingerprint Login Implementation Guide
+# WebAuthn Biometric Authentication Guide
 
-This guide explains how to use the fingerprint login feature implemented with WebAuthn in the SmartSpend application.
+## Overview
+
+This guide explains how to use the biometric authentication feature in the SmartSpend application. The feature allows users to log in using fingerprint or face recognition instead of typing their password.
 
 ## How It Works
 
-The fingerprint login feature uses the WebAuthn API to enable passwordless authentication using biometric data (fingerprint, face recognition, etc.) or device PIN.
+1. **Registration**: Users enable biometric login by registering their fingerprint or face with the system.
+2. **Authentication**: Users can then log in using their biometric data instead of a password.
 
-### Registration Process
+## Technical Implementation
 
-1. User enables fingerprint login in their profile settings
-2. The browser generates a public-private key pair using the device's secure enclave
-3. The private key is securely stored in the device hardware
-4. The public key is sent to the server and associated with the user account
+### Frontend
 
-### Authentication Process
+The frontend uses the `@simplewebauthn/browser` library to interact with the WebAuthn API. The implementation is located in:
 
-1. User selects "Login with Fingerprint" on the login page
-2. The browser requests the user to authenticate using their biometric method
-3. The device signs a challenge with the private key
-4. The signed data is sent to the server for verification
-5. If verified, the server generates a JWT token and logs the user in
+- `client/src/contexts/WebAuthnContext.tsx` - Main context for WebAuthn operations
+- `client/src/components/BiometricAuthButton.tsx` - Reusable button component for biometric authentication
+- `client/src/pages/LoginRegister.tsx` - Login page with biometric authentication option
+- `client/src/pages/Profile.tsx` - Profile page with option to enable biometric authentication
 
-## Browser Support
+### Backend
 
-The feature works with modern browsers that support WebAuthn:
-- Chrome 67+
-- Edge 18+
-- Firefox 60+
-- Safari 13+
+The backend uses the `@simplewebauthn/server` library to handle WebAuthn operations. The implementation is located in:
 
-## Device Requirements
+- `server/routes/webauthn.js` - Routes for WebAuthn registration and authentication
+- `server/models/User.js` - User model with WebAuthn credentials storage
 
-- A device with a fingerprint reader, Face ID, or other biometric sensor
-- Or a device with a secure PIN entry system
+## User Flow
 
-## Setup Instructions
+### Enabling Biometric Login
 
-### For Users
+1. Log in to the application
+2. Go to the Profile page
+3. Click the "Enable Fingerprint Login" button
+4. Follow the browser prompts to register your biometric data
 
-1. Log in to your account
-2. Go to Profile Settings
-3. Click "Enable Fingerprint Login"
-4. Follow your browser's prompts to register your biometric data
-5. Next time you log in, you can use the "Login with Fingerprint" option
+### Using Biometric Login
 
-### For Developers
-
-1. The WebAuthn implementation uses the `@simplewebauthn` libraries:
-   - `@simplewebauthn/browser` for the frontend
-   - `@simplewebauthn/server` for the backend
-
-2. Key files:
-   - Frontend: `client/src/contexts/WebAuthnContext.tsx`
-   - Backend: `server/routes/webauthn.js`
-   - User model: `server/models/User.js` (with webauthnCredentials field)
-
-3. Routes:
-   - `GET /api/webauthn/register-options` - Get registration options
-   - `POST /api/webauthn/register` - Register a new credential
-   - `GET /api/webauthn/login-options` - Get authentication options
-   - `POST /api/webauthn/login` - Authenticate with a credential
-
-## Security Notes
-
-- Biometric data never leaves the user's device
-- Private keys are stored securely in device hardware
-- All communication happens over HTTPS
-- The server only stores public keys
-- Challenge-response mechanism prevents replay attacks
+1. Go to the login page
+2. Enter your email address in the biometric login section
+3. Click the "Login with Biometrics" button
+4. Follow the browser prompts to authenticate with your biometric data
 
 ## Troubleshooting
 
-If you encounter issues:
+### Common Issues
 
-1. Ensure you're using a supported browser
-2. Check that your device has biometric capabilities
-3. Make sure you're accessing the site over HTTPS (in production)
-4. Clear your browser cache and try again
+1. **"Biometric authentication is not supported in your browser"**
+   - Make sure you're using a modern browser (Chrome, Edge, Safari, Firefox)
+   - Ensure you're accessing the application over HTTPS (or localhost for development)
 
-For development, you can test with localhost over HTTP.
+2. **"Biometric authentication requires a secure context"**
+   - The WebAuthn API only works in secure contexts (HTTPS or localhost)
+   - Make sure you're not accessing the application over HTTP in production
+
+3. **"No registered biometric found"**
+   - You need to enable biometric login first before you can use it
+   - Go to your Profile page and enable biometric authentication
+
+### Browser Support
+
+The biometric authentication feature works with the following browsers:
+
+- Chrome 67+
+- Edge 18+
+- Safari 13+
+- Firefox 60+
+
+## Security Considerations
+
+1. **Credential Storage**: Biometric credentials are stored securely on the user's device, not on the server
+2. **Challenge-Response**: Each authentication attempt uses a unique challenge to prevent replay attacks
+3. **Counter Verification**: The system tracks credential usage counter to detect potential cloning attempts
+
+## Development Notes
+
+### Adding New Features
+
+To extend the biometric authentication functionality:
+
+1. Add new routes in `server/routes/webauthn.js`
+2. Update the frontend context in `client/src/contexts/WebAuthnContext.tsx`
+3. Modify the UI components as needed
+
+### Testing
+
+To test the WebAuthn implementation:
+
+1. Run the test script: `node server/test-webauthn.js`
+2. Use browser developer tools to monitor WebAuthn API calls
+3. Check server logs for authentication events
+
+## API Endpoints
+
+### Registration
+
+- `GET /api/webauthn/register-options` - Get registration options
+- `POST /api/webauthn/register` - Verify and store new credential
+
+### Authentication
+
+- `GET /api/webauthn/login-options` - Get authentication options
+- `POST /api/webauthn/login` - Verify authentication response

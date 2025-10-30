@@ -19,10 +19,15 @@ const rpName = "SmartSpend";
 const rpID = process.env.NODE_ENV === "production" 
   ? new URL(process.env.CLIENT_URL).hostname 
   : "localhost";
+  
+console.log("WebAuthn RP ID:", rpID);
+
 // The origin of our website (protocol + domain + port)
 const origin = process.env.NODE_ENV === "production" 
   ? process.env.CLIENT_URL 
   : "http://localhost:5173";
+
+console.log("WebAuthn Origin:", origin);
 
 // Helper function to convert string to Uint8Array
 function stringToUint8Array(str) {
@@ -34,10 +39,16 @@ function stringToUint8Array(str) {
 // @access  Private
 router.get("/register-options", authenticateToken, async (req, res) => {
   try {
+    console.log("WebAuthn registration options request received");
+    console.log("User ID from token:", req.user.id);
+    
     const user = await User.findById(req.user.id);
     if (!user) {
+      console.log("WebAuthn registration options error: User not found");
       return res.status(404).json({ message: "User not found" });
     }
+
+    console.log("Generating registration options for user:", user.email);
 
     // Retrieve any of the user's previously-registered credentials
     const userCredentials = user.webauthnCredentials.map(cred => ({
@@ -46,7 +57,13 @@ router.get("/register-options", authenticateToken, async (req, res) => {
       transports: cred.transports,
     }));
 
-    const options = generateRegistrationOptions({
+    console.log("User credentials for exclusion:", userCredentials.length);
+    console.log("RP Name:", rpName);
+    console.log("RP ID:", rpID);
+    console.log("User ID (Uint8Array):", stringToUint8Array(user.id));
+    console.log("User email:", user.email);
+
+    const options = await generateRegistrationOptions({
       rpName,
       rpID,
       userID: stringToUint8Array(user.id), // Convert user ID to Uint8Array
@@ -59,14 +76,26 @@ router.get("/register-options", authenticateToken, async (req, res) => {
       authenticatorSelection: {
         residentKey: "preferred",
         userVerification: "preferred",
-        // Defaults
-        authenticatorAttachment: "platform", // Use platform authenticators (biometrics)
+        // Allow both platform and cross-platform authenticators
+        // Remove the restriction to platform authenticators only
+        // authenticatorAttachment: "platform", // This line was causing issues
       },
     });
 
-    // Store the challenge in the user's session or database for verification later
+    console.log("Generated registration options keys:", Object.keys(options));
+    console.log("Challenge exists:", !!options.challenge);
+
+    // Check if options were generated successfully
+    if (!options || !options.challenge) {
+      console.error("Failed to generate valid registration options");
+      return res.status(500).json({ message: "Failed to generate registration options. Please try again." });
+    }
+
+    // Store the challenge in the user's document for verification later
     user.currentChallenge = options.challenge;
     await user.save();
+    
+    console.log("Stored challenge for user:", user.email);
 
     res.json(options);
   } catch (error) {
@@ -105,6 +134,18 @@ router.post("/register", authenticateToken, async (req, res) => {
     if (verified && registrationInfo) {
       const { credentialID, credentialPublicKey, counter } = registrationInfo;
 
+      // Check if this credential is already registered
+      const existingCredential = user.webauthnCredentials.find(
+        (cred) => cred.id === isoBase64URL.fromBuffer(credentialID)
+      );
+
+      if (existingCredential) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "This biometric credential is already registered." 
+        });
+      }
+
       // Save the credential to the user's account
       user.webauthnCredentials.push({
         id: isoBase64URL.fromBuffer(credentialID),
@@ -119,10 +160,19 @@ router.post("/register", authenticateToken, async (req, res) => {
 
       res.json({ success: true });
     } else {
-      res.status(400).json({ success: false, message: "Verification failed. Please try again." });
+      res.status(400).json({ success: false, message: "Verification failed. The biometric data could not be verified." });
     }
   } catch (error) {
     console.error("WebAuthn registration error:", error);
+    
+    // Handle specific errors
+    if (error.message && error.message.includes("challenge")) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Challenge verification failed. Please try again." 
+      });
+    }
+    
     res.status(500).json({ success: false, message: "Failed to register fingerprint. Please try again." });
   }
 });
@@ -132,23 +182,37 @@ router.post("/register", authenticateToken, async (req, res) => {
 // @access  Public
 router.get("/login-options", async (req, res) => {
   try {
-    // We don't have a user yet, so we'll generate options without user-specific credentials
-    const options = generateAuthenticationOptions({
+    console.log("WebAuthn login options request received");
+    
+    // Generate authentication options
+    const options = await generateAuthenticationOptions({
       rpID,
       // Do not prompt for user verification if not necessary
       userVerification: "preferred",
+      // AllowCredentials is optional but can improve security by limiting which credentials can be used
+      // We'll leave it out for now to support any registered credential
     });
+
+    console.log("Generated login options keys:", Object.keys(options));
+    console.log("Challenge exists:", !!options.challenge);
+
+    // Check if options were generated successfully
+    if (!options || !options.challenge) {
+      console.error("Failed to generate valid login options");
+      return res.status(500).json({ message: "Failed to generate login options. Please try again." });
+    }
 
     // Store the challenge in the session for verification later
     req.session.currentChallenge = options.challenge;
     
-    // Save session
+    // Save session explicitly to ensure it's stored
     req.session.save((err) => {
       if (err) {
         console.error("Session save error:", err);
         return res.status(500).json({ message: "Failed to save session. Please try again." });
       }
       
+      console.log("Login options sent successfully");
       res.json(options);
     });
   } catch (error) {
@@ -217,6 +281,7 @@ router.post("/login", async (req, res) => {
       // Clear the challenge
       req.session.currentChallenge = undefined;
       
+      // Save the updated user
       await user.save();
 
       // Generate JWT token
@@ -242,10 +307,29 @@ router.post("/login", async (req, res) => {
         user: formatUserResponse(user),
       });
     } else {
-      res.status(400).json({ success: false, message: "Authentication failed. Please try again." });
+      res.status(400).json({ success: false, message: "Authentication failed. The biometric data could not be verified." });
     }
   } catch (error) {
     console.error("WebAuthn login error:", error);
+    
+    // Handle specific errors
+    if (error.message && error.message.includes("challenge")) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Challenge verification failed. Please try again." 
+      });
+    } else if (error.message && error.message.includes("origin")) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Origin verification failed. Please ensure you're using the correct domain." 
+      });
+    } else if (error.message && error.message.includes("rpId")) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "RP ID verification failed. Please ensure you're using the correct domain." 
+      });
+    }
+    
     res.status(500).json({ success: false, message: "Failed to authenticate. Please try again." });
   }
 });
