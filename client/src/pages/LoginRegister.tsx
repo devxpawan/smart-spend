@@ -10,6 +10,8 @@ import OTPVerificationModal from "../components/OTPVerificationModal";
 import PasswordStrengthIndicator from "../components/PasswordStrengthIndicator";
 import ResetPasswordModal from "../components/ResetPasswordModal";
 import { useAuth } from "../contexts/auth-exports";
+import { useWebAuthn } from "../contexts/webauthn-exports";
+import { Fingerprint } from "lucide-react";
 import { validatePassword } from "../utils/passwordValidation";
 
 // Types
@@ -222,6 +224,7 @@ const RegisterForm: React.FC<{
 
 // ---------- Main Component ----------
 const LoginRegister: React.FC = () => {
+  const { authenticate, isWebAuthnSupported } = useWebAuthn();
   const [tab, setTab] = useState<TabType>("login");
   const [formState, setFormState] = useState<FormState>({
     name: "",
@@ -235,6 +238,7 @@ const LoginRegister: React.FC = () => {
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] =
     useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  const [emailForWebAuthn, setEmailForWebAuthn] = useState("");
 
   const { login, register, googleLogin, loading, error, user, clearError } =
     useAuth();
@@ -275,6 +279,23 @@ const LoginRegister: React.FC = () => {
           state: { showOtpModal: true, email: formState.email },
         });
       }
+    }
+  };
+
+  const handleFingerprintLogin = async () => {
+    if (!emailForWebAuthn) {
+      toast.error("Please enter your email first");
+      return;
+    }
+    
+    try {
+      const success = await authenticate(emailForWebAuthn);
+      if (success) {
+        // User is logged in automatically by the authenticate function
+      }
+    } catch (error) {
+      console.error("Error during fingerprint authentication:", error);
+      toast.error("Fingerprint authentication failed. Please try again.");
     }
   };
 
@@ -430,6 +451,45 @@ const LoginRegister: React.FC = () => {
                     ? "Sign In"
                     : "Create Account"}
                 </button>
+
+                {tab === "login" && isWebAuthnSupported && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 my-4">
+                      <div className="flex-1 h-px bg-gray-200" />
+                      <span className="text-xs text-gray-400">or use biometrics</span>
+                      <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-800 mb-2">
+                          Email for Biometric Login
+                        </label>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                            <Mail className="w-4 h-4" />
+                          </div>
+                          <input
+                            type="email"
+                            value={emailForWebAuthn}
+                            onChange={(e) => setEmailForWebAuthn(e.target.value)}
+                            placeholder="you@example.com"
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 text-sm transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={handleFingerprintLogin}
+                        className="w-full py-3 bg-indigo-100 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-200 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition flex items-center justify-center gap-2"
+                      >
+                        <Fingerprint className="w-5 h-5" />
+                        Login with Fingerprint
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-3 my-4">
                   <div className="flex-1 h-px bg-gray-200" />

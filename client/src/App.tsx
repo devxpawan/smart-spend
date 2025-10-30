@@ -18,6 +18,7 @@ import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 import BankAccounts from "./pages/BankAccounts";
 import Recurring from "./pages/Recurring";
+import { WebAuthnProvider } from "./contexts/webauthn-exports";
 
 function App() {
   const { loading } = useAuth();
@@ -31,49 +32,51 @@ function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <OnlineStatusIndicator />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/warranty/:id" element={<PublicWarrantyDetails />} />
+    <WebAuthnProvider>
+      <ErrorBoundary>
+        <OnlineStatusIndicator />
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/warranty/:id" element={<PublicWarrantyDetails />} />
 
-        {/* Auth Routes */}
-        <Route path="/auth" element={<LoginRegister />} />
-        
-        {/* Dashboard Routes */}
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <DashboardLayout />
-            </PrivateRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          {/* Expense Routes */}
-          <Route path="incomes" element={<Incomes />} />
-          <Route path="expenses" element={<Expenses />} />
+          {/* Auth Routes */}
+          <Route path="/auth" element={<LoginRegister />} />
+          
+          {/* Dashboard Routes */}
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <DashboardLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            {/* Expense Routes */}
+            <Route path="incomes" element={<Incomes />} />
+            <Route path="expenses" element={<Expenses />} />
 
-          {/* Bill Routes */}
-          <Route path="bills" element={<Bills />} />
+            {/* Bill Routes */}
+            <Route path="bills" element={<Bills />} />
 
-          {/* Monthly Breakdown */}
-          <Route path="monthly" element={<MonthlyBreakdown />} />
+            {/* Monthly Breakdown */}
+            <Route path="monthly" element={<MonthlyBreakdown />} />
 
-          {/* Recurring Transactions */}
-          <Route path="recurring" element={<Recurring />} />
+            {/* Recurring Transactions */}
+            <Route path="recurring" element={<Recurring />} />
 
-          {/* Warranty Routes */}
-          <Route path="warranties" element={<Warranties />} />
-          {/* Profile */}
-          <Route path="profile" element={<Profile />} />
-          <Route path="about" element={<About />} />
-          <Route path="bank-accounts" element={<BankAccounts />} />
-        </Route>
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </ErrorBoundary>
+            {/* Warranty Routes */}
+            <Route path="warranties" element={<Warranties />} />
+            {/* Profile */}
+            <Route path="profile" element={<Profile />} />
+            <Route path="about" element={<About />} />
+            <Route path="bank-accounts" element={<BankAccounts />} />
+          </Route>
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ErrorBoundary>
+    </WebAuthnProvider>
   );
 }
 

@@ -6,27 +6,30 @@ import './index.css';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { NotificationProvider } from './contexts/NotificationContext'; // Add NotificationProvider
+import { NotificationProvider } from './contexts/NotificationContext';
+import { WebAuthnProvider } from './contexts/WebAuthnContext';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <NotificationProvider> {/* Add NotificationProvider */}
-            <App />
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                  border: '1px solid #4a4a4a',
-                }
-              }}
-            />
-          </NotificationProvider>
+          <WebAuthnProvider>
+            <NotificationProvider>
+              <App />
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
+                    border: '1px solid #4a4a4a',
+                  }
+                }}
+              />
+            </NotificationProvider>
+          </WebAuthnProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

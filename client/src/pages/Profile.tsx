@@ -7,6 +7,7 @@ import {
   CheckCircle,
   CreditCard,
   FileText,
+  Fingerprint,
   Info,
   Mail,
   Moon,
@@ -27,6 +28,8 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 import { useAuth } from "../contexts/auth-exports";
 import { useTheme } from "../contexts/theme-exports";
+import { useWebAuthn } from "../contexts/webauthn-exports";
+
 import { expenseCategories } from "../lib/expenseCategories";
 import { incomeCategories } from "../lib/incomeCategories";
 
@@ -276,6 +279,7 @@ const Profile: React.FC = () => {
     updateCustomExpenseCategories,
   } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { registerCredential, isWebAuthnSupported } = useWebAuthn();
 
   const canHover = useHoverCapable();
 
@@ -621,6 +625,24 @@ const Profile: React.FC = () => {
     setDeleteInput("");
     setMessage({ type: "", text: "" });
   }, []);
+
+  const handleEnableFingerprint = async () => {
+    try {
+      const success = await registerCredential();
+      if (success) {
+        setMessage({
+          type: "success",
+          text: "Fingerprint login enabled successfully!",
+        });
+      }
+    } catch (error) {
+      console.error("Error enabling fingerprint login:", error);
+      setMessage({
+        type: "error",
+        text: "Failed to enable fingerprint login. Please try again.",
+      });
+    }
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
@@ -1139,6 +1161,38 @@ const Profile: React.FC = () => {
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Switch between light and dark themes.
               </p>
+            </div>
+
+            {/* separator */}
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
+
+            {/* Fingerprint Login Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">
+                Biometric Authentication
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Enable fingerprint or face recognition login for quicker access to your account.
+              </p>
+              
+              {isWebAuthnSupported ? (
+                <motion.button
+                  type="button"
+                  onClick={handleEnableFingerprint}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-indigo-100 text-indigo-700 font-semibold border border-indigo-200 rounded-lg hover:bg-indigo-200 hover:text-indigo-800 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-300 ease-in-out text-sm min-h-[44px]"
+                >
+                  <Fingerprint className="w-5 h-5" />
+                  Enable Fingerprint Login
+                </motion.button>
+              ) : (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-amber-800 text-sm">
+                    Biometric authentication is not supported in your browser. Please use a modern browser like Chrome, Edge, or Safari.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* separator */}

@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import morgan from "morgan";
+import session from "express-session";
 
 // Routes
 import authRoutes from "./routes/auth.js";
@@ -15,6 +16,7 @@ import userRoutes from "./routes/user.js";
 import bankAccountRoutes from "./routes/bankAccounts.js";
 import recurringRoutes from "./routes/recurring.js";
 import notificationRoutes from "./routes/notifications.js"; // Add notifications route
+import webauthnRoutes from "./routes/webauthn.js"; // WebAuthn routes
 import GPTRouter from "./AI-Service/Gemini-Route.js"; //gemini route
 
 // Middleware
@@ -83,6 +85,18 @@ app.use(
 );
 app.use(express.json());
 
+// Session middleware for WebAuthn
+app.use(
+  session({
+    secret: process.env.JWT_SECRET || "fallback_secret_for_development",
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
 
 // CSP middleware
 app.use((req, res, next) => {
@@ -108,6 +122,7 @@ connectDB();
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/webauthn", webauthnRoutes); // WebAuthn routes
 // Public warranty route (for QR code access) - must come before authenticated routes
 app.use("/api/warranties/public", warrantyRoutes);
 app.use("/api/expenses", authenticateToken, expenseRoutes);

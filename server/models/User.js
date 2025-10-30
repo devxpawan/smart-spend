@@ -64,6 +64,33 @@ const userSchema = new mongoose.Schema({
   passwordResetExpires: {
     type: Date,
   },
+  // WebAuthn fields for biometric authentication
+  webauthnCredentials: [
+    {
+      id: {
+        type: String,
+        required: true,
+      },
+      publicKey: {
+        type: Buffer,
+        required: true,
+      },
+      counter: {
+        type: Number,
+        required: true,
+        default: 0,
+      },
+      transports: [String],
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
+  // Field to store the current WebAuthn challenge
+  currentChallenge: {
+    type: String,
+  },
 });
 
 const User = mongoose.model("User", userSchema);
