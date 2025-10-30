@@ -115,6 +115,9 @@ router.post("/register", authenticateToken, async (req, res) => {
     }
 
     const { body } = req;
+    
+    // Log the incoming request body for debugging
+    console.log("Registration request body:", JSON.stringify(body, null, 2));
 
     // Check if currentChallenge exists
     if (!user.currentChallenge) {
@@ -130,9 +133,61 @@ router.post("/register", authenticateToken, async (req, res) => {
     });
 
     const { verified, registrationInfo } = verification;
+    
+    // Log verification result for debugging
+    console.log("Verification result:", { verified, registrationInfo });
+    
+    // Check if registrationInfo exists
+    if (!registrationInfo) {
+      console.error("Registration info is missing from verification result");
+      return res.status(500).json({ 
+        success: false, 
+        message: "Registration verification failed. Please try again." 
+      });
+    }
 
     if (verified && registrationInfo) {
+      // Log the entire registrationInfo object to understand its structure
+      console.log("Full registration info:", JSON.stringify(registrationInfo, null, 2));
+      
       const { credentialID, credentialPublicKey, counter } = registrationInfo;
+      
+      // Log registration info for debugging
+      console.log("Registration info details:", { credentialID, credentialPublicKey, counter });
+      
+      // Validate required fields
+      if (!credentialID) {
+        console.error("Missing credential ID", { credentialID });
+        return res.status(500).json({ 
+          success: false, 
+          message: "Missing credential ID. Please try again." 
+        });
+      }
+      
+      if (!credentialPublicKey) {
+        console.error("Missing credential public key", { credentialPublicKey });
+        return res.status(500).json({ 
+          success: false, 
+          message: "Missing credential public key. Please try again." 
+        });
+      }
+      
+      if (counter === undefined) {
+        console.error("Missing counter", { counter });
+        return res.status(500).json({ 
+          success: false, 
+          message: "Missing counter value. Please try again." 
+        });
+      }
+      
+      // Additional validation
+      if (typeof counter !== 'number') {
+        console.error("Invalid counter type", { counter, type: typeof counter });
+        return res.status(500).json({ 
+          success: false, 
+          message: "Invalid counter value. Please try again." 
+        });
+      }
 
       // Check if this credential is already registered
       const existingCredential = user.webauthnCredentials.find(
@@ -148,9 +203,57 @@ router.post("/register", authenticateToken, async (req, res) => {
 
       // Save the credential to the user's account
       // Ensure publicKey is stored as a Buffer
+      
+      // Handle different possible formats of publicKey
+      let publicKeyBuffer;
+      if (Buffer.isBuffer(credentialPublicKey)) {
+        publicKeyBuffer = credentialPublicKey;
+      } else if (credentialPublicKey instanceof Uint8Array) {
+        publicKeyBuffer = Buffer.from(credentialPublicKey);
+      } else if (typeof credentialPublicKey === 'string') {
+        // If it's a base64 string, decode it
+        publicKeyBuffer = Buffer.from(credentialPublicKey, 'base64');
+      } else if (credentialPublicKey && typeof credentialPublicKey === 'object') {
+        // If it's an object, try to convert it
+        publicKeyBuffer = Buffer.from(credentialPublicKey);
+      } else {
+        // Last resort - try to convert whatever we have
+        try {
+          publicKeyBuffer = Buffer.from(credentialPublicKey);
+        } catch (bufferError) {
+          console.error("Failed to convert publicKey to Buffer:", bufferError);
+          return res.status(500).json({ 
+            success: false, 
+            message: "Failed to process credential data. Please try again." 
+          });
+        }
+      }
+      
+      // Handle credentialID
+      if (!credentialID) {
+        console.error("Missing credentialID in registration info");
+        return res.status(500).json({ 
+          success: false, 
+          message: "Missing credential ID. Please try again." 
+        });
+      }
+      
+      let credentialIdString;
+      if (credentialID instanceof Uint8Array) {
+        credentialIdString = isoBase64URL.fromBuffer(credentialID);
+      } else if (Buffer.isBuffer(credentialID)) {
+        credentialIdString = isoBase64URL.fromBuffer(credentialID);
+      } else {
+        console.error("Unexpected credentialID type:", typeof credentialID, credentialID);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Invalid credential ID format. Please try again." 
+        });
+      }
+      
       user.webauthnCredentials.push({
-        id: isoBase64URL.fromBuffer(credentialID),
-        publicKey: Buffer.from(credentialPublicKey), // Convert to Buffer if needed
+        id: credentialIdString,
+        publicKey: publicKeyBuffer,
         counter,
         transports: body.response.transports || [],
       });
@@ -176,7 +279,30 @@ router.post("/register", authenticateToken, async (req, res) => {
       });
     }
     
-    res.status(500).json({ success: false, message: "Failed to register fingerprint. Please try again." });
+    // Provide more detailed error information
+    if (error.code === 'ERR_INVALID_ARG_TYPE') {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid data format received. Please try again with a different biometric method." 
+      });
+    }
+    
+    // Handle other specific error types
+    if (error.name === 'TypeError') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Data type error: ${error.message}. Please try again.` 
+      });
+    }
+    
+    if (error.name === 'DataError') {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Data validation error. Please try again with a different biometric method." 
+      });
+    }
+    
+    res.status(500).json({ success: false, message: `Failed to register fingerprint: ${error.message}. Please try again.` });
   }
 });
 
@@ -231,6 +357,9 @@ router.post("/login", async (req, res) => {
   try {
     const { body } = req;
     const { email } = body;
+    
+    // Log the incoming request body for debugging
+    console.log("Authentication request body:", JSON.stringify(body, null, 2));
 
     // Validate input
     if (!email) {
@@ -256,6 +385,15 @@ router.post("/login", async (req, res) => {
     if (!credential) {
       return res.status(400).json({ message: "Credential not found. Please try again." });
     }
+    
+    // Validate credential data
+    if (!credential.publicKey || credential.counter === undefined) {
+      console.error("Invalid credential data:", credential);
+      return res.status(500).json({ 
+        success: false, 
+        message: "Invalid credential data. Please re-register your biometric." 
+      });
+    }
 
     // Check if currentChallenge exists in session
     if (!req.session.currentChallenge) {
@@ -263,6 +401,14 @@ router.post("/login", async (req, res) => {
     }
 
     // Verify the authentication response
+    // Log credential data for debugging
+    console.log("Credential data for verification:", {
+      id: credential.id,
+      publicKeyType: typeof credential.publicKey,
+      publicKeyIsBuffer: Buffer.isBuffer(credential.publicKey),
+      counter: credential.counter
+    });
+    
     const verification = await verifyAuthenticationResponse({
       response: body,
       expectedChallenge: req.session.currentChallenge,
@@ -270,7 +416,8 @@ router.post("/login", async (req, res) => {
       expectedRPID: rpID,
       credential: {
         id: isoBase64URL.toBuffer(credential.id),
-        publicKey: credential.publicKey, // This should be a Buffer
+        // Ensure publicKey is a Buffer
+        publicKey: Buffer.isBuffer(credential.publicKey) ? credential.publicKey : Buffer.from(credential.publicKey),
         counter: credential.counter,
       },
     });
