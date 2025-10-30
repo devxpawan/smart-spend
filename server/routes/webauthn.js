@@ -147,15 +147,18 @@ router.post("/register", authenticateToken, async (req, res) => {
       }
 
       // Save the credential to the user's account
+      // Ensure publicKey is stored as a Buffer
       user.webauthnCredentials.push({
         id: isoBase64URL.fromBuffer(credentialID),
-        publicKey: credentialPublicKey,
+        publicKey: Buffer.from(credentialPublicKey), // Convert to Buffer if needed
         counter,
         transports: body.response.transports || [],
       });
 
       // Clear the challenge
       user.currentChallenge = undefined;
+      
+      // Save the user
       await user.save();
 
       res.json({ success: true });
@@ -267,7 +270,7 @@ router.post("/login", async (req, res) => {
       expectedRPID: rpID,
       credential: {
         id: isoBase64URL.toBuffer(credential.id),
-        publicKey: credential.publicKey,
+        publicKey: credential.publicKey, // This should be a Buffer
         counter: credential.counter,
       },
     });
