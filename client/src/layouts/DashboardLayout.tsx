@@ -342,7 +342,7 @@ const UserMenu: React.FC<{
                       active ? "bg-white/10 text-white" : "text-slate-200"
                     } flex items-center rounded-md px-3 py-2 text-sm font-semibold`}
                   >
-                    <Settings className="mr-2 h-4 w-4" /> Custom Setting
+                    <Settings className="mr-2 h-4 w-4" /> Custom Settings
                   </Link>
                 )}
 
