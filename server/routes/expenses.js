@@ -3,6 +3,7 @@ import express from "express";
 import mongoose from "mongoose";
 import BankAccount from "../models/BankAccount.js";
 import Expense from "../models/Expense.js";
+import { checkAndSendExpenseWarning } from "../utils/expenseWarning.js";
 
 const router = express.Router();
 
@@ -145,6 +146,12 @@ router.post(
 
       const expense = await newExpense.save({ session });
       await session.commitTransaction();
+
+      // Trigger expense warning check asynchronously
+      checkAndSendExpenseWarning(req.user.id).catch(err => {
+        console.error('Error sending expense warning:', err);
+      });
+
       res.status(201).json(expense);
     } catch (transactionError) {
       if (session) await session.abortTransaction();

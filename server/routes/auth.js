@@ -178,6 +178,49 @@ const generatePasswordResetConfirmationEmailHtml = (
 `;
 };
 
+const generateExpenseWarningEmailHtml = (
+  userName,
+  expenseRatio,
+  totalExpenses,
+  totalBalance
+) => {
+  const formattedExpenses = totalExpenses.toFixed(2);
+  const formattedBalance = totalBalance.toFixed(2);
+  const formattedRatio = (expenseRatio * 100).toFixed(2);
+
+  return `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; padding: 20px;">
+    <div style="max-width: 600px; margin: 20px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+      <div style="background-color: #FFC107; color: #333; padding: 25px 20px; text-align: center;">
+        <h1 style="font-size: 28px; margin: 0; font-weight: 600;">SmartSpend</h1>
+        <p style="font-size: 16px; margin: 5px 0 0;">Expense Warning</p>
+      </div>
+      <div style="padding: 30px 25px;">
+        <p style="font-size: 16px; color: #555;">Dear ${userName},</p>
+        <p style="font-size: 16px; color: #555;">This is a warning that your expenses for the current month are high compared to your total bank account balance.</p>
+        <p style="font-size: 18px; color: #D32F2F; font-weight: bold; text-align: center; margin: 25px 0;">
+          Your current expense-to-balance ratio is ${formattedRatio}%.
+        </p>
+        <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-top: 20px; text-align: left;">
+          <h3 style="font-size: 18px; color: #333; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px;">Summary:</h3>
+          <p style="font-size: 16px; color: #555; margin: 10px 0;"><strong>Total Expenses:</strong> $${formattedExpenses}</p>
+          <p style="font-size: 16px; color: #555; margin: 10px 0;"><strong>Total Bank Balance:</strong> $${formattedBalance}</p>
+        </div>
+        <p style="font-size: 16px; color: #555; margin-top: 25px;">We recommend reviewing your spending to ensure you stay within your budget.</p>
+        <p style="font-size: 16px; color: #555; margin-top: 30px;">Best regards,</p>
+        <p style="font-size: 16px; color: #555; margin: 0;">The SmartSpend Team</p>
+      </div>
+      <div style="background-color: #f0f0f0; padding: 20px 25px; text-align: center; font-size: 12px; color: #777;">
+        <p style="margin: 0;">This is an automated email, please do not reply.</p>
+        <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} SmartSpend. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+`;
+};
+
+export { generateExpenseWarningEmailHtml };
+
 // Helper function to generate JWT
 const generateToken = (user) => {
   return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {

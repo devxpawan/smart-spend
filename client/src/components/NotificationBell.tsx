@@ -10,6 +10,7 @@ const NotificationBell: React.FC = () => {
   const bellRef = useRef<HTMLDivElement>(null);
   const { notifications, unreadCount, fetchNotifications, removeNotification } = useNotifications();
   const { token } = useAuth();
+  const [hasNewNotification, setHasNewNotification] = useState(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -24,6 +25,16 @@ const NotificationBell: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Trigger animation when unread count increases
+  useEffect(() => {
+    if (unreadCount > 0) {
+      setHasNewNotification(true);
+      // Reset animation after 2 seconds
+      const timer = setTimeout(() => setHasNewNotification(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [unreadCount]);
 
   const handleMarkAsRead = async (id: string) => {
     try {
@@ -76,7 +87,7 @@ const NotificationBell: React.FC = () => {
         className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none"
         aria-label="Notifications"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className={`w-5 h-5 ${hasNewNotification ? 'animate-pulse' : ''}`} />
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs text-white bg-red-500 rounded-full">
             {unreadCount}
