@@ -41,25 +41,80 @@ export const checkAndSendExpenseWarning = async (userId) => {
 
   const { totalExpenses, totalBankAccountBalance } = await calculateExpenseBankAccountRatio(userId);
 
-  if (totalBankAccountBalance > 0 && totalExpenses / totalBankAccountBalance >= 0.9) {
-    const expensePercentage = Math.round((totalExpenses / totalBankAccountBalance) * 100);
-    
+    // Check if expenses are 90% or more of the bank balance
+  if (totalBankAccountBalance > 0 && totalExpenses >= totalBankAccountBalance * 0.9) {
+  
+
     const notification = await Notification.create({
         user: userId,
         title: "⚠ Expense Warning",
-        message: `You have used 90% of your total bank balance.`,
+        message: `You have used ${totalExpenses} of your total bank balance.`,
         type: "warning",
     });
 
     io.emit("new-notification", notification);
 
     // Send email to user
-    await sendEmail(
-      user.email,
-      "⚠Expense Warning",
-      null,
-      `<p>You have used 90% of your total bank balance.</p>`
-    );
+await sendEmail(
+  user.email,
+  "⚠ Expense Warning",
+  null,
+  `
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="text-align: center; margin-bottom: 30px;">
+      <h1 style="color: #333; margin: 0;">SmartSpend</h1>
+    </div>
+    
+    <div style="background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <h2 style="color: #d9534f; margin-top: 0;">⚠ Expense Warning</h2>
+      
+      <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+        Dear ${user.name || 'User'},
+      </p>
+      
+      <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
+        You have used ${totalExpenses} of your total bank balance. 
+        This exceeds the 90% threshold we recommend for maintaining healthy financial management.
+      </p>
+      
+      <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 15px; margin: 20px 0;">
+        <p style="color: #856404; margin: 0; font-weight: bold;">
+          Current Status: ${totalBankAccountBalance} of bank balance Remaining
+        </p>
+      </div>
+      
+      <p style="color: #666; line-height: 1.6; margin-bottom: 25px;">
+        We recommend reviewing your expenses and considering ways to optimize your spending.
+      </p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'https://smart-spend-frontend-rosy.vercel.app.dashboard'}" 
+           style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; display: inline-block;">
+          View Your Dashboard
+        </a>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+      <p style="color: #999; font-size: 14px; margin-bottom: 10px;">
+        Thank you for using SmartSpend!
+      </p>
+      <p style="color: #999; font-size: 14px; margin-bottom: 5px;">
+        Best regards,<br>The SmartSpend Team
+      </p>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+      <p style="color: #999; font-size: 12px;">
+        [email, please do not reply.]
+      </p>
+      <p style="color: #999; font-size: 12px; margin: 5px 0;">
+        © 2025 SmartSpend. All rights reserved.
+      </p>
+    </div>
+  </div>
+  `
+);
 
     return true;
   }
