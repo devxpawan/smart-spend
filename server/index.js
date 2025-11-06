@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import morgan from "morgan";
+import http from "http";
+import { Server } from "socket.io";
 
 // Routes
 import authRoutes from "./routes/auth.js";
@@ -23,11 +25,18 @@ import { errorHandler } from "./middleware/errorHandler.js";
 
 // Jobs
 import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
+import expenseWarningJob from "./jobs/expenseWarningJob.js"; // Import the expense warning job
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Allow all origins for now
+  },
+});
 
 // Basic configuration
 const PORT = process.env.PORT || 5000;
@@ -130,11 +139,23 @@ app.get("/", (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
+// Socket.io connection
+io.on("connection", (socket) => {
+  console.log("a user connected");
+  socket.on("disconnect", () => {
+    console.log("user disconnected");
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  
+
   // Start the recurring transaction processor job
   console.log("Starting recurring transaction processor job...");
+  // Start scheduled jobs
   recurringJob.start();
+  expenseWarningJob.start();
 });
+
+export { io };
