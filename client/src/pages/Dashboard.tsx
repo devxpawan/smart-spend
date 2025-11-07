@@ -455,6 +455,8 @@ const Dashboard: React.FC = () => {
     [dashboardData, formatCurrency]
   );
 
+  console.log("Dashboard render with data:", dashboardData);
+
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">

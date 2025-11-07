@@ -148,9 +148,11 @@ const Incomes: React.FC = () => {
     action();
   };
 
-  const categories = user?.customIncomeCategories && user.customIncomeCategories.length > 0 
-    ? user.customIncomeCategories 
-    : incomeCategories;
+const categories = [
+  ...(incomeCategories || []),
+  ...(user?.customIncomeCategories || [])
+];
+
 
   // Memoized filtered and sorted incomes
   const { filteredIncomes, totalAmount, monthlyTotal, currentRecords, nPages } =
