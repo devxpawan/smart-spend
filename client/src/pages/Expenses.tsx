@@ -259,9 +259,10 @@ const Expenses: React.FC = () => {
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
-    const categories = user?.customExpenseCategories && user.customExpenseCategories.length > 0 
-      ? user.customExpenseCategories 
-      : expenseCategories;
+    const categories = [
+      ...(expenseCategories || []),
+      ...(user?.customExpenseCategories || []),
+    ]
 
     // Calculate this month's total for expenses
     const now = new Date();

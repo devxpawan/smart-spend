@@ -21,7 +21,7 @@ import { getBankAccounts } from "../api/bankAccounts";
 import { expenseCategories } from "../lib/expenseCategories";
 import { analyzeReceipt, isErrorResponse } from "../api/gemini";
 import ScanResultCard from "./ScanResultCard";
-import { set } from "date-fns";
+
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -82,13 +82,11 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
     type?: string;
   }>({ show: false, message: '' });
 
-  // Create a key that changes when categories change to force re-render
-  const categoryKey = JSON.stringify(user?.customExpenseCategories || []);
-
-  // Determine which categories to use: custom if available, otherwise default
-  const categoriesToUse = user?.customExpenseCategories && user.customExpenseCategories.length > 0
-    ? user.customExpenseCategories
-    : expenseCategories;
+  // use both expenseCategories and user custom categories
+    const categoriesToUse = [
+      ...(expenseCategories || []),
+      ...(user?.customExpenseCategories || []),
+    ]
 
   // Initialize form data
   useEffect(() => {
