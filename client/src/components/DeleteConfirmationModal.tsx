@@ -130,7 +130,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
                   value={deleteInput}
                   onChange={(e) => setDeleteInput(e.target.value)}
                   placeholder={`Type '${requiredText}' to confirm`}
-                  className="w-full px-3 py-2.5 border border-slate-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 font-mono text-xs sm:text-sm"
+                  className="w-full px-3 py-2.5 border border-slate-300 dark:border-gray-600 dark:text-black rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 font-mono text-xs sm:text-sm"
                   aria-describedby="delete-help"
                 />
                 <p id="delete-help" className="text-xs text-slate-500 dark:text-gray-400 mt-1">
