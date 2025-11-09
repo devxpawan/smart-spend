@@ -40,19 +40,17 @@ router.put("/:id", async (req, res) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const notification = await Notification.findOne({
-      _id: req.params.id,
-      user: req.user.id,
-    });
+    const updatedNotification = await Notification.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
+      { $set: { read: true } },
+      { new: true } // This option returns the document after update
+    );
 
-    if (!notification) {
+    if (!updatedNotification) {
       return res.status(404).json({ message: "Notification not found" });
     }
 
-    notification.read = true;
-    await notification.save();
-
-    res.json(notification);
+    res.json(updatedNotification);
   } catch (error) {
     console.error("Update notification error:", error);
     res.status(500).json({ 
