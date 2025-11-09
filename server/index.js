@@ -147,15 +147,19 @@ io.on("connection", (socket) => {
   });
 });
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Start server only when not in a Vercel environment
+if (!process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 
-  // Start the recurring transaction processor job
-  console.log("Starting recurring transaction processor job...");
-  // Start scheduled jobs
-  recurringJob.start();
-  expenseWarningJob.start();
-});
+    // Start the recurring transaction processor job
+    console.log("Starting recurring transaction processor job...");
+    // Start scheduled jobs
+    recurringJob.start();
+    expenseWarningJob.start();
+  });
+}
 
 export { io };
+
+export default app;
