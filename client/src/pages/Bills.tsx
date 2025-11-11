@@ -1063,7 +1063,6 @@ const Bills: React.FC = () => {
                         className="px-4 lg:px-6 py-4 text-right text-xs font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider"
                       >
                         <div className="flex items-center justify-end space-x-2">
-                          <DollarSign className="w-4 h-4" />
                           <span>Amount</span>
                         </div>
                       </th>
