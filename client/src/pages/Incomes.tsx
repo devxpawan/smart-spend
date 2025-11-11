@@ -905,7 +905,6 @@ const categories = [
                       </th>
                       <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                         <div className="flex items-center justify-end space-x-1">
-                          <DollarSign className="w-4 h-4" />
                           <span>Amount</span>
                         </div>
                       </th>

@@ -623,7 +623,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-slate-400 dark:text-gray-500" />
+                      <p className="h-6 w-5 text-slate-400 dark:text-gray-500">Rs.</p>
                     </div>
                     <input
                       type="number"
