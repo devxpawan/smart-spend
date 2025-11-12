@@ -17,7 +17,6 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  DollarSign,
   Edit3,
   Filter,
   Plus,
