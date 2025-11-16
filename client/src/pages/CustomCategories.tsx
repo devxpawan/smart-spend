@@ -43,7 +43,7 @@ const CategoryManager: React.FC<{
         type: "success",
         text: `${title} category added successfully.`,
       });
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Failed to save category." });
     } finally {
       setSaving(false);
@@ -59,7 +59,7 @@ const CategoryManager: React.FC<{
         type: "success",
         text: `${title} category removed successfully.`,
       });
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Failed to remove category." });
     } finally {
       setSaving(false);
@@ -74,7 +74,7 @@ const CategoryManager: React.FC<{
         type: "success",
         text: `${title} custom categories removed successfully.`,
       });
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Failed to reset categories." });
     } finally {
       setSaving(false);

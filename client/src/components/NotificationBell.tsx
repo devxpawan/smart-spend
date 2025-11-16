@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, Check, Trash2, X } from 'lucide-react';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useNotifications } from '../contexts/notification-exports';
 import { useAuth } from '../contexts/auth-exports';
 import NotificationInterface from '../types/NotificationInterface';
-import { markNotificationAsRead, deleteNotification } from '../api/notifications';
+import { markNotificationAsRead, deleteNotification, markAllNotificationsAsRead } from '../api/notifications';
 
 const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,16 +39,25 @@ const NotificationBell: React.FC = () => {
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      await markNotificationAsRead(id, token);
+      await markNotificationAsRead(id, token ?? undefined);
       await fetchNotifications();
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
   };
 
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead(token ?? undefined);
+      await fetchNotifications();
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
-      await deleteNotification(id, token);
+      await deleteNotification(id, token ?? undefined);
       removeNotification(id);
     } catch (error) {
       console.error('Failed to delete notification:', error);
@@ -171,10 +180,7 @@ const NotificationBell: React.FC = () => {
             {notifications.length > 0 && (
               <div className="p-2 border-t border-gray-200 dark:border-gray-700">
                 <button
-                  onClick={() => {
-                    // In a real app, you would mark all as read
-                    console.log('Mark all as read');
-                  }}
+                  onClick={handleMarkAllAsRead}
                   className="w-full text-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   Mark all as read

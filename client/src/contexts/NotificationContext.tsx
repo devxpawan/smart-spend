@@ -1,28 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { useState, useEffect, ReactNode, useCallback } from 'react';
 import { getNotifications, markAllNotificationsAsRead } from '../api/notifications';
 import NotificationInterface from '../types/NotificationInterface';
 import { useAuth } from './auth-exports';
 import { io } from "socket.io-client";
 import toast from 'react-hot-toast';
-
-interface NotificationContextType {
-  notifications: NotificationInterface[];
-  unreadCount: number;
-  fetchNotifications: () => Promise<void>;
-  markAllAsRead: () => Promise<void>;
-  addNotification: (notification: NotificationInterface) => void;
-  removeNotification: (id: string) => void;
-}
-
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-export const useNotifications = () => {
-  const context = useContext(NotificationContext);
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
-  }
-  return context;
-};
+import { NotificationContext, NotificationContextType } from './notification-exports';
 
 interface NotificationProviderProps {
   children: ReactNode;
@@ -33,6 +15,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const { token } = useAuth();
   
   const unreadCount = notifications.filter(notification => !notification.read).length;
+
+  const addNotification = useCallback((notification: NotificationInterface) => {
+    setNotifications(prev => [notification, ...prev]);
+  }, []);
 
   useEffect(() => {
     const socket = io();
@@ -76,18 +62,18 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [addNotification]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       const fetchedNotifications = await getNotifications(token ?? undefined);
       setNotifications(fetchedNotifications);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     }
-  };
+  }, [token]);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     try {
       await markAllNotificationsAsRead(token ?? undefined);
       setNotifications(prev => 
@@ -96,22 +82,18 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     }
-  };
+  }, [token]);
 
-  const addNotification = (notification: NotificationInterface) => {
-    setNotifications(prev => [notification, ...prev]);
-  };
-
-  const removeNotification = (id: string) => {
+  const removeNotification = useCallback((id: string) => {
     setNotifications(prev => prev.filter(notification => notification._id !== id));
-  };
+  }, []);
 
   // Fetch notifications on component mount
   useEffect(() => {
     if (token) {
       fetchNotifications();
     }
-  }, [token]);
+  }, [token, fetchNotifications]);
 
   const contextValue: NotificationContextType = {
     notifications,

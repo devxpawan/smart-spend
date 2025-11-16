@@ -7,7 +7,6 @@ import CustomSelect from "./CustomSelect";
 import {
   X,
   AlertCircle,
-  DollarSign,
   Calendar,
   Receipt,
 } from "lucide-react";

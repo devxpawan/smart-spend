@@ -70,18 +70,18 @@ const Recurring: React.FC = () => {
       ];
 
       setRecurringTransactions(combinedTransactions);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching recurring transactions:", err);
       // Provide user-friendly error messages
-      if (err.message.includes("Network error")) {
+      if (err instanceof Error && err.message.includes("Network error")) {
         setError(
           "Unable to connect to the server. Please check your internet connection."
         );
-      } else if (err.message.includes("Server Error")) {
+      } else if (err instanceof Error && err.message.includes("Server Error")) {
         setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
       } else {
         setError(
-          err.message ||
+          (err instanceof Error ? err.message : undefined) ||
             "Failed to fetch recurring transactions. Please try again."
         );
       }
@@ -172,24 +172,23 @@ const Recurring: React.FC = () => {
       await retryWithBackoff(apiCall);
       await fetchRecurringTransactions();
       setConfirmModal({ open: false, id: null, type: null });
-    } catch (err: any) {
-      console.error("Error removing recurring transaction:", err);
-      if (err.message.includes("Network error")) {
-        setError(
-          "Unable to connect to the server. Please check your internet connection."
-        );
-      } else if (err.message.includes("Server Error")) {
-        setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
-      } else {
-        setError(
-          err.message ||
-            "Failed to remove recurring transaction. Please try again."
-        );
-      }
-    } finally {
-      setUpdatingId(null);
-    }
-  };
+        } catch (err: unknown) {
+          console.error("Error removing recurring transaction:", err);
+          if (err instanceof Error && err.message.includes("Network error")) {
+            setError(
+              "Unable to connect to the server. Please check your internet connection."
+            );
+          } else if (err instanceof Error && err.message.includes("Server Error")) {
+            setError(`Server error: ${err.message.replace("Server Error: ", "")}`);
+          } else {
+            setError(
+              (err instanceof Error ? err.message : undefined) ||
+                "Failed to remove recurring transaction. Please try again."
+            );
+          }
+        } finally {
+          setUpdatingId(null);
+        }  };
 
   const formatCurrency = useCallback(
     (amount: number) => {

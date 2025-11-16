@@ -11,7 +11,7 @@ export const getRecurringTransactions = async (): Promise<{
   try {
     const response = await axios.get(API_BASE_URL);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error fetching recurring transactions:", error);
     
     // Handle different types of errors
@@ -29,7 +29,7 @@ export const getRecurringTransactions = async (): Promise<{
       }
     } else {
       // Non-Axios error
-      throw new Error(error.message || "Failed to fetch recurring transactions");
+      throw new Error((error instanceof Error) ? error.message : "Failed to fetch recurring transactions");
     }
   }
 };
@@ -43,7 +43,7 @@ export const updateRecurringTransaction = async (
   try {
     const response = await axios.put(`${API_BASE_URL}/${id}?type=${type}`, data);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error updating recurring transaction:", error);
     
     if (axios.isAxiosError(error)) {
@@ -56,7 +56,7 @@ export const updateRecurringTransaction = async (
         throw new Error(`Request error: ${error.message}`);
       }
     } else {
-      throw new Error(error.message || "Failed to update recurring transaction");
+      throw new Error((error instanceof Error) ? error.message : "Failed to update recurring transaction");
     }
   }
 };
@@ -69,7 +69,7 @@ export const deleteRecurringTransaction = async (
   try {
     const response = await axios.delete(`${API_BASE_URL}/${id}?type=${type}`);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error deleting recurring transaction:", error);
     
     if (axios.isAxiosError(error)) {
@@ -82,7 +82,7 @@ export const deleteRecurringTransaction = async (
         throw new Error(`Request error: ${error.message}`);
       }
     } else {
-      throw new Error(error.message || "Failed to remove recurring transaction");
+      throw new Error((error instanceof Error) ? error.message : "Failed to remove recurring transaction");
     }
   }
 };

@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
   Calendar,
-  DollarSign,
   Receipt,
   Repeat,
   TrendingUp,

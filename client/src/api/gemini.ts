@@ -119,7 +119,7 @@ export const analyzeReceipt = async (receiptImage: File): Promise<ReceiptAnalysi
 
         return successData;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error analyzing receipt:", error);
 
         // Handle different error types

@@ -8,6 +8,7 @@ import {
   PointElement,
   Title,
   Tooltip,
+  TooltipItem,
 } from "chart.js";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -126,7 +127,7 @@ const doughnutChartOptions = (
       caretSize: 6,
       caretPadding: 8,
       callbacks: {
-        label: (context: any) => {
+        label: (context: TooltipItem<'doughnut'>) => {
           const label = context.label || "";
           const value = context.parsed;
           const total = context.dataset.data.reduce(

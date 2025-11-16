@@ -9,7 +9,7 @@ export const getNotifications = async (token?: string): Promise<NotificationInte
     const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
     const response = await axios.get(API_BASE_URL, config);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error fetching notifications:", error);
     
     if (axios.isAxiosError(error)) {
@@ -22,7 +22,7 @@ export const getNotifications = async (token?: string): Promise<NotificationInte
         throw new Error(`Request error: ${error.message}`);
       }
     } else {
-      throw new Error(error.message || "Failed to fetch notifications");
+      throw new Error((error instanceof Error) ? error.message : "Failed to fetch notifications");
     }
   }
 };
@@ -33,7 +33,7 @@ export const markNotificationAsRead = async (id: string, token?: string): Promis
     const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
     const response = await axios.put(`${API_BASE_URL}/${id}`, {}, config);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error marking notification as read:", error);
     
     if (axios.isAxiosError(error)) {
@@ -46,7 +46,7 @@ export const markNotificationAsRead = async (id: string, token?: string): Promis
         throw new Error(`Request error: ${error.message}`);
       }
     } else {
-      throw new Error(error.message || "Failed to mark notification as read");
+      throw new Error((error instanceof Error) ? error.message : "Failed to mark notification as read");
     }
   }
 };
@@ -57,7 +57,7 @@ export const markAllNotificationsAsRead = async (token?: string): Promise<{ mess
     const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
     const response = await axios.put(API_BASE_URL, {}, config);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error marking all notifications as read:", error);
     
     if (axios.isAxiosError(error)) {
@@ -70,7 +70,7 @@ export const markAllNotificationsAsRead = async (token?: string): Promise<{ mess
         throw new Error(`Request error: ${error.message}`);
       }
     } else {
-      throw new Error(error.message || "Failed to mark all notifications as read");
+      throw new Error((error instanceof Error) ? error.message : "Failed to mark all notifications as read");
     }
   }
 };
@@ -81,7 +81,7 @@ export const deleteNotification = async (id: string, token?: string): Promise<{ 
     const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
     const response = await axios.delete(`${API_BASE_URL}/${id}`, config);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error deleting notification:", error);
     
     if (axios.isAxiosError(error)) {
@@ -94,7 +94,7 @@ export const deleteNotification = async (id: string, token?: string): Promise<{ 
         throw new Error(`Request error: ${error.message}`);
       }
     } else {
-      throw new Error(error.message || "Failed to delete notification");
+      throw new Error((error instanceof Error) ? error.message : "Failed to delete notification");
     }
   }
 };

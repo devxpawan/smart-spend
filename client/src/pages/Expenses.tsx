@@ -298,7 +298,7 @@ const Expenses: React.FC = () => {
       currentRecords,
       nPages,
     };
-  }, [expenses, filters, sortConfig, currentPage]);
+  }, [expenses, filters, sortConfig, currentPage, user?.customExpenseCategories]);
 
   // Adjust current page if it becomes invalid after filtering or deletion
   useEffect(() => {
