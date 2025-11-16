@@ -1,4 +1,5 @@
 import api from "./api";
+import { AxiosError } from "axios";
 
 // Define proper types for different response scenarios
 interface BaseResponse {
@@ -122,73 +123,82 @@ export const analyzeReceipt = async (receiptImage: File): Promise<ReceiptAnalysi
     } catch (error: unknown) {
         console.error("Error analyzing receipt:", error);
 
-        // Handle different error types
-        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-            return {
-                error: true,
-                type: 'network_error',
-                message: 'Request timed out. Please try again with a smaller or clearer image.',
-            };
-        }
-
-        if (error.response) {
-            // Server responded with error
-            const status = error.response.status;
-            const serverMessage = error.response.data?.message || error.response.data?.error;
-
-            if (status === 400) {
-                return {
-                    error: true,
-                    type: 'invalid_document',
-                    message: serverMessage || 'Invalid request. Please check your image and try again.',
-                };
-            }
-
-            if (status === 413) {
-                return {
-                    error: true,
-                    type: 'invalid_document',
-                    message: 'File size too large. Please upload a smaller image.',
-                };
-            }
-
-            if (status === 429) {
+        if (error instanceof AxiosError) {
+            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
                 return {
                     error: true,
                     type: 'network_error',
-                    message: 'Too many requests. Please wait a moment and try again.',
+                    message: 'Request timed out. Please try again with a smaller or clearer image.',
                 };
             }
-
-            if (status >= 500) {
+    
+            if (error.response) {
+                // Server responded with error
+                const status = error.response.status;
+                const serverMessage = error.response.data?.message || error.response.data?.error;
+    
+                if (status === 400) {
+                    return {
+                        error: true,
+                        type: 'invalid_document',
+                        message: serverMessage || 'Invalid request. Please check your image and try again.',
+                    };
+                }
+    
+                if (status === 413) {
+                    return {
+                        error: true,
+                        type: 'invalid_document',
+                        message: 'File size too large. Please upload a smaller image.',
+                    };
+                }
+    
+                if (status === 429) {
+                    return {
+                        error: true,
+                        type: 'network_error',
+                        message: 'Too many requests. Please wait a moment and try again.',
+                    };
+                }
+    
+                if (status >= 500) {
+                    return {
+                        error: true,
+                        type: 'network_error',
+                        message: 'Server error. Please try again later.',
+                    };
+                }
+    
                 return {
                     error: true,
                     type: 'network_error',
-                    message: 'Server error. Please try again later.',
+                    message: serverMessage || 'Failed to analyze receipt. Please try again.',
                 };
             }
-
+    
+            if (error.request) {
+                // Request made but no response received
+                return {
+                    error: true,
+                    type: 'network_error',
+                    message: 'No response from server. Please check your internet connection.',
+                };
+            }
+        }
+    
+        if (error instanceof Error) {
             return {
                 error: true,
-                type: 'network_error',
-                message: serverMessage || 'Failed to analyze receipt. Please try again.',
+                type: 'unknown',
+                message: error.message || 'An unexpected error occurred. Please try again.',
             };
         }
-
-        if (error.request) {
-            // Request made but no response received
-            return {
-                error: true,
-                type: 'network_error',
-                message: 'No response from server. Please check your internet connection.',
-            };
-        }
-
+    
         // Something else happened
         return {
             error: true,
             type: 'unknown',
-            message: error.message || 'An unexpected error occurred. Please try again.',
+            message: 'An unexpected error occurred. Please try again.',
         };
     }
 };
