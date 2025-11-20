@@ -18,6 +18,7 @@ import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 import BankAccounts from "./pages/BankAccounts";
 import Recurring from "./pages/Recurring";
+// import Goals from "./pages/Goals";
 import CustomCategories from "./pages/CustomCategories";
 
 function App() {
@@ -63,6 +64,9 @@ function App() {
 
           {/* Recurring Transactions */}
           <Route path="recurring" element={<Recurring />} />
+
+          {/* Goal Planning */}
+          {/* <Route path="goals" element={<Goals />} /> */}
 
           {/* Warranty Routes */}
           <Route path="warranties" element={<Warranties />} />

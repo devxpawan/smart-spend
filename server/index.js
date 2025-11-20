@@ -39,7 +39,7 @@ const io = new Server(server, {
 });
 
 // Basic configuration
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 0; // Use 0 to let the system assign an available port
 const MONGODB_URI = process.env.MONGODB_URI;
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -129,6 +129,7 @@ app.use("/api/user", authenticateToken, userRoutes);
 app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
 app.use("/api/recurring", authenticateToken, recurringRoutes);
 app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
+// app.use("/api/goals", authenticateToken, goalRoutes); // Add goals route
 app.use("/api/gemini", authenticateToken, GPTRouter); //gemini route
 
 // Default route
@@ -150,7 +151,8 @@ io.on("connection", (socket) => {
 // Start server only when not in a Vercel environment
 if (!process.env.VERCEL) {
   server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    const actualPort = server.address().port;
+    console.log(`Server running on port ${actualPort}`);
 
     // Start the recurring transaction processor job
     console.log("Starting recurring transaction processor job...");

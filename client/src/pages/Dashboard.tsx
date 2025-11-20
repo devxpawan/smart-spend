@@ -86,6 +86,9 @@ interface DashboardData {
   incomeCategoryData: ExpenseSummary[];
   monthlyExpenseData: MonthlyData[];
   monthlyIncomeData: MonthlyData[];
+  activeGoalsCount: number;
+  totalGoalsTarget: number;
+  totalGoalsSaved: number;
 }
 
 interface ErrorState {
@@ -161,6 +164,9 @@ const Dashboard: React.FC = () => {
     incomeCategoryData: [],
     monthlyExpenseData: [],
     monthlyIncomeData: [],
+    activeGoalsCount: 0,
+    totalGoalsTarget: 0,
+    totalGoalsSaved: 0,
   });
   const [bankAccounts, setBankAccounts] = useState<BankAccountInterface[]>([]);
   const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
@@ -182,14 +188,23 @@ const Dashboard: React.FC = () => {
         Promise.all([
           api.get("/bills/upcoming/reminders"),
           api.get("/warranties/expiring/soon"),
+          api.get("/goals"),
         ]);
 
-      const [billsRes, warrantiesRes] = await retryWithBackoff(fetchData);
+      const [billsRes, warrantiesRes, goalsRes] = await retryWithBackoff(fetchData);
+
+      // Calculate goals summary
+      const activeGoals = goalsRes.data.filter((goal: any) => !goal.isAchieved);
+      const totalGoalsTarget = activeGoals.reduce((sum: number, goal: any) => sum + goal.targetAmount, 0);
+      const totalGoalsSaved = activeGoals.reduce((sum: number, goal: any) => sum + goal.currentAmount, 0);
 
       setDashboardData((prev) => ({
         ...prev,
         upcomingBills: billsRes.data,
         expiringWarranties: warrantiesRes.data,
+        activeGoalsCount: activeGoals.length,
+        totalGoalsTarget,
+        totalGoalsSaved,
       }));
     } catch (error: unknown) {
       console.error("Dashboard stats fetch error:", error);
@@ -420,6 +435,19 @@ const Dashboard: React.FC = () => {
         darkBorderColor: "border-gray-700",
       },
       {
+        icon: <Target className="w-7 h-7" />,
+        title: "Active Goals",
+        subtitle: "Currently Saving",
+        value: dashboardData.activeGoalsCount,
+        rawValue: dashboardData.activeGoalsCount,
+        link: "/goals",
+        gradient: "from-emerald-400 to-teal-500",
+        bgGradient: "from-emerald-50 to-teal-50",
+        borderColor: "border-emerald-200",
+        darkBgGradient: "from-gray-800 to-gray-900",
+        darkBorderColor: "border-gray-700",
+      },
+      {
         icon: <Receipt className="w-7 h-7" />,
         title: "Upcoming Bills",
         subtitle: "Due Soon",
@@ -580,10 +608,10 @@ const Dashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6"
         >
           {loadingStats
-            ? Array.from({ length: 4 }).map((_, idx) => (
+            ? Array.from({ length: 5 }).map((_, idx) => (
                 <SkeletonCard key={idx} />
               ))
             : statsCards.map((item, idx) => (

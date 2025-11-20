@@ -14,6 +14,7 @@ import {
   Repeat,
   Settings,
   ShieldCheck,
+  Target,
   TrendingUp,
   User,
   X as XIcon,
@@ -107,6 +108,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     path: "/recurring",
     icon: <Repeat className="w-4 h-4" />,
     gradient: "from-indigo-500 to-purple-600",
+  },
+  {
+    name: "Goals",
+    path: "/goals",
+    icon: <Target className="w-4 h-4" />,
+    gradient: "from-emerald-500 to-teal-600",
   },
   {
     name: "Monthly View",
