@@ -632,7 +632,7 @@ const Dashboard: React.FC = () => {
                         <div className="flex items-center space-x-1.5 mt-2">
                           <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                            {item.customRemindersCount}
+                           Reminders:  {item.customRemindersCount}
                           </span>
                         </div>
                       )}

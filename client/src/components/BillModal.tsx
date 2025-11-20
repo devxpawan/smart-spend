@@ -42,7 +42,7 @@ const BillModal: React.FC<BillModalProps> = ({
     name: "",
     amount: "",
     dueDate: new Date().toISOString().split("T")[0],
-    reminderDate: new Date().toISOString().split("T")[0],
+    reminderDate: "",
     category: "",
     bankAccount: "",
   });
@@ -137,7 +137,7 @@ const BillModal: React.FC<BillModalProps> = ({
           : new Date().toISOString().split("T")[0],
         reminderDate: initialData.reminderDate
           ? new Date(initialData.reminderDate).toISOString().split("T")[0]
-          : new Date().toISOString().split("T")[0],
+          : "",
         category: initialData.category,
         isPaid: initialData.isPaid,
         bankAccount: initialData.bankAccount || "",
@@ -147,7 +147,7 @@ const BillModal: React.FC<BillModalProps> = ({
         name: "",
         amount: "",
         dueDate: new Date().toISOString().split("T")[0],
-        reminderDate: new Date().toISOString().split("T")[0],
+        reminderDate: "",
         category: "",
         bankAccount: "",
       });
@@ -188,9 +188,7 @@ const BillModal: React.FC<BillModalProps> = ({
       }
     }
 
-    if (!formData.reminderDate) {
-      newErrors.reminderDate = "Reminder date is required";
-    } else {
+    if (formData.reminderDate) { // 👈 Check if it has a value
       const reminderDate = new Date(formData.reminderDate);
       if (isNaN(reminderDate.getTime())) {
         newErrors.reminderDate = "Please enter a valid date";
@@ -431,8 +429,8 @@ const BillModal: React.FC<BillModalProps> = ({
                       onChange={handleChange}
                       placeholder="e.g., Monthly Electricity Bill"
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${errors.name
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
                         }`}
                       required
                       ref={firstInputRef}
@@ -486,8 +484,8 @@ const BillModal: React.FC<BillModalProps> = ({
                       step="0.01"
                       min="0"
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${errors.amount
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
                         }`}
                       required
                       aria-invalid={errors.amount ? "true" : "false"}
@@ -530,8 +528,8 @@ const BillModal: React.FC<BillModalProps> = ({
                       value={formData.dueDate}
                       onChange={handleChange}
                       className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${errors.dueDate
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
                         }`}
                       required
                       aria-invalid={errors.dueDate ? "true" : "false"}
@@ -558,7 +556,7 @@ const BillModal: React.FC<BillModalProps> = ({
                     htmlFor="reminderDate"
                     className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
                   >
-                    Reminder Date *
+                    Reminder Date(Optional)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -571,15 +569,14 @@ const BillModal: React.FC<BillModalProps> = ({
                       value={formData.reminderDate}
                       onChange={handleChange}
                       className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out bg-white dark:bg-gray-700 text-slate-900 dark:text-white ${errors.dueDate
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
                         }`}
-                      required
                       aria-invalid={errors.reminderDate ? "true" : "false"}
                       aria-describedby={
                         errors.reminderDate ? "reminderDate-error" : undefined
                       }
-                      disabled={!!errors.duplicateName}
+                      disabled={!!errors.duplicateName || (initialData ? initialData.isPaid : markAsPaid)}
                     />
                   </div>
                   {errors.reminderDate && (
@@ -613,8 +610,8 @@ const BillModal: React.FC<BillModalProps> = ({
                       } as React.ChangeEvent<HTMLSelectElement>)
                     }
                     className={`${errors.category
-                        ? "border-red-300 focus:ring-red-500"
-                        : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
+                      ? "border-red-300 focus:ring-red-500"
+                      : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
                       }`}
                     disabled={!!errors.duplicateName}
                     openDirection="top"

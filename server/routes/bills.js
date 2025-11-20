@@ -514,16 +514,24 @@ router.patch("/bulk-update", async (req, res) => {
 });
 
 
-// get count of custom reminders (unpaid bills)
+// get count of custom reminders (unpaid bills that are NOT overdue and HAVE a reminderDate)
 router.get("/custom/reminders/count", async (req, res) => {
   try {
     const today = new Date();
+    // Set time to 00:00:00.000 for accurate comparison only on the date
+    // Note: If you want to check for overdue based on the minute, you can remove this line.
+    today.setHours(0, 0, 0, 0);
 
+    // The reminder count must satisfy all three conditions:
+    // 1. Unpaid: isPaid: false
+    // 2. Not Overdue: dueDate: { $gte: today }
+    // 3. Has Reminder Date: reminderDate: { $ne: null }
     const reminderCount = await Bill.countDocuments({
       user: req.user.id,
-      reminderDate: { $lte: today },
       isPaid: false,
       dueDate: { $gte: today },
+      // NEW CONDITION: Exclude documents where reminderDate is null or missing.
+      reminderDate: { $ne: null },
     });
 
     res.json({ count: reminderCount });
