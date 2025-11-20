@@ -7,6 +7,7 @@ import { getGoals, createGoal, updateGoal, deleteGoal, addContribution } from ".
 import GoalModal from "../components/GoalModal";
 import AddContributionModal from "../components/AddContributionModal";
 import { motion } from "framer-motion";
+import ConfirmModal from "../components/ConfirmModal";
 
 const Goals: React.FC = () => {
   const { user } = useAuth();
@@ -17,6 +18,13 @@ const Goals: React.FC = () => {
   const [isContributionModalOpen, setIsContributionModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<GoalInterface | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<GoalInterface | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    goalId: string | null;
+  }>({
+    open: false,
+    goalId: null,
+  });
 
   // Fetch goals
   useEffect(() => {
@@ -58,16 +66,23 @@ const Goals: React.FC = () => {
     }
   };
 
-  // Handle delete goal
-  const handleDeleteGoal = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this goal?")) {
-      return;
-    }
+  // Handle delete goal confirmation
+  const handleDeleteGoalConfirm = (goalId: string) => {
+    setConfirmModal({
+      open: true,
+      goalId,
+    });
+  };
+
+  // Handle actual delete goal
+  const handleDeleteGoal = async () => {
+    if (!confirmModal.goalId) return;
 
     try {
-      await deleteGoal(id);
-      setGoals(goals.filter((goal) => goal._id !== id));
+      await deleteGoal(confirmModal.goalId);
+      setGoals(goals.filter((goal) => goal._id !== confirmModal.goalId));
       toast.success("Goal deleted successfully!");
+      setConfirmModal({ open: false, goalId: null });
     } catch (err) {
       console.error("Error deleting goal:", err);
       toast.error("Failed to delete goal. Please try again.");
@@ -225,7 +240,7 @@ const Goals: React.FC = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteGoal(goal._id)}
+                        onClick={() => handleDeleteGoalConfirm(goal._id)}
                         className="p-2 text-slate-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                         aria-label="Delete goal"
                       >
@@ -314,6 +329,18 @@ const Goals: React.FC = () => {
         onClose={closeContributionModal}
         onSubmit={handleAddContribution}
         goal={selectedGoal || undefined}
+      />
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        title="Delete Goal"
+        message="Are you sure you want to delete this goal? This action cannot be undone."
+        onConfirm={handleDeleteGoal}
+        onCancel={() => setConfirmModal({ open: false, goalId: null })}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
       />
     </div>
   );
