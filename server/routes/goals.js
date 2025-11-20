@@ -189,7 +189,7 @@ router.delete("/:id", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Goal not found" });
     }
 
-    await goal.remove();
+    await Goal.deleteOne({ _id: req.params.id });
     res.json({ message: "Goal removed" });
   } catch (error) {
     console.error("Delete goal error:", error);
