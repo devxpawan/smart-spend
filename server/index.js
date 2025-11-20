@@ -39,7 +39,7 @@ const io = new Server(server, {
 });
 
 // Basic configuration
-const PORT = process.env.PORT || 0; // Use 0 to let the system assign an available port
+const PORT = process.env.PORT || 50502; // Use fixed port 50502 for development
 const MONGODB_URI = process.env.MONGODB_URI;
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGINS
