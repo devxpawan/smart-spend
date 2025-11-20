@@ -499,9 +499,9 @@ router.patch("/bulk-update", async (req, res) => {
     const updatedBills = await Promise.all(updatePromises);
 
     await session.commitTransaction();
-    res.json({ 
-      message: "Bills updated successfully", 
-      updatedCount: updatedBills.filter(b => b !== null).length 
+    res.json({
+      message: "Bills updated successfully",
+      updatedCount: updatedBills.filter(b => b !== null).length
     });
 
   } catch (error) {
@@ -512,5 +512,25 @@ router.patch("/bulk-update", async (req, res) => {
     if (session) session.endSession();
   }
 });
+
+
+// get count of custom reminders (unpaid bills)
+router.get("/custom/reminders/count", async (req, res) => {
+  try {
+    const today = new Date();
+
+    const reminderCount = await Bill.countDocuments({
+      user: req.user.id,
+      reminderDate: { $lte: today },
+      isPaid: false,
+    });
+
+    res.json({ count: reminderCount });
+  } catch (error) {
+    console.error("Get custom bill reminders count error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 export default router;

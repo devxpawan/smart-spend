@@ -475,9 +475,9 @@ const Bills: React.FC = () => {
     setIsBulkEditing(true);
 
     try {
-      await axios.patch("/api/bills/bulk-update", { 
-        ids: selectedIds, 
-        updates 
+      await axios.patch("/api/bills/bulk-update", {
+        ids: selectedIds,
+        updates
       });
 
       // Optimistically update local state
@@ -890,11 +890,10 @@ const Bills: React.FC = () => {
                     return (
                       <div
                         key={bill._id}
-                        className={`p-4 space-y-3 ${
-                          selectedIds.includes(bill._id)
-                            ? "bg-blue-50 dark:bg-blue-900/20"
-                            : ""
-                        }`}
+                        className={`p-4 space-y-3 ${selectedIds.includes(bill._id)
+                          ? "bg-blue-50 dark:bg-blue-900/20"
+                          : ""
+                          }`}
                         onClick={() => handleSelect(bill._id)}
                       >
                         <div className="flex items-start justify-between">
@@ -953,15 +952,13 @@ const Bills: React.FC = () => {
                                 handleTogglePaid(bill._id, bill.isPaid)
                               )
                             }
-                            className={`flex-1 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${
-                              bill.isPaid
-                                ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:border-gray-600"
-                                : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
-                            } ${
-                              togglingId === bill._id
+                            className={`flex-1 text-xs px-3 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${bill.isPaid
+                              ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:border-gray-600"
+                              : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
+                              } ${togglingId === bill._id
                                 ? "opacity-60 cursor-not-allowed"
                                 : ""
-                            }`}
+                              }`}
                             disabled={togglingId === bill._id}
                           >
                             {togglingId === bill._id ? (
@@ -981,11 +978,10 @@ const Bills: React.FC = () => {
                                 })
                               )
                             }
-                            className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
-                              deletingId === bill._id
-                                ? "opacity-60 cursor-not-allowed"
-                                : ""
-                            }`}
+                            className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${deletingId === bill._id
+                              ? "opacity-60 cursor-not-allowed"
+                              : ""
+                              }`}
                             title="Delete Bill"
                             disabled={deletingId === bill._id}
                           >
@@ -1085,11 +1081,10 @@ const Bills: React.FC = () => {
                       return (
                         <tr
                           key={bill._id}
-                          className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
-                            selectedIds.includes(bill._id)
-                              ? "bg-blue-50 dark:bg-blue-900/20"
-                              : ""
-                          }`}
+                          className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${selectedIds.includes(bill._id)
+                            ? "bg-blue-50 dark:bg-blue-900/20"
+                            : ""
+                            }`}
                           onClick={() => handleSelect(bill._id)}
                         >
                           <td className="p-4 flex items-center justify-center">
@@ -1128,14 +1123,33 @@ const Bills: React.FC = () => {
                               {bill?.amount?.toFixed(2)}
                             </span>
                           </td>
-                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 lg:px-6 py-4 whitespace-nowrap flex flex-col gap-2">
+
+                            {/* Status badge */}
                             <span
-                              className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full font-semibold border ${status.color} shadow-sm`}
+                              className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full font-semibold border ${status.color} shadow-sm w-fit`}
                             >
                               {status.icon}
                               {status.text}
                             </span>
+
+                            {/* Reminder badge — show only if not paid */}
+                            {!bill.isPaid && status.text !== "Overdue" &&  (
+                              <span
+                                className={`inline-flex flex-col text-xs px-3 py-1.5 rounded-full font-semibold border bg-yellow-100 dark:bg-yellow-800 text-black dark:text-white shadow-sm w-fit`}
+                              >
+                                <span>Reminder Set</span>
+                                <span>
+                                  {bill.reminderDate
+                                    ? new Date(bill.reminderDate).toLocaleDateString()
+                                    : "—"}
+                                </span>
+                              </span>
+                            )}
+
                           </td>
+
+
                           <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end space-x-2">
                               <button
@@ -1144,15 +1158,13 @@ const Bills: React.FC = () => {
                                     handleTogglePaid(bill._id, bill.isPaid)
                                   )
                                 }
-                                className={`text-xs px-3 lg:px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${
-                                  bill.isPaid
-                                    ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:border-gray-600"
-                                    : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
-                                } ${
-                                  togglingId === bill._id
+                                className={`text-xs px-3 lg:px-4 py-2 rounded-lg font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 shadow-sm ${bill.isPaid
+                                  ? "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 focus:ring-slate-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:border-gray-600"
+                                  : "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 focus:ring-emerald-500 shadow-md hover:shadow-lg"
+                                  } ${togglingId === bill._id
                                     ? "opacity-60 cursor-not-allowed"
                                     : "transform hover:scale-105"
-                                }`}
+                                  }`}
                                 disabled={togglingId === bill._id}
                                 title={
                                   bill.isPaid
@@ -1177,11 +1189,10 @@ const Bills: React.FC = () => {
                                     })
                                   )
                                 }
-                                className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${
-                                  deletingId === bill._id
-                                    ? "opacity-60 cursor-not-allowed"
-                                    : "transform hover:scale-105"
-                                }`}
+                                className={`text-rose-600 hover:text-white hover:bg-gradient-to-r hover:from-rose-500 hover:to-red-600 transition-all duration-200 p-2 rounded-lg hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-rose-500 ${deletingId === bill._id
+                                  ? "opacity-60 cursor-not-allowed"
+                                  : "transform hover:scale-105"
+                                  }`}
                                 title="Delete Bill"
                                 disabled={deletingId === bill._id}
                               >
@@ -1200,112 +1211,109 @@ const Bills: React.FC = () => {
                 </table>
 
                 {nPages > 1 && (
-        <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-          <ul className="flex items-center space-x-1 h-10 text-base">
-            <li>
-              <button
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              >
-                Previous
-              </button>
-            </li>
-            {/* Page numbers */}
-            {(() => {
-              const pageNumbers = [];
-              const maxPagesToShow = 5; // Maximum number of page buttons to display
-              const ellipsis = (
-                <li
-                  key="ellipsis"
-                  className="px-2 text-gray-500 dark:text-gray-400"
-                >
-                  ...
-                </li>
-              );
+                  <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                    <ul className="flex items-center space-x-1 h-10 text-base">
+                      <li>
+                        <button
+                          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      {/* Page numbers */}
+                      {(() => {
+                        const pageNumbers = [];
+                        const maxPagesToShow = 5; // Maximum number of page buttons to display
+                        const ellipsis = (
+                          <li
+                            key="ellipsis"
+                            className="px-2 text-gray-500 dark:text-gray-400"
+                          >
+                            ...
+                          </li>
+                        );
 
-              let startPage = Math.max(
-                1,
-                currentPage - Math.floor(maxPagesToShow / 2)
-              );
-              const endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
+                        let startPage = Math.max(
+                          1,
+                          currentPage - Math.floor(maxPagesToShow / 2)
+                        );
+                        const endPage = Math.min(nPages, startPage + maxPagesToShow - 1);
 
-              if (endPage - startPage + 1 < maxPagesToShow) {
-                startPage = Math.max(1, endPage - maxPagesToShow + 1);
-              }
+                        if (endPage - startPage + 1 < maxPagesToShow) {
+                          startPage = Math.max(1, endPage - maxPagesToShow + 1);
+                        }
 
-              if (startPage > 1) {
-                pageNumbers.push(
-                  <li key={1}>
-                    <button
-                      onClick={() => setCurrentPage(1)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
-                        currentPage === 1
-                          ? "text-white bg-orange-500 hover:bg-orange-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-                      }`}
-                    >
-                      1
-                    </button>
-                  </li>
-                );
-                if (startPage > 2) {
-                  pageNumbers.push(ellipsis);
-                }
-              }
+                        if (startPage > 1) {
+                          pageNumbers.push(
+                            <li key={1}>
+                              <button
+                                onClick={() => setCurrentPage(1)}
+                                className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${currentPage === 1
+                                  ? "text-white bg-orange-500 hover:bg-orange-600"
+                                  : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                                  }`}
+                              >
+                                1
+                              </button>
+                            </li>
+                          );
+                          if (startPage > 2) {
+                            pageNumbers.push(ellipsis);
+                          }
+                        }
 
-              for (let i = startPage; i <= endPage; i++) {
-                pageNumbers.push(
-                  <li key={i}>
-                    <button
-                      onClick={() => setCurrentPage(i)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
-                        currentPage === i
-                          ? "text-white bg-orange-500 hover:bg-orange-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-                      }`}
-                    >
-                      {i}
-                    </button>
-                  </li>
-                );
-              }
+                        for (let i = startPage; i <= endPage; i++) {
+                          pageNumbers.push(
+                            <li key={i}>
+                              <button
+                                onClick={() => setCurrentPage(i)}
+                                className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${currentPage === i
+                                  ? "text-white bg-orange-500 hover:bg-orange-600"
+                                  : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                                  }`}
+                              >
+                                {i}
+                              </button>
+                            </li>
+                          );
+                        }
 
-              if (endPage < nPages) {
-                if (endPage < nPages - 1) {
-                  pageNumbers.push(ellipsis);
-                }
-                pageNumbers.push(
-                  <li key={nPages}>
-                    <button
-                      onClick={() => setCurrentPage(nPages)}
-                      className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${
-                        currentPage === nPages
-                          ? "text-white bg-orange-500 hover:bg-orange-600"
-                          : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
-                      }`}
-                    >
-                      {nPages}
-                    </button>
-                  </li>
-                );
-              }
-              return pageNumbers;
-            })()}
-            <li>
-              <button
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, nPages))
-                }
-                disabled={currentPage === nPages}
-                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
-              >
-                Next
-              </button>
-            </li>
-          </ul>
-        </nav>
-      )}
+                        if (endPage < nPages) {
+                          if (endPage < nPages - 1) {
+                            pageNumbers.push(ellipsis);
+                          }
+                          pageNumbers.push(
+                            <li key={nPages}>
+                              <button
+                                onClick={() => setCurrentPage(nPages)}
+                                className={`flex items-center justify-center px-4 h-10 font-semibold border border-gray-300 transition-colors duration-150 dark:border-gray-600 ${currentPage === nPages
+                                  ? "text-white bg-orange-500 hover:bg-orange-600"
+                                  : "text-gray-700 bg-white hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                                  }`}
+                              >
+                                {nPages}
+                              </button>
+                            </li>
+                          );
+                        }
+                        return pageNumbers;
+                      })()}
+                      <li>
+                        <button
+                          onClick={() =>
+                            setCurrentPage((prev) => Math.min(prev + 1, nPages))
+                          }
+                          disabled={currentPage === nPages}
+                          className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                )}
               </div>
             </div>
           )
@@ -1347,13 +1355,13 @@ const Bills: React.FC = () => {
           initialData={
             editBillData
               ? {
-                  name: editBillData.name,
-                  amount: editBillData.amount,
-                  dueDate: editBillData.dueDate,
-                  category: editBillData.category,
-                  isPaid: editBillData.isPaid,
-                  bankAccount: editBillData.bankAccount,
-                }
+                name: editBillData.name,
+                amount: editBillData.amount,
+                dueDate: editBillData.dueDate,
+                category: editBillData.category,
+                isPaid: editBillData.isPaid,
+                bankAccount: editBillData.bankAccount,
+              }
               : undefined
           }
         />

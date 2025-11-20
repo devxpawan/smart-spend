@@ -21,6 +21,7 @@ import {
   TrendingUp,
   User,
   CreditCard,
+  Clock,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Doughnut, Line } from "react-chartjs-2";
@@ -38,6 +39,8 @@ import { useTheme } from "../contexts/theme-exports";
 import { retryWithBackoff } from "../utils/retry";
 import BankAccountInterface from "../types/BankAccountInterface";
 import { getBankAccounts } from "../api/bankAccounts";
+import { getCustomRemindersCount } from "../api/billApi";
+
 
 ChartJS.register(
   ArcElement,
@@ -92,6 +95,8 @@ interface ErrorState {
   stats: string;
   charts: string;
 }
+
+
 
 const doughnutChartOptions = (
   theme: string,
@@ -152,6 +157,7 @@ const Dashboard: React.FC = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [loadingCharts, setLoadingCharts] = useState(true);
   const [errors, setErrors] = useState<ErrorState>({ stats: "", charts: "" });
+  const [customRemindersCount, setCustomRemindersCount] = useState(0);
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalExpenses: 0,
     totalIncomes: 0,
@@ -182,15 +188,17 @@ const Dashboard: React.FC = () => {
         Promise.all([
           api.get("/bills/upcoming/reminders"),
           api.get("/warranties/expiring/soon"),
+          getCustomRemindersCount(),
         ]);
 
-      const [billsRes, warrantiesRes] = await retryWithBackoff(fetchData);
+      const [billsRes, warrantiesRes, customRemindersRes] = await retryWithBackoff(fetchData);
 
       setDashboardData((prev) => ({
         ...prev,
         upcomingBills: billsRes.data,
         expiringWarranties: warrantiesRes.data,
       }));
+      setCustomRemindersCount(customRemindersRes);
     } catch (error: unknown) {
       console.error("Dashboard stats fetch error:", error);
       const axiosError = error as {
@@ -284,9 +292,8 @@ const Dashboard: React.FC = () => {
 
   const formatCurrency = useCallback(
     (amount: number) => {
-      return `${
-        user?.preferences?.currency || "USD"
-      } ${amount.toLocaleString()}`;
+      return `${user?.preferences?.currency || "USD"
+        } ${amount.toLocaleString()}`;
     },
     [user?.preferences?.currency]
   );
@@ -438,6 +445,7 @@ const Dashboard: React.FC = () => {
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           return diffDays <= 3 && diffDays >= 0;
         }),
+        customRemindersCount: customRemindersCount,
       },
       {
         icon: <ShieldCheck className="w-7 h-7" />,
@@ -453,7 +461,7 @@ const Dashboard: React.FC = () => {
         darkBorderColor: "border-gray-700",
       },
     ],
-    [dashboardData, formatCurrency]
+    [dashboardData, formatCurrency, customRemindersCount]
   );
 
   console.log("Dashboard render with data:", dashboardData);
@@ -488,13 +496,13 @@ const Dashboard: React.FC = () => {
                     Here's your financial snapshot for today.
                   </p>
                 </div>
-                
+
                 {/* Notification Bell - Only on Dashboard */}
                 <div className="hidden sm:block">
                   <NotificationBell />
                 </div>
               </div>
-              
+
               {/* Mobile Notification Bell */}
               <div className="sm:hidden flex justify-end mb-2">
                 <NotificationBell />
@@ -584,66 +592,72 @@ const Dashboard: React.FC = () => {
         >
           {loadingStats
             ? Array.from({ length: 4 }).map((_, idx) => (
-                <SkeletonCard key={idx} />
-              ))
+              <SkeletonCard key={idx} />
+            ))
             : statsCards.map((item, idx) => (
-                <Link
-                  to={item.link}
-                  key={idx}
-                  className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border ${
-                    item.borderColor
-                  } dark:${
-                    item.darkBorderColor
-                  } hover:scale-[1.02] overflow-hidden backdrop-blur-lg ${
-                    item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
+              <Link
+                to={item.link}
+                key={idx}
+                className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border ${item.borderColor
+                  } dark:${item.darkBorderColor
+                  } hover:scale-[1.02] overflow-hidden backdrop-blur-lg ${item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
                   } min-h-[120px] sm:min-h-[140px]`}
-                >
-                  {/* Background Gradient */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-20 dark:opacity-10 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300`}></div>
+              >
+                {/* Background Gradient */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-20 dark:opacity-10 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300`}></div>
 
-                  {/* Urgent indicator */}
-                  {item.urgent && (
-                    <div className="absolute top-2 right-2">
-                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    </div>
-                  )}
+                {/* Urgent indicator */}
+                {item.urgent && (
+                  <div className="absolute top-2 right-2">
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse"></div>
+                  </div>
+                )}
 
-                  <div className="relative z-10 h-full flex flex-col">
-                    <div className="flex items-start justify-between mb-3 sm:mb-4">
-                      <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                          <h3 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-wider">
-                            {item.title}
-                          </h3>
-                          {/* <span className="text-xs text-slate-500 font-medium">
+                <div className="relative z-10 h-full flex flex-col">
+                  <div className="flex items-start justify-between mb-3 sm:mb-4">
+                    <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                        <h3 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-wider">
+                          {item.title}
+                        </h3>
+                        {/* <span className="text-xs text-slate-500 font-medium">
                         {item.subtitle}
                       </span> */}
+                      </div>
+                      <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
+                        {item.value}
+                      </p>
+                      {/* Custom Reminders Count */}
+                      {item.customRemindersCount !== undefined && item.customRemindersCount > 0 && (
+                        <div className="flex items-center space-x-1.5 mt-2">
+                          <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                            {item.customRemindersCount}
+                          </span>
                         </div>
-                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
-                          {item.value}
-                        </p>
-                      </div>
-                      <div
-                        className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg flex-shrink-0 ml-2`}
-                      >
-                        <span className="text-white">{item.icon}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 font-medium group-hover:text-slate-800 dark:group-hover:text-white transition-colors flex items-center">
-                        View Details
-                        <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
-                      </span>
-                      {item.urgent && (
-                        <span className="text-xs text-red-600 font-semibold">
-                          URGENT
-                        </span>
                       )}
                     </div>
+                    <div
+                      className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg flex-shrink-0 ml-2`}
+                    >
+                      <span className="text-white">{item.icon}</span>
+                    </div>
                   </div>
-                </Link>
-              ))}
+
+                  <div className="flex items-center justify-between mt-auto">
+                    <span className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 font-medium group-hover:text-slate-800 dark:group-hover:text-white transition-colors flex items-center">
+                      View Details
+                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
+                    </span>
+                    {item.urgent && (
+                      <span className="text-xs text-red-600 font-semibold">
+                        URGENT
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
         </motion.section>
 
         {/* Bank Accounts Section */}
@@ -756,7 +770,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="h-64 sm:h-72 lg:h-80">
                   {dashboardData.monthlyExpenseData.length > 0 ||
-                  dashboardData.monthlyIncomeData.length > 0 ? (
+                    dashboardData.monthlyIncomeData.length > 0 ? (
                     <Line
                       data={monthlyChartData}
                       options={{
@@ -791,17 +805,14 @@ const Dashboard: React.FC = () => {
                               callback: (value) => {
                                 const numValue = Number(value);
                                 if (numValue >= 1000000) {
-                                  return `${
-                                    user?.preferences?.currency || "USD"
-                                  }${(numValue / 1000000).toFixed(1)}M`;
+                                  return `${user?.preferences?.currency || "USD"
+                                    }${(numValue / 1000000).toFixed(1)}M`;
                                 } else if (numValue >= 1000) {
-                                  return `${
-                                    user?.preferences?.currency || "USD"
-                                  }${(numValue / 1000).toFixed(0)}K`;
+                                  return `${user?.preferences?.currency || "USD"
+                                    }${(numValue / 1000).toFixed(0)}K`;
                                 }
-                                return `${
-                                  user?.preferences?.currency || "USD"
-                                }${numValue.toLocaleString()}`;
+                                return `${user?.preferences?.currency || "USD"
+                                  }${numValue.toLocaleString()}`;
                               },
                               font: {
                                 size: 11,
@@ -876,17 +887,15 @@ const Dashboard: React.FC = () => {
                             caretPadding: 8,
                             callbacks: {
                               title: (context) => {
-                                return `${
-                                  context[0].label
-                                } ${new Date().getFullYear()}`;
+                                return `${context[0].label
+                                  } ${new Date().getFullYear()}`;
                               },
                               label: (context) => {
                                 const label = context.dataset.label || "";
                                 const value = context.parsed.y;
                                 if (value !== null) {
-                                  return `${label}: ${
-                                    user?.preferences?.currency || "USD"
-                                  }${value.toLocaleString()}`;
+                                  return `${label}: ${user?.preferences?.currency || "USD"
+                                    }${value.toLocaleString()}`;
                                 }
                                 return "";
                               },
