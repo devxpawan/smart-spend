@@ -21,7 +21,7 @@ import {
   TrendingUp,
   User,
   CreditCard,
-  Clock,
+  AlarmClock,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Doughnut, Line } from "react-chartjs-2";
@@ -630,7 +630,7 @@ const Dashboard: React.FC = () => {
                       {/* Custom Reminders Count */}
                       {item.customRemindersCount !== undefined && item.customRemindersCount > 0 && (
                         <div className="flex items-center space-x-1.5 mt-2">
-                          <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          <AlarmClock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                            Reminders:  {item.customRemindersCount}
                           </span>
