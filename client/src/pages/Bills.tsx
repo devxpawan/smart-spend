@@ -1152,7 +1152,7 @@ const Bills: React.FC = () => {
                             {/* Reminder badge — show only if not paid */}
                             {!bill.isPaid && status.text !== "Overdue" && (
                               <span
-                                className={`inline-flex flex-col text-xs px-3 py-1.5 rounded-full font-semibold border bg-yellow-100 dark:bg-yellow-800 text-black dark:text-white shadow-sm w-fit`}
+                                className={`inline-flex flex-col text-xs px-3 py-1.5 rounded-full font-semibold border border-yellow-400 bg-yellow-100 dark:bg-yellow-800 text-black dark:text-white shadow-sm w-fit dark:border-yellow-600 text-center`}
                               >
                                 <span>Reminder Set</span>
                                 <span>
