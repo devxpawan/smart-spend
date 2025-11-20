@@ -938,11 +938,27 @@ const Bills: React.FC = () => {
                               Due:{" "}
                               {format(parseISO(bill.dueDate), "MMM d, yyyy")}
                             </div>
+
                             <div className="font-semibold text-gray-900 dark:text-gray-100">
                               {user?.preferences?.currency || "USD"}{" "}
                               {bill?.amount?.toFixed(2)}
                             </div>
                           </div>
+                          {/* Reminder badge — show only if not paid */}
+                          {!bill.isPaid && status.text !== "Overdue" && (
+                            <div className="flex-shrink-0">
+                              <span
+                                className={`inline-flex flex-col text-xs px-2 py-1 rounded-full font-semibold border bg-yellow-100 dark:bg-yellow-800 text-black dark:text-white shadow-sm w-fit text-center`}
+                              >
+                                <span>Reminder Set</span>
+                                <span className="mt-0.5">
+                                  {bill.reminderDate
+                                    ? new Date(bill.reminderDate).toLocaleDateString()
+                                    : "—"}
+                                </span>
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex items-center space-x-2 pt-2 ml-7">
@@ -1134,7 +1150,7 @@ const Bills: React.FC = () => {
                             </span>
 
                             {/* Reminder badge — show only if not paid */}
-                            {!bill.isPaid && status.text !== "Overdue" &&  (
+                            {!bill.isPaid && status.text !== "Overdue" && (
                               <span
                                 className={`inline-flex flex-col text-xs px-3 py-1.5 rounded-full font-semibold border bg-yellow-100 dark:bg-yellow-800 text-black dark:text-white shadow-sm w-fit`}
                               >

@@ -523,6 +523,7 @@ router.get("/custom/reminders/count", async (req, res) => {
       user: req.user.id,
       reminderDate: { $lte: today },
       isPaid: false,
+      dueDate: { $gte: today },
     });
 
     res.json({ count: reminderCount });
