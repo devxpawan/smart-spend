@@ -17,6 +17,7 @@ import userRoutes from "./routes/user.js";
 import bankAccountRoutes from "./routes/bankAccounts.js";
 import recurringRoutes from "./routes/recurring.js";
 import notificationRoutes from "./routes/notifications.js"; // Add notifications route
+import goalRoutes from "./routes/goals.js"; // Add goals route
 import GPTRouter from "./AI-Service/Gemini-Route.js"; //gemini route
 
 // Middleware
@@ -129,7 +130,7 @@ app.use("/api/user", authenticateToken, userRoutes);
 app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
 app.use("/api/recurring", authenticateToken, recurringRoutes);
 app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
-// app.use("/api/goals", authenticateToken, goalRoutes); // Add goals route
+app.use("/api/goals", authenticateToken, goalRoutes); // Add goals route
 app.use("/api/gemini", authenticateToken, GPTRouter); //gemini route
 
 // Default route
