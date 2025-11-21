@@ -945,7 +945,7 @@ const Bills: React.FC = () => {
                             </div>
                           </div>
                           {/* Reminder badge — show only if not paid */}
-                          {!bill.isPaid && status.text !== "Overdue" && (
+                          {!bill.isPaid && status.text !== "Overdue" && bill.reminderDate && (
                             <div className="flex-shrink-0">
                               <span
                                 className={`inline-flex flex-col text-xs px-2 py-1 rounded-full font-semibold border bg-yellow-100 dark:bg-yellow-800 text-black dark:text-white shadow-sm w-fit text-center`}
@@ -1150,7 +1150,7 @@ const Bills: React.FC = () => {
                             </span>
 
                             {/* Reminder badge — show only if not paid */}
-                            {!bill.isPaid && status.text !== "Overdue" && (
+                            {!bill.isPaid && status.text !== "Overdue" && bill.reminderDate && (
                               <span
                                 className={`inline-flex flex-col text-xs px-3 py-1.5 rounded-full font-semibold border border-yellow-400 bg-yellow-100 dark:bg-yellow-800 text-black dark:text-white shadow-sm w-fit dark:border-yellow-600 text-center`}
                               >
