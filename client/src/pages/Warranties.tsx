@@ -3,25 +3,25 @@ import { differenceInDays, format, isValid, parseISO } from "date-fns";
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle,
-  Calendar,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  DollarSign,
-  Edit,
-  Edit3,
-  Image,
-  Package,
-  Plus,
-  QrCode,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  Store,
-  Trash2,
-  X,
+    AlertCircle,
+    Calendar,
+    CheckCircle,
+    ChevronLeft,
+    ChevronRight,
+    Clock,
+    DollarSign,
+    Edit,
+    Edit3,
+    Image,
+    Package,
+    Plus,
+    QrCode,
+    RefreshCw,
+    Search,
+    ShieldCheck,
+    Store,
+    Trash2,
+    X,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -120,10 +120,31 @@ const Warranties: React.FC = () => {
     purchasePrice: undefined,
   });
 
+  // Default warranty categories (same as in WarrantyModal)
+  const DEFAULT_CATEGORIES = [
+    "Electronics (Phones, Laptops, TVs)",
+    "Home Appliances (Washer, Fridge, etc.)",
+    "Furniture",
+    "Automobiles",
+    "Power Tools",
+    "Jewelry & Watches",
+    "Sports Equipment",
+    "Kitchenware",
+    "Clothing & Footwear",
+    "Smart Devices (Smartwatch, Home Assistants)",
+    "Musical Instruments",
+    "Office Equipment",
+  ];
+
   const categoryOptions = useMemo(
     () => [
       { value: "", label: "All Categories" },
-      ...userCategories.map((cat) => ({ value: cat, label: cat })),
+      // Include all default categories
+      ...DEFAULT_CATEGORIES.map((cat) => ({ value: cat, label: cat })),
+      // Add any custom categories that aren't in defaults
+      ...userCategories
+        .filter((cat) => !DEFAULT_CATEGORIES.includes(cat))
+        .map((cat) => ({ value: cat, label: cat })),
     ],
     [userCategories]
   );
@@ -134,7 +155,8 @@ const Warranties: React.FC = () => {
       setUserCategories(response.data);
     } catch (error) {
       console.error("Error fetching user categories:", error);
-      // Optionally set an error state or default categories
+      // Set empty array on error, defaults will still show
+      setUserCategories([]);
     }
   }, []); // Empty dependency array means this runs once on mount
 

@@ -721,6 +721,11 @@ router.put("/currency", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Initialize preferences if it doesn't exist
+    if (!user.preferences) {
+      user.preferences = {};
+    }
+
     user.preferences.currency = currency;
     await user.save();
 

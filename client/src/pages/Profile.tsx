@@ -1,23 +1,23 @@
 import axios, { AxiosError, AxiosProgressEvent } from "axios";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertTriangle,
-  Camera,
-  Check,
-  CheckCircle,
-  CreditCard,
-  FileText,
-  Info,
-  Mail,
-  Moon,
-  RefreshCw,
-  Save,
-  ShieldCheck,
-  Sun,
-  Trash2,
-  TrendingUp,
-  User,
-  X,
+    AlertTriangle,
+    Camera,
+    Check,
+    CheckCircle,
+    CreditCard,
+    FileText,
+    Info,
+    Mail,
+    Moon,
+    RefreshCw,
+    Save,
+    ShieldCheck,
+    Sun,
+    Trash2,
+    TrendingUp,
+    User,
+    X,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ClearRecordsModal from "../components/ClearRecordsModal";
@@ -215,7 +215,10 @@ const Profile: React.FC = () => {
   // Sync with user data
   useEffect(() => {
     setName(user?.name || "");
-    setSelectedCurrency(user?.preferences?.currency || "USD");
+    // Only update selectedCurrency if there's no pending change
+    if (!pendingCurrency) {
+      setSelectedCurrency(user?.preferences?.currency || "USD");
+    }
     setCustomIncomeCategories(user?.customIncomeCategories || []);
     setCustomExpenseCategories(user?.customExpenseCategories || []);
   }, [
@@ -223,6 +226,7 @@ const Profile: React.FC = () => {
     user?.preferences?.currency,
     user?.customIncomeCategories,
     user?.customExpenseCategories,
+    pendingCurrency,
   ]);
 
   // Create and cleanup avatar preview URL

@@ -9,6 +9,9 @@ interface User {
   name: string;
   email: string;
   avatar?: string;
+  preferences: {
+    currency: string;
+  };
   createdAt: string;
   loading: boolean;
   error: string | null;

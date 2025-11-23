@@ -57,6 +57,12 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: DEFAULT_EXPENSE_CATEGORIES,
   },
+  preferences: {
+    currency: {
+      type: String,
+      default: "USD",
+    },
+  },
 });
 
 const User = mongoose.model("User", userSchema);
