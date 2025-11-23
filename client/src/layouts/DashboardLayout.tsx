@@ -17,7 +17,7 @@ import {
   Target,
   TrendingUp,
   User,
-  X as XIcon,
+  X as XIcon
 } from "lucide-react";
 import React, {
   Fragment,
@@ -126,18 +126,6 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     path: "/warranties",
     icon: <ShieldCheck className="w-4 h-4" />,
     gradient: "from-purple-500 to-violet-600",
-  },
-  {
-    name: "Bank Accounts",
-    path: "/bank-accounts",
-    icon: <Landmark className="w-4 h-4" />,
-    gradient: "from-teal-500 to-cyan-600",
-  },
-  {
-    name: "About",
-    path: "/about",
-    icon: <Info className="w-4 h-4" />,
-    gradient: "from-slate-500 to-gray-600",
   },
 ];
 
@@ -353,6 +341,32 @@ const UserMenu: React.FC<{
                   </Link>
                 )}
 
+              </HeadlessMenu.Item>
+              <HeadlessMenu.Item>
+                {({ active }) => (
+                  <Link
+                    to="/bank-accounts"
+                    onClick={onNavigate}
+                    className={`${
+                      active ? "bg-white/10 text-white" : "text-slate-200"
+                    } flex items-center rounded-md px-3 py-2 text-sm font-semibold`}
+                  >
+                    <Landmark className="mr-2 h-4 w-4" /> Bank Accounts
+                  </Link>
+                )}
+              </HeadlessMenu.Item>
+              <HeadlessMenu.Item>
+                {({ active }) => (
+                  <Link
+                    to="/about"
+                    onClick={onNavigate}
+                    className={`${
+                      active ? "bg-white/10 text-white" : "text-slate-200"
+                    } flex items-center rounded-md px-3 py-2 text-sm font-semibold`}
+                  >
+                    <Info className="mr-2 h-4 w-4" /> About
+                  </Link>
+                )}
               </HeadlessMenu.Item>
               <div className="my-1 h-px bg-white/10" />
               <HeadlessMenu.Item>
