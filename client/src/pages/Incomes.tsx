@@ -1,39 +1,38 @@
 import axios from "axios";
 import {
-  endOfMonth,
-  format,
-  isValid,
-  isWithinInterval,
-  parseISO,
-  startOfMonth,
+    endOfMonth,
+    format,
+    isValid,
+    isWithinInterval,
+    parseISO,
+    startOfMonth,
 } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle,
-  ArrowDownAZ,
-  ArrowUpZA,
-  Calendar,
-  DollarSign,
-  Edit3,
-  Filter,
-  Plus,
-  Receipt,
-  RefreshCw,
-  Search,
-  Trash2,
-  TrendingUp,
-  X,
-  XCircle,
+    AlertCircle,
+    ArrowDownAZ,
+    ArrowUpZA,
+    Calendar,
+    DollarSign,
+    Edit3,
+    Filter,
+    Plus,
+    Receipt,
+    RefreshCw,
+    Search,
+    Trash2,
+    TrendingUp,
+    X,
+    XCircle,
 } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmModal from "../components/ConfirmModal";
 import CustomSelect from "../components/CustomSelect";
 import IncomeBulkEditModal, {
-  BulkEditData,
+    BulkEditData,
 } from "../components/IncomeBulkEditModal";
 import IncomeModal from "../components/IncomeModal";
 import { useAuth } from "../contexts/auth-exports";
-import { incomeCategories } from "../lib/incomeCategories";
 import IncomeFormData from "../types/IncomeFormData";
 import IncomeInterface from "../types/IncomeInterface";
 import { retryWithBackoff } from "../utils/retry";
@@ -148,10 +147,7 @@ const Incomes: React.FC = () => {
     action();
   };
 
-const categories = [
-  ...(incomeCategories || []),
-  ...(user?.customIncomeCategories || [])
-];
+  const categories = user?.incomeCategories || [];
 
 
   // Memoized filtered and sorted incomes

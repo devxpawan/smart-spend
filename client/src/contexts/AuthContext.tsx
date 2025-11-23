@@ -10,19 +10,6 @@ interface User {
   email: string;
   avatar?: string;
   createdAt: string;
-  isGoogleUser: boolean;
-  preferences: {
-    currency: string;
-    reminderDaysBefore: number;
-    theme: string;
-  };
-  customIncomeCategories?: string[];
-  customExpenseCategories?: string[];
-}
-
-export interface AuthContextType {
-  user: User | null;
-  token: string | null;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;

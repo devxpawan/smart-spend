@@ -1,11 +1,9 @@
 import bcrypt from "bcryptjs";
 import express from "express";
-import fs from "fs";
 import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import multer from "multer";
-import path from "path";
 import cloudinary from "../cloudinary.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { authValidation, validate } from "../middleware/validator.js";
@@ -14,6 +12,10 @@ import Expense from "../models/Expense.js";
 import Income from "../models/Income.js";
 import User from "../models/User.js";
 import Warranty from "../models/Warranty.js";
+import {
+    DEFAULT_EXPENSE_CATEGORIES,
+    DEFAULT_INCOME_CATEGORIES,
+} from "../utils/constants.js";
 import generateOTP from "../utils/otpGenerator.js";
 import sendEmail from "../utils/sendEmail.js";
 
@@ -239,6 +241,8 @@ const formatUserResponse = (user) => ({
   customExpenseCategories: user.customExpenseCategories,
   createdAt: user.createdAt,
   isGoogleUser: !!user.googleId, // Add this field
+  incomeCategories: user.incomeCategories,
+  expenseCategories: user.expenseCategories,
 });
 
 // Helper to extract Cloudinary public ID from URL
@@ -569,6 +573,30 @@ router.get("/me", authenticateToken, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    // Migration logic: If categories are empty, populate with defaults + custom
+    let needsSave = false;
+
+    if (!user.incomeCategories || user.incomeCategories.length === 0) {
+      user.incomeCategories = [
+        ...DEFAULT_INCOME_CATEGORIES,
+        ...(user.customIncomeCategories || []),
+      ];
+      needsSave = true;
+    }
+
+    if (!user.expenseCategories || user.expenseCategories.length === 0) {
+      user.expenseCategories = [
+        ...DEFAULT_EXPENSE_CATEGORIES,
+        ...(user.customExpenseCategories || []),
+      ];
+      needsSave = true;
+    }
+
+    if (needsSave) {
+      await user.save();
+    }
+
     res.json(formatUserResponse(user));
   } catch (error) {
     console.error("Get user error:", error);
@@ -824,5 +852,3 @@ router.get("/profile/stats", authenticateToken, async (req, res) => {
 });
 
 export default router;
-
-

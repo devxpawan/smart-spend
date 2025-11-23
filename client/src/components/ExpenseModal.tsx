@@ -2,25 +2,24 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
   Calendar,
+  Camera,
+  Loader2,
   Receipt,
   Repeat,
   TrendingDown,
-  X,
   Upload,
-  Camera,
-  Loader2,
+  X,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useAuth } from "../contexts/auth-exports";
-import ExpenseFormData from "../types/ExpenseFormData";
-import BankAccountInterface from "../types/BankAccountInterface";
-import CustomSelect from "./CustomSelect";
 import { getBankAccounts } from "../api/bankAccounts";
-import { expenseCategories } from "../lib/expenseCategories";
+import { useAuth } from "../contexts/auth-exports";
+import BankAccountInterface from "../types/BankAccountInterface";
+import ExpenseFormData from "../types/ExpenseFormData";
+import CustomSelect from "./CustomSelect";
+
 import { analyzeReceipt, isErrorResponse } from "../api/gemini";
 import ScanResultCard from "./ScanResultCard";
-
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -62,10 +61,12 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
   const [scanningReceipt, setScanningReceipt] = useState(false);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [scanError, setScanError] = useState<{ show: boolean; message: string; type?: string }>({ show: false, message: '' });
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [scanResult, setScanResult] = useState<{
     show: boolean;
     data?: {
@@ -75,19 +76,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       date: string;
     };
   }>({ show: false });
-  const [scanError, setScanError] = useState<{
-    show: boolean;
-    message: string;
-    type?: string;
-  }>({ show: false, message: '' });
 
-  // use both expenseCategories and user custom categories
-    const categoriesToUse = [
-      ...(expenseCategories || []),
-      ...(user?.customExpenseCategories || []),
-    ]
+  const categoriesToUse = user?.expenseCategories || [];
 
-  // Initialize form data
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -117,8 +108,6 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
       });
     }
     setErrors({});
-    setReceiptPreview(null);
-    setScanResult({ show: false });
   }, [initialData, isOpen]);
 
   useEffect(() => {

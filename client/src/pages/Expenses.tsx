@@ -31,7 +31,6 @@ import CustomSelect from "../components/CustomSelect";
 import ExpenseBulkEditModal, { BulkEditData } from "../components/ExpenseBulkEditModal";
 import ExpenseModal from "../components/ExpenseModal";
 import { useAuth } from "../contexts/auth-exports";
-import { expenseCategories } from "../lib/expenseCategories";
 import ExpenseFormData from "../types/ExpenseFormData";
 import ExpenseInterface from "../types/ExpenseInterface";
 import { retryWithBackoff } from "../utils/retry";
@@ -259,10 +258,7 @@ const Expenses: React.FC = () => {
       (sum, expense) => sum + (expense.amount || 0),
       0
     );
-    const categories = [
-      ...(expenseCategories || []),
-      ...(user?.customExpenseCategories || []),
-    ]
+    const categories = user?.expenseCategories || [];
 
     // Calculate this month's total for expenses
     const now = new Date();

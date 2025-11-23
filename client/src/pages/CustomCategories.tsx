@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { X, Info, AlertTriangle, Check, Plus } from "lucide-react";
+import { AlertTriangle, Check, Info, Plus, RotateCcw, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../contexts/auth-exports";
-import { expenseCategories } from "../lib/expenseCategories";
-import { incomeCategories } from "../lib/incomeCategories";
+import { defaultExpenseCategories, defaultIncomeCategories } from "../lib/defaultCategories";
 
 // Types
 interface Message {
@@ -14,11 +13,11 @@ interface Message {
 // Category Management Component
 const CategoryManager: React.FC<{
   title: string;
-  customCategories: string[];
+  categories: string[];
   defaultCategories: string[];
   onUpdate: (categories: string[]) => Promise<void>;
   setMessage: (message: Message) => void;
-}> = ({ title, customCategories, defaultCategories, onUpdate, setMessage }) => {
+}> = ({ title, categories, defaultCategories, onUpdate, setMessage }) => {
   const [newCategory, setNewCategory] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -26,15 +25,12 @@ const CategoryManager: React.FC<{
     const trimmed = newCategory.trim();
     if (!trimmed) return;
 
-    if (
-      defaultCategories.includes(trimmed) ||
-      customCategories.includes(trimmed)
-    ) {
+    if (categories.includes(trimmed)) {
       setMessage({ type: "error", text: "Category already exists." });
       return;
     }
 
-    const updated = [...customCategories, trimmed];
+    const updated = [...categories, trimmed];
     setNewCategory("");
     setSaving(true);
     try {
@@ -51,7 +47,7 @@ const CategoryManager: React.FC<{
   };
 
   const handleRemoveCategory = async (category: string) => {
-    const updated = customCategories.filter((c) => c !== category);
+    const updated = categories.filter((c) => c !== category);
     setSaving(true);
     try {
       await onUpdate(updated);
@@ -67,12 +63,16 @@ const CategoryManager: React.FC<{
   };
 
   const handleResetToDefaults = async () => {
+    if (!window.confirm(`Are you sure you want to reset ${title} categories to system defaults? This will remove all your custom categories.`)) {
+      return;
+    }
+    
     setSaving(true);
     try {
-      await onUpdate([]); // clear custom categories
+      await onUpdate(defaultCategories);
       setMessage({
         type: "success",
-        text: `${title} custom categories removed successfully.`,
+        text: `${title} categories reset to defaults successfully.`,
       });
     } catch {
       setMessage({ type: "error", text: "Failed to reset categories." });
@@ -89,10 +89,12 @@ const CategoryManager: React.FC<{
         </h3>
         <button
           onClick={handleResetToDefaults}
-          className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center text-sm text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           disabled={saving}
           type="button"
+          title="Reset to system defaults"
         >
+          <RotateCcw className="w-3 h-3 mr-1" />
           Reset to defaults
         </button>
       </div>
@@ -103,7 +105,7 @@ const CategoryManager: React.FC<{
           type="text"
           value={newCategory}
           onChange={(e) => setNewCategory(e.target.value)}
-          placeholder="Add new category"
+          placeholder={`Add new ${title.toLowerCase()} category`}
           className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -115,9 +117,10 @@ const CategoryManager: React.FC<{
         />
         <button
           onClick={handleAddCategory}
-          className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           disabled={saving || !newCategory.trim()}
           type="button"
+          aria-label="Add category"
         >
           <Plus className="w-4 h-4" />
         </button>
@@ -125,34 +128,29 @@ const CategoryManager: React.FC<{
 
       {/* Categories grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {/* Default categories (uneditable) */}
-        {defaultCategories.map((cat) => (
+        {categories.map((cat) => (
           <div
             key={cat}
-            className="flex items-center justify-between rounded-lg px-4 py-3 text-sm border bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700 cursor-not-allowed"
-          >
-            <span className="font-medium truncate">{cat}</span>
-          </div>
-        ))}
-
-        {/* Custom categories (editable/removable) */}
-        {customCategories.map((cat) => (
-          <div
-            key={cat}
-            className="flex items-center justify-between rounded-lg px-4 py-3 text-sm border bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+            className="flex items-center justify-between rounded-lg px-4 py-3 text-sm border bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow"
           >
             <span className="font-medium truncate">{cat}</span>
             <button
               onClick={() => handleRemoveCategory(cat)}
-              className="ml-2 text-slate-400 hover:text-red-500 transition-colors duration-200 disabled:opacity-50 flex-shrink-0"
+              className="ml-2 text-slate-400 hover:text-red-500 transition-colors duration-200 disabled:opacity-50 flex-shrink-0 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full"
               disabled={saving}
               type="button"
               aria-label={`Remove ${cat} category`}
             >
-              <X className="w-4 h-4" />
+              <X className="w-3 h-3" />
             </button>
           </div>
         ))}
+        
+        {categories.length === 0 && (
+          <div className="col-span-full py-8 text-center text-slate-500 dark:text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg">
+            No categories found. Add one to get started.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -167,12 +165,10 @@ const CustomCategories: React.FC = () => {
   } = useAuth();
 
   const [message, setMessage] = useState<Message>({ type: "", text: "" });
-  const [customIncomeCategories, setCustomIncomeCategories] = useState<string[]>(
-    user?.customIncomeCategories || []
-  );
-  const [customExpenseCategories, setCustomExpenseCategories] = useState<string[]>(
-    user?.customExpenseCategories || []
-  );
+  
+  // Use the full category lists from user object, falling back to defaults if empty (though API should handle this)
+  const [incomeCategories, setIncomeCategories] = useState<string[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<string[]>([]);
 
   // Auto-clear toast messages
   useEffect(() => {
@@ -186,44 +182,51 @@ const CustomCategories: React.FC = () => {
 
   // Sync with user data
   useEffect(() => {
-    setCustomIncomeCategories(user?.customIncomeCategories || []);
-    setCustomExpenseCategories(user?.customExpenseCategories || []);
-  }, [user?.customIncomeCategories, user?.customExpenseCategories]);
+    if (user) {
+      // Prefer the new fields, fall back to custom + defaults if needed (for safety)
+      setIncomeCategories(user.incomeCategories || []);
+      setExpenseCategories(user.expenseCategories || []);
+    }
+  }, [user]);
 
   const handleUpdateIncomeCategories = async (categories: string[]) => {
     await updateCustomIncomeCategories(categories);
-    setCustomIncomeCategories(categories);
+    // Optimistic update
+    setIncomeCategories(categories);
   };
 
   const handleUpdateExpenseCategories = async (categories: string[]) => {
     await updateCustomExpenseCategories(categories);
-    setCustomExpenseCategories(categories);
+    // Optimistic update
+    setExpenseCategories(categories);
   };
 
   return (
     <div className="space-y-6 p-4 sm:p-6 max-w-6xl mx-auto">
-      <header className="text-center">
+      <header className="text-center mb-8">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          Custom Categories
+          Manage Categories
         </h1>
-        <p className="text-slate-600 dark:text-slate-400 text-base">
-          Default categories are uneditable. Add your own custom ones or remove them as needed.
+        <p className="text-slate-600 dark:text-slate-400 text-base max-w-2xl mx-auto">
+          Customize your income and expense categories. You can add new ones, remove existing ones, or reset to the system defaults at any time.
         </p>
       </header>
 
-      <div className="space-y-8">
+      <div className="space-y-10">
         <CategoryManager
           title="Income"
-          customCategories={customIncomeCategories}
-          defaultCategories={incomeCategories}
+          categories={incomeCategories}
+          defaultCategories={defaultIncomeCategories}
           onUpdate={handleUpdateIncomeCategories}
           setMessage={setMessage}
         />
 
+        <div className="border-t border-slate-200 dark:border-slate-700 my-8"></div>
+
         <CategoryManager
           title="Expense"
-          customCategories={customExpenseCategories}
-          defaultCategories={expenseCategories}
+          categories={expenseCategories}
+          defaultCategories={defaultExpenseCategories}
           onUpdate={handleUpdateExpenseCategories}
           setMessage={setMessage}
         />

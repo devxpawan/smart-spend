@@ -1,17 +1,16 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  AlertCircle,
-  Calendar,
-  Receipt,
-  Repeat,
-  TrendingUp,
-  X,
+    AlertCircle,
+    Calendar,
+    Receipt,
+    Repeat,
+    TrendingUp,
+    X,
 } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getBankAccounts } from "../api/bankAccounts";
 import { useAuth } from "../contexts/auth-exports";
-import { incomeCategories } from "../lib/incomeCategories";
 import BankAccountInterface from "../types/BankAccountInterface";
 import IncomeFormData from "../types/IncomeFormData";
 import CustomSelect from "./CustomSelect";
@@ -53,19 +52,12 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [bankAccounts, setBankAccounts] = useState<BankAccountInterface[]>([]);
-  const [bankAccountsLoading, setBankAccountsLoading] = useState(true);
-
+  const [bankAccountsLoading, setBankAccountsLoading] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
 
+  const categoriesToUse = user?.incomeCategories || [];
 
-//use both incomeCategories and user custom categories
-    const categoriesToUse = [
-      ...(incomeCategories || []),
-      ...(user?.customExpenseCategories || []),
-    ]
-
-  // Initialize form data
   useEffect(() => {
     if (initialData) {
       setFormData({
