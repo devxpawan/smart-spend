@@ -1,3 +1,4 @@
+import ConfirmModal from "../components/ConfirmModal";
 import { motion } from "framer-motion";
 import { AlertTriangle, Check, Info, Plus, RotateCcw, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -20,6 +21,8 @@ const CategoryManager: React.FC<{
 }> = ({ title, categories, defaultCategories, onUpdate, setMessage }) => {
   const [newCategory, setNewCategory] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<(() => void) | null>(null);
 
   const handleAddCategory = async () => {
     const trimmed = newCategory.trim();
@@ -62,23 +65,24 @@ const CategoryManager: React.FC<{
     }
   };
 
-  const handleResetToDefaults = async () => {
-    if (!window.confirm(`Are you sure you want to reset ${title} categories to system defaults? This will remove all your custom categories.`)) {
-      return;
-    }
-    
-    setSaving(true);
-    try {
-      await onUpdate(defaultCategories);
-      setMessage({
-        type: "success",
-        text: `${title} categories reset to defaults successfully.`,
-      });
-    } catch {
-      setMessage({ type: "error", text: "Failed to reset categories." });
-    } finally {
-      setSaving(false);
-    }
+  const handleResetToDefaults = () => {
+    setShowConfirmModal(true);
+    setConfirmAction(() => async () => {
+      setSaving(true);
+      try {
+        await onUpdate(defaultCategories);
+        setMessage({
+          type: "success",
+          text: `${title} categories reset to defaults successfully.`,
+        });
+      } catch {
+        setMessage({ type: "error", text: "Failed to reset categories." });
+      } finally {
+        setSaving(false);
+        setShowConfirmModal(false);
+        setConfirmAction(null);
+      }
+    });
   };
 
   return (
@@ -152,6 +156,25 @@ const CategoryManager: React.FC<{
           </div>
         )}
       </div>
+
+      {showConfirmModal && (
+        <ConfirmModal
+          isOpen={showConfirmModal}
+          message={`Are you sure you want to reset ${title} categories to system defaults? This will remove all your custom categories.`}
+          onConfirm={() => {
+            if (confirmAction) {
+              confirmAction();
+            }
+          }}
+          onCancel={() => {
+            setShowConfirmModal(false);
+            setConfirmAction(null);
+          }}
+          confirmText="Reset"
+          cancelText="Cancel"
+          variant="danger"
+        />
+      )}
     </div>
   );
 };
