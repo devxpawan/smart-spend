@@ -18,6 +18,7 @@ import bankAccountRoutes from "./routes/bankAccounts.js";
 import recurringRoutes from "./routes/recurring.js";
 import notificationRoutes from "./routes/notifications.js"; // Add notifications route
 import goalRoutes from "./routes/goals.js"; // Add goals route
+import monthlyContributionRoutes from "./routes/monthlyContributions.js"; // Add this line
 import GPTRouter from "./AI-Service/Gemini-Route.js"; //gemini route
 
 // Middleware
@@ -27,6 +28,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 // Jobs
 import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
 import expenseWarningJob from "./jobs/expenseWarningJob.js"; // Import the expense warning job
+import monthlyContributionJob from "./jobs/monthlyContributionJob.js"; // Add this line
 
 // Load environment variables
 dotenv.config();
@@ -117,21 +119,22 @@ const connectDB = async () => {
 connectDB();
 
 // Routes
-app.use("/api/auth", authRoutes);
-// Public warranty route (for QR code access) - must come before authenticated routes
-app.use("/api/warranties/public", warrantyRoutes);
-app.use("/api/expenses", authenticateToken, expenseRoutes);
-app.use("/api/bills", authenticateToken, billRoutes);
-app.use("/api/warranties", authenticateToken, warrantyRoutes);
-app.use("/api/incomes", authenticateToken, incomeRoutes);
-app.use("/api/financial-health", authenticateToken, financialHealthRoutes);
-console.log("Registering user routes at /api/user");
-app.use("/api/user", authenticateToken, userRoutes);
-app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
-app.use("/api/recurring", authenticateToken, recurringRoutes);
-app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
-app.use("/api/goals", authenticateToken, goalRoutes); // Add goals route
-app.use("/api/gemini", authenticateToken, GPTRouter); //gemini route
+  app.use("/api/auth", authRoutes);
+  // Public warranty route (for QR code access) - must come before authenticated routes
+  app.use("/api/warranties/public", warrantyRoutes);
+  app.use("/api/expenses", authenticateToken, expenseRoutes);
+  app.use("/api/bills", authenticateToken, billRoutes);
+  app.use("/api/warranties", authenticateToken, warrantyRoutes);
+  app.use("/api/incomes", authenticateToken, incomeRoutes);
+  app.use("/api/financial-health", authenticateToken, financialHealthRoutes);
+  console.log("Registering user routes at /api/user");
+  app.use("/api/users", authenticateToken, userRoutes);
+  app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
+  app.use("/api/recurring", authenticateToken, recurringRoutes);
+  app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
+  app.use("/api/goals", authenticateToken, goalRoutes); // Add goals route
+  app.use("/api/monthly-contributions", authenticateToken, monthlyContributionRoutes); // Add this line
+  app.use("/api/gemini", authenticateToken, GPTRouter); //gemini route
 
 // Default route
 app.get("/", (req, res) => {

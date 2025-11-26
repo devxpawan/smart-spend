@@ -33,6 +33,11 @@ const goalSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  monthlyContribution: { // Add this field
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   contributions: [
     {
       amount: {
