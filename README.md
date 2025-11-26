@@ -6,6 +6,7 @@
 -   **Warranty Management**: Store product warranty details, set reminders, and generate QR codes for public access.
 -   **User Authentication**: Secure login/registration, Google OAuth, and protected routes.
 -   **Goal Planning**: Set financial goals with fixed monthly contributions that are automatically added.
+
 -   **Automated Notifications**: Receive email and in-app notifications for goal expirations and contributions.
 -   **Data & Security**: Visual analytics, JWT authentication, password hashing, and input validation.
 -   **Cloud Integration**: Cloudinary for image uploads (warranty documents, user avatars).
@@ -113,6 +114,7 @@ Several background jobs run automatically:
 - Daily at 9 AM: Check for expiring goals and send notifications
 - First day of each month: Process monthly contributions for all goals
 - Daily at midnight: Process recurring transactions
+
 
 ## License
 

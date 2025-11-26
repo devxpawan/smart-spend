@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { check, validationResult } from "express-validator";
 import Goal from "../models/Goal.js";
 import { authenticateToken } from "../middleware/auth.js";
+import { createAchievement, checkMilestoneAchievements } from "../utils/achievements.js";
 
 const router = express.Router();
 
@@ -256,6 +257,9 @@ router.post(
         return res.status(404).json({ message: "Goal not found" });
       }
 
+      // Check if this is the first contribution to this goal
+      const isFirstContribution = goal.contributions.length === 0;
+
       // Add contribution to the goal
       const contribution = {
         amount: parseFloat(amount),
@@ -268,6 +272,33 @@ router.post(
       goal.updatedAt = Date.now();
 
       await goal.save();
+
+      // Check if this is the first contribution to any goal for the user
+      if (isFirstContribution) {
+        // Check if user has made any contributions before
+        const userGoals = await Goal.find({ user: req.user.id });
+        const totalContributions = userGoals.reduce((total, g) => total + g.contributions.length, 0);
+        
+        if (totalContributions === 1) {
+          // This is the user's very first contribution
+          await createAchievement(req.user.id, "FIRST_CONTRIBUTION");
+        }
+      }
+
+      // Check if goal is now completed
+      if (goal.savedAmount >= goal.targetAmount) {
+        // Goal completed! Award achievement
+        await createAchievement(req.user.id, "GOAL_COMPLETED");
+        
+        // Count total completed goals for this user
+        const completedGoals = await Goal.countDocuments({
+          user: req.user.id,
+          savedAmount: { $gte: goal.targetAmount }
+        });
+        
+        // Check for milestone achievements
+        await checkMilestoneAchievements(req.user.id, completedGoals);
+      }
 
       res.json(goal);
     } catch (error) {

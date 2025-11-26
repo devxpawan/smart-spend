@@ -17,7 +17,8 @@ import {
   Target,
   TrendingUp,
   User,
-  X as XIcon
+  X as XIcon,
+  Trophy,
 } from "lucide-react";
 import React, {
   Fragment,
@@ -114,6 +115,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     path: "/goals",
     icon: <Target className="w-4 h-4" />,
     gradient: "from-emerald-500 to-teal-600",
+  },
+  {
+    name: "Achievements",
+    path: "/achievements",
+    icon: <Trophy className="w-4 h-4" />,
+    gradient: "from-yellow-500 to-orange-600",
   },
   {
     name: "Monthly View",
@@ -327,8 +334,8 @@ const UserMenu: React.FC<{
                     <User className="mr-2 h-4 w-4" /> Profile
                   </Link>
                 )}
-             </HeadlessMenu.Item>
-                <HeadlessMenu.Item>
+              </HeadlessMenu.Item>
+              <HeadlessMenu.Item>
                 {({ active }) => (
                   <Link
                     to="/customcategories"
@@ -340,7 +347,6 @@ const UserMenu: React.FC<{
                     <Settings className="mr-2 h-4 w-4" /> Custom Settings
                   </Link>
                 )}
-
               </HeadlessMenu.Item>
               <HeadlessMenu.Item>
                 {({ active }) => (
@@ -655,7 +661,6 @@ const DashboardLayout: React.FC = () => {
 
   return (
     <div className="h-screen flex overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800 font-sans">
-      {/* Mobile Sidebar */}
       {/* Mobile Sidebar */}
       <AnimatePresence>
         {sidebarOpen && (

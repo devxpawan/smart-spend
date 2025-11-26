@@ -1,5 +1,6 @@
 import Goal from "../models/Goal.js";
 import { sendMonthlyContributionNotification } from "./goalNotifications.js";
+import { createAchievement, checkMilestoneAchievements } from "./achievements.js"; // Add this line
 
 /**
  * Process monthly contributions for all goals that have a fixed monthly contribution amount
@@ -44,6 +45,21 @@ export const processMonthlyContributions = async () => {
           
           // Send notification and email
           await sendMonthlyContributionNotification(goal, goal.user, contributionAmount);
+          
+          // Check if goal is now completed
+          if (goal.savedAmount >= goal.targetAmount) {
+            // Goal completed! Award achievement
+            await createAchievement(goal.user._id, "GOAL_COMPLETED");
+            
+            // Count total completed goals for this user
+            const completedGoals = await Goal.countDocuments({
+              user: goal.user._id,
+              savedAmount: { $gte: goal.targetAmount }
+            });
+            
+            // Check for milestone achievements
+            await checkMilestoneAchievements(goal.user._id, completedGoals);
+          }
           
           console.log(`Added Rs.${contributionAmount} to goal "${goal.name}" for user ${goal.user.email}`);
           processedCount++;

@@ -151,7 +151,7 @@ const doughnutChartOptions = (
   },
 });
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [loadingStats, setLoadingStats] = useState(true);

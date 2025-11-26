@@ -2,6 +2,7 @@ import cron from "node-cron";
 import Goal from "../models/Goal.js";
 import User from "../models/User.js";
 import { sendMonthlyContributionNotification } from "../utils/goalNotifications.js";
+import { createAchievement, checkMilestoneAchievements } from "../utils/achievements.js"; // Add this line
 
 // This job runs on the first day of each month at midnight
 const monthlyContributionJob = cron.schedule("0 0 1 * *", async () => {
@@ -41,6 +42,21 @@ const monthlyContributionJob = cron.schedule("0 0 1 * *", async () => {
           
           // Send notification and email
           await sendMonthlyContributionNotification(goal, goal.user, contributionAmount);
+          
+          // Check if goal is now completed
+          if (goal.savedAmount >= goal.targetAmount) {
+            // Goal completed! Award achievement
+            await createAchievement(goal.user._id, "GOAL_COMPLETED");
+            
+            // Count total completed goals for this user
+            const completedGoals = await Goal.countDocuments({
+              user: goal.user._id,
+              savedAmount: { $gte: goal.targetAmount }
+            });
+            
+            // Check for milestone achievements
+            await checkMilestoneAchievements(goal.user._id, completedGoals);
+          }
           
           console.log(`Added Rs.${contributionAmount} to goal "${goal.name}" for user ${goal.user.email}`);
         }
