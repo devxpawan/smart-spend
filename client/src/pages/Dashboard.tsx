@@ -154,7 +154,7 @@ const doughnutChartOptions = (
   },
 });
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [loadingStats, setLoadingStats] = useState(true);
@@ -194,21 +194,16 @@ const Dashboard: React.FC = () => {
         Promise.all([
           api.get("/bills/upcoming/reminders"),
           api.get("/warranties/expiring/soon"),
-
           api.get("/goals"),
+          getCustomRemindersCount(),
         ]);
 
-      const [billsRes, warrantiesRes, goalsRes] = await retryWithBackoff(fetchData);
+      const [billsRes, warrantiesRes, goalsRes, customRemindersRes] = await retryWithBackoff(fetchData);
 
       // Calculate goals summary
       const activeGoals = goalsRes.data.filter((goal: any) => !goal.isAchieved);
       const totalGoalsTarget = activeGoals.reduce((sum: number, goal: any) => sum + goal.targetAmount, 0);
       const totalGoalsSaved = activeGoals.reduce((sum: number, goal: any) => sum + goal.currentAmount, 0);
-          getCustomRemindersCount(),
-        ]);
-
-      const [billsRes, warrantiesRes, customRemindersRes] = await retryWithBackoff(fetchData);
-
 
       setDashboardData((prev) => ({
         ...prev,
@@ -624,14 +619,9 @@ const Dashboard: React.FC = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6"
         >
           {loadingStats
-
             ? Array.from({ length: 5 }).map((_, idx) => (
                 <SkeletonCard key={idx} />
               ))
-            ? Array.from({ length: 4 }).map((_, idx) => (
-              <SkeletonCard key={idx} />
-            ))
-
             : statsCards.map((item, idx) => (
               <Link
                 to={item.link}

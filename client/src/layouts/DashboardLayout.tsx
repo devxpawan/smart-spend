@@ -18,6 +18,7 @@ import {
   TrendingUp,
   User,
   X as XIcon,
+  Trophy,
 } from "lucide-react";
 import React, {
   Fragment,
@@ -114,6 +115,12 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     path: "/goals",
     icon: <Target className="w-4 h-4" />,
     gradient: "from-emerald-500 to-teal-600",
+  },
+  {
+    name: "Achievements",
+    path: "/achievements",
+    icon: <Trophy className="w-4 h-4" />,
+    gradient: "from-yellow-500 to-orange-600",
   },
   {
     name: "Monthly View",

@@ -20,6 +20,7 @@ import BankAccounts from "./pages/BankAccounts";
 import Recurring from "./pages/Recurring";
 import Goals from "./pages/Goals";
 import CustomCategories from "./pages/CustomCategories";
+import Achievements from "./pages/Achievements"; // Add this line
 
 function App() {
   const { loading } = useAuth();
@@ -67,6 +68,9 @@ function App() {
 
           {/* Goal Planning */}
           <Route path="goals" element={<Goals />} />
+          
+          {/* Achievements */}
+          <Route path="achievements" element={<Achievements />} />
 
           {/* Warranty Routes */}
           <Route path="warranties" element={<Warranties />} />
