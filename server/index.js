@@ -43,7 +43,7 @@ const io = new Server(server, {
 });
 
 // Basic configuration
-const PORT = process.env.PORT || 50502; // Use fixed port 50502 for development
+const PORT = process.env.PORT || 50503; // Changed from 50502 to 50503 to avoid port conflict
 const MONGODB_URI = process.env.MONGODB_URI;
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -134,7 +134,6 @@ connectDB();
   app.use("/api/recurring", authenticateToken, recurringRoutes);
   app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
   app.use("/api/goals", authenticateToken, goalRoutes); // Add goals route
-  app.use("/api/monthly-contributions", authenticateToken, monthlyContributionRoutes); // Add this line
   app.use("/api/gemini", authenticateToken, GPTRouter); //gemini route
 
 // Default route
