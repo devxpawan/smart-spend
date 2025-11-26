@@ -1,4 +1,5 @@
 import Goal from "../models/Goal.js";
+import { sendMonthlyContributionNotification } from "./goalNotifications.js";
 
 /**
  * Process monthly contributions for all goals that have a fixed monthly contribution amount
@@ -21,7 +22,7 @@ export const processMonthlyContributions = async () => {
     for (const goal of goalsWithContributions) {
       try {
         // Check if the goal is not yet completed
-        if (goal.savedAmount < goal.targetAmount) {
+        if (goal.savedAmount < goal.targetAmount && goal.user && goal.user.isVerified) {
           // Add the monthly contribution to the goal
           const contributionAmount = Math.min(
             goal.monthlyContribution,
@@ -40,6 +41,9 @@ export const processMonthlyContributions = async () => {
           goal.updatedAt = Date.now();
           
           await goal.save();
+          
+          // Send notification and email
+          await sendMonthlyContributionNotification(goal, goal.user, contributionAmount);
           
           console.log(`Added Rs.${contributionAmount} to goal "${goal.name}" for user ${goal.user.email}`);
           processedCount++;

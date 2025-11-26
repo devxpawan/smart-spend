@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import Goal from "../models/Goal.js";
 import User from "../models/User.js";
+import { sendMonthlyContributionNotification } from "../utils/goalNotifications.js";
 
 // This job runs on the first day of each month at midnight
 const monthlyContributionJob = cron.schedule("0 0 1 * *", async () => {
@@ -18,7 +19,7 @@ const monthlyContributionJob = cron.schedule("0 0 1 * *", async () => {
     for (const goal of goalsWithContributions) {
       try {
         // Check if the goal is not yet completed
-        if (goal.savedAmount < goal.targetAmount) {
+        if (goal.savedAmount < goal.targetAmount && goal.user && goal.user.isVerified) {
           // Add the monthly contribution to the goal
           const contributionAmount = Math.min(
             goal.monthlyContribution,
@@ -37,6 +38,9 @@ const monthlyContributionJob = cron.schedule("0 0 1 * *", async () => {
           goal.updatedAt = Date.now();
           
           await goal.save();
+          
+          // Send notification and email
+          await sendMonthlyContributionNotification(goal, goal.user, contributionAmount);
           
           console.log(`Added Rs.${contributionAmount} to goal "${goal.name}" for user ${goal.user.email}`);
         }

@@ -29,6 +29,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
 import expenseWarningJob from "./jobs/expenseWarningJob.js"; // Import the expense warning job
 import monthlyContributionJob from "./jobs/monthlyContributionJob.js"; // Add this line
+import goalExpirationJob from "./jobs/goalExpirationJob.js"; // Add this line
 
 // Load environment variables
 dotenv.config();
