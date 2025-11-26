@@ -41,7 +41,6 @@ import BankAccountInterface from "../types/BankAccountInterface";
 import { getBankAccounts } from "../api/bankAccounts";
 import { getCustomRemindersCount } from "../api/billApi";
 
-
 ChartJS.register(
   ArcElement,
   Tooltip,
@@ -99,8 +98,6 @@ interface ErrorState {
   charts: string;
 }
 
-
-
 const doughnutChartOptions = (
   theme: string,
   formatCurrency: (amount: number) => string
@@ -135,7 +132,7 @@ const doughnutChartOptions = (
       caretSize: 6,
       caretPadding: 8,
       callbacks: {
-        label: (context: TooltipItem<'doughnut'>) => {
+        label: (context: TooltipItem<"doughnut">) => {
           const label = context.label || "";
           const value = context.parsed;
           const total = context.dataset.data.reduce(
@@ -198,12 +195,19 @@ const Dashboard = () => {
           getCustomRemindersCount(),
         ]);
 
-      const [billsRes, warrantiesRes, goalsRes, customRemindersRes] = await retryWithBackoff(fetchData);
+      const [billsRes, warrantiesRes, goalsRes, customRemindersRes] =
+        await retryWithBackoff(fetchData);
 
       // Calculate goals summary
       const activeGoals = goalsRes.data.filter((goal: any) => !goal.isAchieved);
-      const totalGoalsTarget = activeGoals.reduce((sum: number, goal: any) => sum + goal.targetAmount, 0);
-      const totalGoalsSaved = activeGoals.reduce((sum: number, goal: any) => sum + goal.currentAmount, 0);
+      const totalGoalsTarget = activeGoals.reduce(
+        (sum: number, goal: any) => sum + goal.targetAmount,
+        0
+      );
+      const totalGoalsSaved = activeGoals.reduce(
+        (sum: number, goal: any) => sum + goal.currentAmount,
+        0
+      );
 
       setDashboardData((prev) => ({
         ...prev,
@@ -307,8 +311,9 @@ const Dashboard = () => {
 
   const formatCurrency = useCallback(
     (amount: number) => {
-      return `${user?.preferences?.currency || "USD"
-        } ${amount.toLocaleString()}`;
+      return `${
+        user?.preferences?.currency || "USD"
+      } ${amount.toLocaleString()}`;
     },
     [user?.preferences?.currency]
   );
@@ -320,10 +325,18 @@ const Dashboard = () => {
         {
           data: dashboardData.categoryData.map((cat) => cat.total),
           backgroundColor: [
-            "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
+            "#1f77b4",
+            "#ff7f0e",
+            "#2ca02c",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
           ],
-          borderColor: theme === 'dark' ? "#1f2937" : "#ffffff",
+          borderColor: theme === "dark" ? "#1f2937" : "#ffffff",
           borderWidth: 2,
           hoverBorderWidth: 3,
           hoverOffset: 8,
@@ -340,10 +353,18 @@ const Dashboard = () => {
         {
           data: dashboardData.incomeCategoryData.map((cat) => cat.total),
           backgroundColor: [
-            "#2ca02c", "#1f77b4", "#ff7f0e", "#d62728", "#9467bd",
-            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"
+            "#2ca02c",
+            "#1f77b4",
+            "#ff7f0e",
+            "#d62728",
+            "#9467bd",
+            "#8c564b",
+            "#e377c2",
+            "#7f7f7f",
+            "#bcbd22",
+            "#17becf",
           ],
-          borderColor: theme === 'dark' ? "#1f2937" : "#ffffff",
+          borderColor: theme === "dark" ? "#1f2937" : "#ffffff",
           borderWidth: 2,
           hoverBorderWidth: 3,
           hoverOffset: 8,
@@ -623,69 +644,75 @@ const Dashboard = () => {
                 <SkeletonCard key={idx} />
               ))
             : statsCards.map((item, idx) => (
-              <Link
-                to={item.link}
-                key={idx}
-                className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border ${item.borderColor
-                  } dark:${item.darkBorderColor
-                  } hover:scale-[1.02] overflow-hidden backdrop-blur-lg ${item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
+                <Link
+                  to={item.link}
+                  key={idx}
+                  className={`group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border ${
+                    item.borderColor
+                  } dark:${
+                    item.darkBorderColor
+                  } hover:scale-[1.02] overflow-hidden backdrop-blur-lg ${
+                    item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
                   } min-h-[120px] sm:min-h-[140px]`}
-              >
-                {/* Background Gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-20 dark:opacity-10 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300`}></div>
+                >
+                  {/* Background Gradient */}
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-20 dark:opacity-10 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300`}
+                  ></div>
 
-                {/* Urgent indicator */}
-                {item.urgent && (
-                  <div className="absolute top-2 right-2">
-                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse"></div>
-                  </div>
-                )}
+                  {/* Urgent indicator */}
+                  {item.urgent && (
+                    <div className="absolute top-2 right-2">
+                      <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    </div>
+                  )}
 
-                <div className="relative z-10 h-full flex flex-col">
-                  <div className="flex items-start justify-between mb-3 sm:mb-4">
-                    <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
-                        <h3 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-wider">
-                          {item.title}
-                        </h3>
-                        {/* <span className="text-xs text-slate-500 font-medium">
+                  <div className="relative z-10 h-full flex flex-col">
+                    <div className="flex items-start justify-between mb-3 sm:mb-4">
+                      <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2">
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-700 dark:text-gray-200 uppercase tracking-wider">
+                            {item.title}
+                          </h3>
+                          {/* <span className="text-xs text-slate-500 font-medium">
                         {item.subtitle}
                       </span> */}
-                      </div>
-                      <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
-                        {item.value}
-                      </p>
-                      {/* Custom Reminders Count */}
-                      {item.customRemindersCount !== undefined && item.customRemindersCount > 0 && (
-                        <div className="flex items-center space-x-1.5 mt-2">
-                          <AlarmClock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
-                           Reminders:  {item.customRemindersCount}
-                          </span>
                         </div>
+                        <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 dark:text-white break-words">
+                          {item.value}
+                        </p>
+                        {/* Custom Reminders Count */}
+                        {item.customRemindersCount !== undefined &&
+                          item.customRemindersCount > 0 && (
+                            <div className="flex items-center space-x-1.5 mt-2">
+                              <AlarmClock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                Reminders: {item.customRemindersCount}
+                              </span>
+                            </div>
+                          )}
+                      </div>
+                      <div
+                        className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg flex-shrink-0 ml-2`}
+                      >
+                        <span className="text-white">{item.icon}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 font-medium group-hover:text-slate-800 dark:group-hover:text-white transition-colors flex items-center">
+                        View Details
+                        <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
+                      </span>
+                      {item.urgent && (
+                        <span className="text-xs text-red-600 font-semibold">
+                          URGENT
+                        </span>
                       )}
                     </div>
-                    <div
-                      className={`p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r ${item.gradient} shadow-lg flex-shrink-0 ml-2`}
-                    >
-                      <span className="text-white">{item.icon}</span>
-                    </div>
                   </div>
-
-                  <div className="flex items-center justify-between mt-auto">
-                    <span className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 font-medium group-hover:text-slate-800 dark:group-hover:text-white transition-colors flex items-center">
-                      View Details
-                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
-                    </span>
-                    {item.urgent && (
-                      <span className="text-xs text-red-600 font-semibold">
-                        URGENT
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
         </motion.section>
 
         {/* Bank Accounts Section */}
@@ -701,7 +728,10 @@ const Dashboard = () => {
           {bankAccountsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Array.from({ length: 2 }).map((_, idx) => (
-                <div key={idx} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 animate-pulse">
+                <div
+                  key={idx}
+                  className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 animate-pulse"
+                >
                   <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
                   <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
                 </div>
@@ -727,9 +757,7 @@ const Dashboard = () => {
                           {formatCurrency(account.currentBalance)}
                         </p>
                       </div>
-                      <div
-                        className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg flex-shrink-0 ml-2"
-                      >
+                      <div className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg flex-shrink-0 ml-2">
                         <CreditCard className="w-7 h-7 text-white" />
                       </div>
                     </div>
@@ -798,7 +826,7 @@ const Dashboard = () => {
                 </div>
                 <div className="h-64 sm:h-72 lg:h-80">
                   {dashboardData.monthlyExpenseData.length > 0 ||
-                    dashboardData.monthlyIncomeData.length > 0 ? (
+                  dashboardData.monthlyIncomeData.length > 0 ? (
                     <Line
                       data={monthlyChartData}
                       options={{
@@ -820,7 +848,10 @@ const Dashboard = () => {
                           y: {
                             beginAtZero: true,
                             grid: {
-                              color: theme === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)",
+                              color:
+                                theme === "dark"
+                                  ? "rgba(255, 255, 255, 0.1)"
+                                  : "rgba(0, 0, 0, 0.05)",
                               lineWidth: 1,
                               drawTicks: false,
                             },
@@ -833,14 +864,17 @@ const Dashboard = () => {
                               callback: (value) => {
                                 const numValue = Number(value);
                                 if (numValue >= 1000000) {
-                                  return `${user?.preferences?.currency || "USD"
-                                    }${(numValue / 1000000).toFixed(1)}M`;
+                                  return `${
+                                    user?.preferences?.currency || "USD"
+                                  }${(numValue / 1000000).toFixed(1)}M`;
                                 } else if (numValue >= 1000) {
-                                  return `${user?.preferences?.currency || "USD"
-                                    }${(numValue / 1000).toFixed(0)}K`;
+                                  return `${
+                                    user?.preferences?.currency || "USD"
+                                  }${(numValue / 1000).toFixed(0)}K`;
                                 }
-                                return `${user?.preferences?.currency || "USD"
-                                  }${numValue.toLocaleString()}`;
+                                return `${
+                                  user?.preferences?.currency || "USD"
+                                }${numValue.toLocaleString()}`;
                               },
                               font: {
                                 size: 11,
@@ -915,15 +949,17 @@ const Dashboard = () => {
                             caretPadding: 8,
                             callbacks: {
                               title: (context) => {
-                                return `${context[0].label
-                                  } ${new Date().getFullYear()}`;
+                                return `${
+                                  context[0].label
+                                } ${new Date().getFullYear()}`;
                               },
                               label: (context) => {
                                 const label = context.dataset.label || "";
                                 const value = context.parsed.y;
                                 if (value !== null) {
-                                  return `${label}: ${user?.preferences?.currency || "USD"
-                                    }${value.toLocaleString()}`;
+                                  return `${label}: ${
+                                    user?.preferences?.currency || "USD"
+                                  }${value.toLocaleString()}`;
                                 }
                                 return "";
                               },
@@ -982,12 +1018,22 @@ const Dashboard = () => {
                         <>
                           <Doughnut
                             data={expenseCategoryChartData}
-                            options={doughnutChartOptions(theme, formatCurrency)}
+                            options={doughnutChartOptions(
+                              theme,
+                              formatCurrency
+                            )}
                           />
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Total</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Total
+                            </span>
                             <span className="text-lg font-bold text-gray-800 dark:text-white">
-                              {formatCurrency(dashboardData.categoryData.reduce((acc, cat) => acc + cat.total, 0))}
+                              {formatCurrency(
+                                dashboardData.categoryData.reduce(
+                                  (acc, cat) => acc + cat.total,
+                                  0
+                                )
+                              )}
                             </span>
                           </div>
                         </>
@@ -1007,12 +1053,22 @@ const Dashboard = () => {
                         <>
                           <Doughnut
                             data={incomeCategoryChartData}
-                            options={doughnutChartOptions(theme, formatCurrency)}
+                            options={doughnutChartOptions(
+                              theme,
+                              formatCurrency
+                            )}
                           />
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Total</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Total
+                            </span>
                             <span className="text-lg font-bold text-gray-800 dark:text-white">
-                              {formatCurrency(dashboardData.incomeCategoryData.reduce((acc, cat) => acc + cat.total, 0))}
+                              {formatCurrency(
+                                dashboardData.incomeCategoryData.reduce(
+                                  (acc, cat) => acc + cat.total,
+                                  0
+                                )
+                              )}
                             </span>
                           </div>
                         </>

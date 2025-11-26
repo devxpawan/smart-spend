@@ -198,6 +198,11 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                     {(goal.targetAmount - goal.savedAmount).toLocaleString()}
                   </span>
                 </div>
+                {goal.monthlyContribution && goal.monthlyContribution > 0 && (
+                  <div className="mt-2 text-sm text-purple-700 dark:text-purple-300">
+                    Monthly contribution: Rs {goal.monthlyContribution.toLocaleString()}
+                  </div>
+                )}
               </div>
             )}
 

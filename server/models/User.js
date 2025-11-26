@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import {
+    DEFAULT_EXPENSE_CATEGORIES,
+    DEFAULT_INCOME_CATEGORIES,
+} from "../utils/constants.js";
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -29,25 +33,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
-  preferences: {
-    currency: {
-      type: String,
-      default: "Rs",
-    },
-  },
-  // Custom categories for income and expenses
-  customIncomeCategories: {
-    type: [String],
-    default: [],
-  },
-  customExpenseCategories: {
-    type: [String],
-    default: [],
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
   otp: {
     type: String,
   },
@@ -63,6 +48,20 @@ const userSchema = new mongoose.Schema({
   },
   passwordResetExpires: {
     type: Date,
+  },
+  incomeCategories: {
+    type: [String],
+    default: DEFAULT_INCOME_CATEGORIES,
+  },
+  expenseCategories: {
+    type: [String],
+    default: DEFAULT_EXPENSE_CATEGORIES,
+  },
+  preferences: {
+    currency: {
+      type: String,
+      default: "USD",
+    },
   },
 });
 

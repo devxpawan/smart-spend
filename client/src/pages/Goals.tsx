@@ -110,6 +110,12 @@ const Goals: React.FC = () => {
 
   // Calculate monthly saving amount
   const calculateMonthlySaving = (goal: GoalInterface) => {
+    // If user has set a fixed monthly contribution, use that
+    if (goal.monthlyContribution && goal.monthlyContribution > 0) {
+      return goal.monthlyContribution;
+    }
+    
+    // Otherwise calculate based on remaining amount and time
     const startDate = new Date(goal.startDate);
     const targetDate = new Date(goal.targetDate);
     const months = (targetDate.getFullYear() - startDate.getFullYear()) * 12 + 
@@ -284,6 +290,11 @@ const Goals: React.FC = () => {
                       <div className="text-lg font-semibold text-slate-800 dark:text-white">
                         Rs {monthlySaving.toLocaleString()}
                       </div>
+                      {goal.monthlyContribution && goal.monthlyContribution > 0 && (
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Fixed amount
+                        </div>
+                      )}
                     </div>
                     <div className="bg-indigo-50 dark:bg-gray-700 rounded-lg p-3">
                       <div className="flex items-center text-indigo-600 dark:text-indigo-400 mb-1">

@@ -18,8 +18,7 @@ import bankAccountRoutes from "./routes/bankAccounts.js";
 import recurringRoutes from "./routes/recurring.js";
 import notificationRoutes from "./routes/notifications.js"; // Add notifications route
 import goalRoutes from "./routes/goals.js"; // Add goals route
-// Removed monthlyContributionRoutes import as the file doesn't exist
-import achievementRoutes from "./routes/achievements.js"; // Add this line
+import achievementRoutes from "./routes/achievements.js"; // Add achievements route
 import GPTRouter from "./AI-Service/Gemini-Route.js"; //gemini route
 
 // Middleware
@@ -29,6 +28,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 // Jobs
 import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
 import expenseWarningJob from "./jobs/expenseWarningJob.js"; // Import the expense warning job
+import goalExpirationJob from "./jobs/goalExpirationJob.js"; // Add this line
 
 // Load environment variables
 dotenv.config();
@@ -42,7 +42,7 @@ const io = new Server(server, {
 });
 
 // Basic configuration
-const PORT = process.env.PORT || 50502; // Use fixed port 50502 for development
+const PORT = process.env.PORT || 50503; // Changed from 50502 to 50503 to avoid port conflict
 const MONGODB_URI = process.env.MONGODB_URI;
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -95,7 +95,6 @@ app.use(
 );
 app.use(express.json());
 
-
 // CSP middleware
 app.use((req, res, next) => {
   res.setHeader(
@@ -133,8 +132,7 @@ app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
 app.use("/api/recurring", authenticateToken, recurringRoutes);
 app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
 app.use("/api/goals", authenticateToken, goalRoutes); // Add goals route
-// Removed monthlyContributionRoutes as the file doesn't exist
-app.use("/api/achievements", authenticateToken, achievementRoutes); // Add this line
+app.use("/api/achievements", authenticateToken, achievementRoutes); // Add achievements route
 app.use("/api/gemini", authenticateToken, GPTRouter); //gemini route
 
 // Default route

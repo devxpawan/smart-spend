@@ -62,6 +62,15 @@ router.post(
           return true;
         }),
       check("targetDate", "Target date is required").isISO8601(),
+      check("monthlyContribution", "Monthly contribution must be a number")
+        .optional()
+        .isNumeric()
+        .custom((value) => {
+          if (parseFloat(value) < 0) {
+            throw new Error("Monthly contribution cannot be negative");
+          }
+          return true;
+        }),
     ],
   ],
   async (req, res) => {
@@ -71,7 +80,7 @@ router.post(
     }
 
     try {
-      const { name, targetAmount, targetDate, description } = req.body;
+      const { name, targetAmount, targetDate, description, monthlyContribution } = req.body;
 
       // Validate target date is in the future
       const targetDateObj = new Date(targetDate);
@@ -88,6 +97,7 @@ router.post(
         targetAmount: parseFloat(targetAmount),
         targetDate: targetDateObj,
         description: description || "",
+        monthlyContribution: monthlyContribution ? parseFloat(monthlyContribution) : 0, // Add this line
       });
 
       const goal = await newGoal.save();
@@ -120,6 +130,15 @@ router.put(
       check("targetDate", "Target date must be a valid date")
         .optional()
         .isISO8601(),
+      check("monthlyContribution", "Monthly contribution must be a number")
+        .optional()
+        .isNumeric()
+        .custom((value) => {
+          if (parseFloat(value) < 0) {
+            throw new Error("Monthly contribution cannot be negative");
+          }
+          return true;
+        }),
     ],
   ],
   async (req, res) => {
@@ -129,7 +148,7 @@ router.put(
     }
 
     try {
-      const { name, targetAmount, targetDate, description } = req.body;
+      const { name, targetAmount, targetDate, description, monthlyContribution } = req.body;
 
       // Build goal object
       const goalFields = {};
@@ -146,6 +165,7 @@ router.put(
         goalFields.targetDate = targetDateObj;
       }
       if (description !== undefined) goalFields.description = description;
+      if (monthlyContribution !== undefined) goalFields.monthlyContribution = parseFloat(monthlyContribution); // Add this line
 
       let goal = await Goal.findOne({
         _id: req.params.id,

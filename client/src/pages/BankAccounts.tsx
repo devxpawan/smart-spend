@@ -1,7 +1,9 @@
+import { AxiosError } from "axios";
 import { AnimatePresence, motion } from "framer-motion";
-import { Edit, Landmark, PlusCircle, Trash2, X, ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowUp, Edit, Landmark, PlusCircle, Trash2, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import toast from "react-hot-toast"; // Import react-hot-toast
 import {
   createBankAccount,
   deleteBankAccount,
@@ -11,10 +13,8 @@ import {
 import ConfirmModal from "../components/ConfirmModal";
 import CustomSelect from "../components/CustomSelect";
 import { useAuth } from "../contexts/auth-exports";
-import BankAccountInterface from "../types/BankAccountInterface";
 import banksData from "../lib/banks.json"; // Import the banks data
-import toast from "react-hot-toast"; // Import react-hot-toast
-import { AxiosError } from "axios";
+import BankAccountInterface from "../types/BankAccountInterface";
 import { retryWithBackoff } from "../utils/retry";
 
 interface BankAccountFormState {
@@ -55,7 +55,18 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
     accountType: "Checking",
     initialBalance: 0,
   });
-  const [accountNameError, setAccountNameError] = useState<string | undefined>(undefined);
+  
+  // Error states
+  const [errors, setErrors] = useState<{
+    bankName?: string;
+    accountName?: string;
+    initialBalance?: string;
+  }>({});
+  const [touched, setTouched] = useState<{
+    bankName?: boolean;
+    accountName?: boolean;
+    initialBalance?: boolean;
+  }>({});
 
   useEffect(() => {
     if (initialData) {
@@ -73,17 +84,78 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
         initialBalance: 0,
       });
     }
-    setAccountNameError(undefined); // Reset error when modal opens or data changes
-  }, [initialData]);
+    setErrors({});
+    setTouched({});
+  }, [initialData, isOpen]);
+
+  // Validation functions
+  const validateBankName = (value: string): string | undefined => {
+    if (!value || value.trim() === "") {
+      return "Bank name is required";
+    }
+    return undefined;
+  };
+
+  const validateAccountName = (value: string): string | undefined => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return "Account name is required";
+    }
+    if (trimmed.length < 3) {
+      return "Account name must be at least 3 characters";
+    }
+    if (trimmed.length > 50) {
+      return "Account name must not exceed 50 characters";
+    }
+    return undefined;
+  };
+
+  const validateInitialBalance = (value: number, accountType: string): string | undefined => {
+    if (isNaN(value)) {
+      return "Please enter a valid number";
+    }
+    // Credit cards can have negative balance (debt)
+    if (accountType !== "Credit Card" && value < 0) {
+      return "Balance cannot be negative for this account type";
+    }
+    // Set a reasonable maximum
+    if (Math.abs(value) > 999999999) {
+      return "Balance amount is too large";
+    }
+    return undefined;
+  };
+
+  // Validate all fields
+  const validateForm = (): boolean => {
+    const newErrors: typeof errors = {
+      bankName: validateBankName(formData.bankName),
+      accountName: validateAccountName(formData.accountName),
+      initialBalance: validateInitialBalance(formData.initialBalance, formData.accountType),
+    };
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => error !== undefined);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    const newValue = name === "initialBalance" ? parseFloat(value) || 0 : value;
+    
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "initialBalance" ? parseFloat(value) : value,
+      [name]: newValue,
     }));
-    if (name === "accountName") {
-      setAccountNameError(undefined); // Clear error when user types
+
+    // Real-time validation for touched fields
+    if (touched[name as keyof typeof touched]) {
+      if (name === "accountName") {
+        setErrors(prev => ({ ...prev, accountName: validateAccountName(value) }));
+      } else if (name === "initialBalance") {
+        setErrors(prev => ({ 
+          ...prev, 
+          initialBalance: validateInitialBalance(parseFloat(value) || 0, formData.accountType) 
+        }));
+      }
     }
   };
 
@@ -92,17 +164,55 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
       ...prev,
       [name]: value,
     }));
-    if (name === "bankName") {
-      setAccountNameError(undefined); // Clear error when bank name changes
+
+    // Revalidate initial balance if account type changes
+    if (name === "accountType" && touched.initialBalance) {
+      setErrors(prev => ({ 
+        ...prev, 
+        initialBalance: validateInitialBalance(formData.initialBalance, value) 
+      }));
+    }
+
+    // Real-time validation for touched fields
+    if (touched[name as keyof typeof touched] && name === "bankName") {
+      setErrors(prev => ({ ...prev, bankName: validateBankName(value) }));
+    }
+  };
+
+  const handleBlur = (field: keyof typeof touched) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    
+    // Validate on blur
+    if (field === "bankName") {
+      setErrors(prev => ({ ...prev, bankName: validateBankName(formData.bankName) }));
+    } else if (field === "accountName") {
+      setErrors(prev => ({ ...prev, accountName: validateAccountName(formData.accountName) }));
+    } else if (field === "initialBalance") {
+      setErrors(prev => ({ 
+        ...prev, 
+        initialBalance: validateInitialBalance(formData.initialBalance, formData.accountType) 
+      }));
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setAccountNameError(undefined); // Clear previous error before new submission
+    
+    // Mark all fields as touched
+    setTouched({
+      bankName: true,
+      accountName: true,
+      initialBalance: true,
+    });
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
     const error = await onSave(formData, initialData?._id);
     if (error) {
-      setAccountNameError(error);
+      setErrors(prev => ({ ...prev, accountName: error }));
     }
   };
 
@@ -161,14 +271,19 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
                 >
                   Bank Name
                 </label>
-                <CustomSelect
-                  options={bankNameOptions}
-                  value={formData.bankName}
-                  onChange={(value) => handleSelectChange(value, "bankName")}
-                  className="w-full"
-                  placeholder="Select Bank"
-                  isSearchable={true}
-                />
+                <div>
+                  <CustomSelect
+                    options={bankNameOptions}
+                    value={formData.bankName}
+                    onChange={(value) => handleSelectChange(value, "bankName")}
+                    className="w-full"
+                    placeholder="Select Bank"
+                    isSearchable={true}
+                  />
+                  {touched.bankName && errors.bankName && (
+                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.bankName}</p>
+                  )}
+                </div>
               </div>
               <div>
                 <label
@@ -183,14 +298,14 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
                   id="accountName"
                   value={formData.accountName}
                   onChange={handleChange}
+                  onBlur={() => handleBlur("accountName")}
                   placeholder="e.g., My Savings Account"
                   className={`form-input block w-full px-3 py-1.5 sm:py-2 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 text-sm transition duration-150 ease-in-out
-                    ${accountNameError ? "border-red-500 focus:ring-red-500" : "border-slate-300 dark:border-gray-600 focus:ring-indigo-500"}
+                    ${touched.accountName && errors.accountName ? "border-red-500 focus:ring-red-500" : "border-slate-300 dark:border-gray-600 focus:ring-indigo-500"}
                   `}
-                  required
                 />
-                {accountNameError && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{accountNameError}</p>
+                {touched.accountName && errors.accountName && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.accountName}</p>
                 )}
               </div>
               <div>
@@ -220,11 +335,21 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
                   id="initialBalance"
                   value={isNaN(formData.initialBalance) ? "" : formData.initialBalance}
                   onChange={handleChange}
+                  onBlur={() => handleBlur("initialBalance")}
                   placeholder="0.00"
-                  className="form-input block w-full px-3 py-1.5 sm:py-2 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition duration-150 ease-in-out"
-                  required
+                  className={`form-input block w-full px-3 py-1.5 sm:py-2 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 text-sm transition duration-150 ease-in-out
+                    ${touched.initialBalance && errors.initialBalance ? "border-red-500 focus:ring-red-500" : "border-slate-300 dark:border-gray-600 focus:ring-indigo-500"}
+                  `}
                   step="0.01"
                 />
+                {touched.initialBalance && errors.initialBalance && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.initialBalance}</p>
+                )}
+                {formData.accountType === "Credit Card" && (
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    💡 Tip: For credit cards, enter negative values to represent debt
+                  </p>
+                )}
               </div>
 
               {/* Action Buttons */}

@@ -6,7 +6,7 @@
 -   **Warranty Management**: Store product warranty details, set reminders, and generate QR codes for public access.
 -   **User Authentication**: Secure login/registration, Google OAuth, and protected routes.
 -   **Goal Planning**: Set financial goals with fixed monthly contributions that are automatically added.
--   **Achievement System**: Earn badges and rewards for completing financial milestones.
+
 -   **Automated Notifications**: Receive email and in-app notifications for goal expirations and contributions.
 -   **Data & Security**: Visual analytics, JWT authentication, password hashing, and input validation.
 -   **Cloud Integration**: Cloudinary for image uploads (warranty documents, user avatars).
@@ -115,21 +115,6 @@ Several background jobs run automatically:
 - First day of each month: Process monthly contributions for all goals
 - Daily at midnight: Process recurring transactions
 
-## Achievement System
-
-### Types of Achievements
-- **Goal Completed**: Earned when you successfully complete a financial goal
-- **First Contribution**: Awarded for making your first contribution to any goal
-- **Milestone Achievements**: 
-  - Triple Threat: Complete 3 financial goals
-  - High Five: Complete 5 financial goals
-  - Goal Master: Complete 10 financial goals
-
-### How It Works
-1. Achievements are automatically awarded when you complete specific actions
-2. New achievements appear in your achievements list with a "NEW" badge
-3. Each achievement comes with a unique icon and description
-4. Track your progress and celebrate your financial milestones
 
 ## License
 

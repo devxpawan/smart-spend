@@ -8,7 +8,7 @@ const router = express.Router();
 router.use(authenticateToken);
 
 // @route   PUT api/user/categories/income
-// @desc    Update user's custom income categories
+// @desc    Update user's income categories
 // @access  Private
 router.put('/categories/income', async (req, res) => {
   console.log('PUT /api/user/categories/income called');
@@ -32,7 +32,7 @@ router.put('/categories/income', async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { customIncomeCategories: validCategories },
+      { incomeCategories: validCategories },
       { new: true }
     ).select('-password');
 
@@ -44,7 +44,7 @@ router.put('/categories/income', async (req, res) => {
 });
 
 // @route   PUT api/user/categories/expense
-// @desc    Update user's custom expense categories
+// @desc    Update user's expense categories
 // @access  Private
 router.put('/categories/expense', async (req, res) => {
   console.log('PUT /api/user/categories/expense called');
@@ -68,7 +68,7 @@ router.put('/categories/expense', async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { customExpenseCategories: validCategories },
+      { expenseCategories: validCategories },
       { new: true }
     ).select('-password');
 

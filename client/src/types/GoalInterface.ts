@@ -7,6 +7,7 @@ export default interface GoalInterface {
   startDate: string;
   targetDate: string;
   description: string;
+  monthlyContribution?: number; // Add this line
   contributions: {
     amount: number;
     date: string;
@@ -21,4 +22,5 @@ export interface GoalFormData {
   targetAmount: number | string;
   targetDate: string;
   description: string;
+  monthlyContribution?: number | string; // Add this line
 }

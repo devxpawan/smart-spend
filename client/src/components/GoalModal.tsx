@@ -15,6 +15,7 @@ interface FormErrors {
   name?: string;
   targetAmount?: string;
   targetDate?: string;
+  monthlyContribution?: string;
 }
 
 const GoalModal: React.FC<GoalModalProps> = ({
@@ -30,6 +31,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
       .toISOString()
       .split("T")[0], // Default to 30 days from now
     description: "",
+    monthlyContribution: "",
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -45,6 +47,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
         targetAmount: initialData.targetAmount,
         targetDate: new Date(initialData.targetDate).toISOString().split("T")[0],
         description: initialData.description,
+        monthlyContribution: initialData.monthlyContribution || "",
       });
     } else {
       setFormData({
@@ -54,6 +57,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
           .toISOString()
           .split("T")[0], // Default to 30 days from now
         description: "",
+        monthlyContribution: "",
       });
     }
     setErrors({});
@@ -82,6 +86,11 @@ const GoalModal: React.FC<GoalModalProps> = ({
       } else if (targetDate < today) {
         newErrors.targetDate = "Target date must be in the future";
       }
+    }
+
+    // Validate monthly contribution if provided
+    if (formData.monthlyContribution && parseFloat(formData.monthlyContribution as string) <= 0) {
+      newErrors.monthlyContribution = "Please enter a valid monthly contribution amount";
     }
 
     setErrors(newErrors);
@@ -121,6 +130,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
       await onSubmit({
         ...formData,
         targetAmount: parseFloat(formData.targetAmount as string),
+        monthlyContribution: formData.monthlyContribution ? parseFloat(formData.monthlyContribution as string) : undefined,
       });
       onClose();
     } catch (err) {
@@ -369,6 +379,52 @@ const GoalModal: React.FC<GoalModalProps> = ({
                       <span className="text-sm">{errors.targetDate}</span>
                     </div>
                   )}
+                </div>
+
+                {/* Monthly Contribution */}
+                <div>
+                  <label
+                    htmlFor="monthlyContribution"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                  >
+                    Monthly Contribution (Optional)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <p className="h-6 w-5 text-slate-400 dark:text-gray-500">Rs.</p>
+                    </div>
+                    <input
+                      type="number"
+                      name="monthlyContribution"
+                      id="monthlyContribution"
+                      value={formData.monthlyContribution}
+                      onChange={handleChange}
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
+                        errors.monthlyContribution
+                          ? "border-red-300 focus:ring-red-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-purple-500"
+                      }`}
+                      aria-invalid={errors.monthlyContribution ? "true" : "false"}
+                      aria-describedby={
+                        errors.monthlyContribution ? "monthlyContribution-error" : undefined
+                      }
+                    />
+                  </div>
+                  {errors.monthlyContribution && (
+                    <div
+                      id="monthlyContribution-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{errors.monthlyContribution}</span>
+                    </div>
+                  )}
+                  <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
+                    Set a fixed amount to contribute each month toward this goal
+                  </p>
                 </div>
 
                 {/* Description */}

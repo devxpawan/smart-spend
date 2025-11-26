@@ -33,6 +33,11 @@ const goalSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  monthlyContribution: { // Add this field
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   contributions: [
     {
       amount: {
@@ -62,6 +67,7 @@ const goalSchema = new mongoose.Schema({
 // Index for faster querying
 goalSchema.index({ user: 1 });
 goalSchema.index({ targetDate: 1 });
+goalSchema.index({ monthlyContribution: 1 }); // Add index for monthly contributions
 
 const Goal = mongoose.model("Goal", goalSchema);
 
