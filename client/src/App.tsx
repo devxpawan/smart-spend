@@ -1,26 +1,25 @@
-import { Routes, Route } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
+import ErrorBoundary from "./components/ErrorBoundary";
 import DashboardLayout from "./layouts/DashboardLayout";
+import Bills from "./pages/Bills";
 import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
 import Incomes from "./pages/Incomes";
-import ErrorBoundary from "./components/ErrorBoundary";
-import Bills from "./pages/Bills";
 import MonthlyBreakdown from "./pages/MonthlyBreakdown";
 
-import NotFound from "./pages/NotFound";
+import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 import PrivateRoute from "./components/PrivateRoute";
 import { useAuth } from "./contexts/auth-exports";
-import Profile from "./pages/Profile";
-import LoginRegister from "./pages/LoginRegister";
 import About from "./pages/About";
-import Warranties from "./pages/Warranties";
-import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
-import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 import BankAccounts from "./pages/BankAccounts";
-import Recurring from "./pages/Recurring";
-import Goals from "./pages/Goals";
 import CustomCategories from "./pages/CustomCategories";
-import Achievements from "./pages/Achievements"; // Add this line
+import GoalsAndAchievements from "./pages/GoalsAndAchievements";
+import LoginRegister from "./pages/LoginRegister";
+import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
+import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
+import Recurring from "./pages/Recurring";
+import Warranties from "./pages/Warranties";
 
 function App() {
   const { loading } = useAuth();
@@ -66,11 +65,8 @@ function App() {
           {/* Recurring Transactions */}
           <Route path="recurring" element={<Recurring />} />
 
-          {/* Goal Planning */}
-          <Route path="goals" element={<Goals />} />
-          
-          {/* Achievements */}
-          <Route path="achievements" element={<Achievements />} />
+          {/* Goal Planning & Achievements */}
+          <Route path="goals" element={<GoalsAndAchievements />} />
 
           {/* Warranty Routes */}
           <Route path="warranties" element={<Warranties />} />
