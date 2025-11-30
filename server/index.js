@@ -42,7 +42,7 @@ const io = new Server(server, {
 });
 
 // Basic configuration
-const PORT = process.env.PORT || 50503; // Changed from 50502 to 50503 to avoid port conflict
+const PORT = process.env.PORT || 5000; 
 const MONGODB_URI = process.env.MONGODB_URI;
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGINS
