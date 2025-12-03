@@ -188,10 +188,18 @@ const BillModal: React.FC<BillModalProps> = ({
       }
     }
 
-    if (formData.reminderDate) { // 👈 Check if it has a value
+    if (formData.reminderDate) {
       const reminderDate = new Date(formData.reminderDate);
+      const dueDate = new Date(formData.dueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for fair comparison
+
       if (isNaN(reminderDate.getTime())) {
         newErrors.reminderDate = "Please enter a valid date";
+      } else if (reminderDate < today) {
+        newErrors.reminderDate = "Reminder date cannot be in the past";
+      } else if (reminderDate >= dueDate) {
+        newErrors.reminderDate = "Reminder date must be before the due date";
       }
     }
 
