@@ -18,6 +18,7 @@ interface SortConfig {
 interface FilterConfig {
   searchTerm: string;
   status: "all" | "active" | "completed";
+  contributionFrequency: "all" | "daily" | "weekly" | "monthly";
 }
 
 const Goals: React.FC = () => {
@@ -46,6 +47,7 @@ const Goals: React.FC = () => {
   const [filters, setFilters] = useState<FilterConfig>({
     searchTerm: "",
     status: "all",
+    contributionFrequency: "all",
   });
 
   // Pagination states
@@ -211,6 +213,18 @@ const Goals: React.FC = () => {
       });
     }
     
+    // Apply contribution frequency filter
+    if (filters.contributionFrequency !== "all") {
+      filtered = filtered.filter(goal => {
+        // If goal has a contribution frequency, check if it matches the filter
+        if (goal.contributionFrequency) {
+          return goal.contributionFrequency === filters.contributionFrequency;
+        }
+        // If goal doesn't have a contribution frequency, it defaults to monthly
+        return filters.contributionFrequency === "monthly";
+      });
+    }
+    
     // Apply sorting
     filtered.sort((a, b) => {
       let valueA: number | string | Date;
@@ -373,6 +387,29 @@ const Goals: React.FC = () => {
               <option value="all">All Goals</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          {/* Contribution Frequency Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+              Frequency:
+            </label>
+            <select
+              value={filters.contributionFrequency}
+              onChange={(e) => {
+                setFilters((prev) => ({
+                  ...prev,
+                  contributionFrequency: e.target.value as FilterConfig["contributionFrequency"],
+                }));
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-40 px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm transition duration-150 ease-in-out"
+            >
+              <option value="all">All Frequencies</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
             </select>
           </div>
 
