@@ -72,6 +72,9 @@ router.post(
           }
           return true;
         }),
+      check("contributionFrequency", "Contribution frequency must be one of: daily, weekly, monthly")
+        .optional()
+        .isIn(["daily", "weekly", "monthly"]),
     ],
   ],
   async (req, res) => {
@@ -81,7 +84,7 @@ router.post(
     }
 
     try {
-      const { name, targetAmount, targetDate, description, monthlyContribution } = req.body;
+      const { name, targetAmount, targetDate, description, monthlyContribution, contributionFrequency } = req.body;
 
       // Validate target date is in the future
       const targetDateObj = new Date(targetDate);
@@ -98,7 +101,8 @@ router.post(
         targetAmount: parseFloat(targetAmount),
         targetDate: targetDateObj,
         description: description || "",
-        monthlyContribution: monthlyContribution ? parseFloat(monthlyContribution) : 0, // Add this line
+        monthlyContribution: monthlyContribution ? parseFloat(monthlyContribution) : 0,
+        contributionFrequency: contributionFrequency || "monthly",
       });
 
       const goal = await newGoal.save();
@@ -140,6 +144,9 @@ router.put(
           }
           return true;
         }),
+      check("contributionFrequency", "Contribution frequency must be one of: daily, weekly, monthly")
+        .optional()
+        .isIn(["daily", "weekly", "monthly"]),
     ],
   ],
   async (req, res) => {
@@ -149,7 +156,7 @@ router.put(
     }
 
     try {
-      const { name, targetAmount, targetDate, description, monthlyContribution } = req.body;
+      const { name, targetAmount, targetDate, description, monthlyContribution, contributionFrequency } = req.body;
 
       // Build goal object
       const goalFields = {};
@@ -166,7 +173,8 @@ router.put(
         goalFields.targetDate = targetDateObj;
       }
       if (description !== undefined) goalFields.description = description;
-      if (monthlyContribution !== undefined) goalFields.monthlyContribution = parseFloat(monthlyContribution); // Add this line
+      if (monthlyContribution !== undefined) goalFields.monthlyContribution = parseFloat(monthlyContribution);
+      if (contributionFrequency !== undefined) goalFields.contributionFrequency = contributionFrequency;
 
       let goal = await Goal.findOne({
         _id: req.params.id,

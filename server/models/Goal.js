@@ -38,6 +38,11 @@ const goalSchema = new mongoose.Schema({
     default: 0,
     min: 0,
   },
+  contributionFrequency: {
+    type: String,
+    enum: ["daily", "weekly", "monthly"],
+    default: "monthly",
+  },
   contributions: [
     {
       amount: {
