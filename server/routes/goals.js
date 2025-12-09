@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import { check, validationResult } from "express-validator";
 import Goal from "../models/Goal.js";
+import BankAccount from "../models/BankAccount.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { createAchievement, checkMilestoneAchievements } from "../utils/achievements.js";
 
@@ -237,6 +238,9 @@ router.post(
           }
           return true;
         }),
+      check("bankAccountId", "Bank account ID must be a valid MongoDB ID")
+        .optional()
+        .isMongoId(),
     ],
   ],
   async (req, res) => {
@@ -246,7 +250,7 @@ router.post(
     }
 
     try {
-      const { amount, description } = req.body;
+      const { amount, description, bankAccountId } = req.body;
 
       const goal = await Goal.findOne({
         _id: req.params.id,
@@ -257,6 +261,24 @@ router.post(
         return res.status(404).json({ message: "Goal not found" });
       }
 
+      // If a bank account is specified, validate it belongs to the user
+      let bankAccount = null;
+      if (bankAccountId) {
+        bankAccount = await BankAccount.findOne({
+          _id: bankAccountId,
+          user: req.user.id,
+        });
+        
+        if (!bankAccount) {
+          return res.status(400).json({ message: "Bank account not found or does not belong to user" });
+        }
+        
+        // Check if the bank account has sufficient balance
+        if (bankAccount.currentBalance < parseFloat(amount)) {
+          return res.status(400).json({ message: "Insufficient funds in selected bank account" });
+        }
+      }
+
       // Check if this is the first contribution to this goal
       const isFirstContribution = goal.contributions.length === 0;
 
@@ -265,11 +287,18 @@ router.post(
         amount: parseFloat(amount),
         date: Date.now(),
         description: description || "",
+        bankAccount: bankAccountId || null,
       };
 
       goal.contributions.unshift(contribution);
       goal.savedAmount += parseFloat(amount);
       goal.updatedAt = Date.now();
+
+      // If a bank account is specified, deduct the amount
+      if (bankAccount) {
+        bankAccount.currentBalance -= parseFloat(amount);
+        await bankAccount.save();
+      }
 
       await goal.save();
 

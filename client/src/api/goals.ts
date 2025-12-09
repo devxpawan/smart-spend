@@ -129,12 +129,14 @@ export const deleteGoal = async (id: string): Promise<void> => {
 export const addContribution = async (
   goalId: string,
   amount: number,
-  description?: string
+  description?: string,
+  bankAccountId?: string
 ): Promise<GoalInterface> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/${goalId}/contributions`, {
       amount,
       description,
+      bankAccountId
     });
     return response.data;
   } catch (error: unknown) {
