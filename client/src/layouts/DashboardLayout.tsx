@@ -117,12 +117,6 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     gradient: "from-emerald-500 to-teal-600",
   },
   {
-    name: "Achievements",
-    path: "/achievements",
-    icon: <Trophy className="w-4 h-4" />,
-    gradient: "from-yellow-500 to-orange-600",
-  },
-  {
     name: "Monthly View",
     path: "/monthly",
     icon: <BarChart3 className="w-4 h-4" />,
