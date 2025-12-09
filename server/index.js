@@ -29,6 +29,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
 import expenseWarningJob from "./jobs/expenseWarningJob.js"; // Import the expense warning job
 import goalExpirationJob from "./jobs/goalExpirationJob.js"; // Add this line
+import { dailyContributionJob, weeklyContributionJob, monthlyContributionJob } from "./jobs/contributionJobs.js"; // Add contribution jobs
 
 // Load environment variables
 dotenv.config();
@@ -162,6 +163,12 @@ if (!process.env.VERCEL) {
     // Start scheduled jobs
     recurringJob.start();
     expenseWarningJob.start();
+    goalExpirationJob.start(); // Start goal expiration job
+    
+    // Start contribution jobs
+    dailyContributionJob.start();
+    weeklyContributionJob.start();
+    monthlyContributionJob.start();
   });
 }
 

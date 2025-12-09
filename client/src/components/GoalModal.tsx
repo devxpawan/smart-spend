@@ -16,6 +16,7 @@ interface FormErrors {
   targetAmount?: string;
   targetDate?: string;
   monthlyContribution?: string;
+  contributionFrequency?: string;
 }
 
 const GoalModal: React.FC<GoalModalProps> = ({
@@ -24,7 +25,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
   onSubmit,
   initialData,
 }) => {
-  const [formData, setFormData] = useState<GoalFormData>({
+  const [formData, setFormData] = useState<GoalFormData & { contributionFrequency?: string }>({
     name: "",
     targetAmount: "",
     targetDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -32,6 +33,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
       .split("T")[0], // Default to 30 days from now
     description: "",
     monthlyContribution: "",
+    contributionFrequency: "monthly", // Default to monthly
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -99,7 +101,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
 
   // Handle input changes
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
 
@@ -381,13 +383,37 @@ const GoalModal: React.FC<GoalModalProps> = ({
                   )}
                 </div>
 
-                {/* Monthly Contribution */}
+                {/* Contribution Frequency and Amount */}
+                <div>
+                  <label
+                    htmlFor="contributionFrequency"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                  >
+                    Contribution Frequency
+                  </label>
+                  <select
+                    name="contributionFrequency"
+                    id="contributionFrequency"
+                    value={formData.contributionFrequency || "monthly"}
+                    onChange={handleChange}
+                    className="form-select block w-full px-3 py-2 sm:py-3 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm transition duration-150 ease-in-out"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
+                    Select how often you want to contribute to this goal
+                  </p>
+                </div>
+
+                {/* Contribution Amount */}
                 <div>
                   <label
                     htmlFor="monthlyContribution"
                     className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
                   >
-                    Monthly Contribution (Optional)
+                    Contribution Amount (Optional)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -423,8 +449,17 @@ const GoalModal: React.FC<GoalModalProps> = ({
                     </div>
                   )}
                   <p className="mt-1 text-xs text-slate-500 dark:text-gray-400">
-                    Set a fixed amount to contribute each month toward this goal
+                    Set a fixed amount to contribute {formData.contributionFrequency === "daily" ? "each day" : formData.contributionFrequency === "weekly" ? "each week" : "each month"} toward this goal
                   </p>
+                  {formData.contributionFrequency && formData.monthlyContribution && parseFloat(formData.monthlyContribution as string) > 0 && (
+                    <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs text-blue-800 dark:text-blue-200">
+                        <span className="font-semibold">Note:</span> This amount will be processed as a monthly contribution regardless of frequency selection. 
+                        For {formData.contributionFrequency === "daily" ? "daily" : formData.contributionFrequency === "weekly" ? "weekly" : "monthly"} contributions, 
+                        you'll need to manually add them in the recurring section.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}

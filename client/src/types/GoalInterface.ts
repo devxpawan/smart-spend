@@ -8,6 +8,7 @@ export default interface GoalInterface {
   targetDate: string;
   description: string;
   monthlyContribution?: number; // Add this line
+  contributionFrequency?: "daily" | "weekly" | "monthly";
   contributions: {
     amount: number;
     date: string;
@@ -24,4 +25,5 @@ export interface GoalFormData {
   targetDate: string;
   description: string;
   monthlyContribution?: number | string; // Add this line
+  contributionFrequency?: "daily" | "weekly" | "monthly";
 }
