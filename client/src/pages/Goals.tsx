@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Target, TrendingUp, Calendar, Edit, Trash2, PlusCircle } from "lucide-react";
+import { Plus, Target, TrendingUp, Calendar, Edit, Trash2, PlusCircle, Trophy } from "lucide-react";
 import { useAuth } from "../contexts/auth-exports";
 import toast from "react-hot-toast";
 import GoalInterface, { GoalFormData } from "../types/GoalInterface";
@@ -8,9 +8,11 @@ import GoalModal from "../components/GoalModal";
 import AddContributionModal from "../components/AddContributionModal";
 import { motion } from "framer-motion";
 import ConfirmModal from "../components/ConfirmModal";
+import { useNavigate } from "react-router-dom";
 
 const Goals: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [goals, setGoals] = useState<GoalInterface[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -191,13 +193,22 @@ const Goals: React.FC = () => {
             Turn your financial dreams into reality with personalized saving plans
           </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Add New Goal
-        </button>
+        <div className="flex space-x-3 mt-4 md:mt-0">
+          <button
+            onClick={() => navigate('/achievements')}
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold rounded-lg hover:from-yellow-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+          >
+            <Trophy className="w-5 h-5 mr-2" />
+            Achievements
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            Add New Goal
+          </button>
+        </div>
       </div>
 
       {goals.length === 0 ? (
