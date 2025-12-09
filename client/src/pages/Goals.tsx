@@ -10,6 +10,11 @@ import { motion } from "framer-motion";
 import ConfirmModal from "../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
 
+interface SortConfig {
+  key: "name" | "targetAmount" | "savedAmount" | "targetDate" | "progress";
+  direction: "asc" | "desc";
+}
+
 interface FilterConfig {
   searchTerm: string;
   status: "all" | "active" | "completed";
@@ -34,7 +39,11 @@ const Goals: React.FC = () => {
     goalId: null,
   });
   
-  // Filtering states
+  // Filtering and sorting states
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: "targetDate",
+    direction: "asc",
+  });
   const [filters, setFilters] = useState<FilterConfig>({
     searchTerm: "",
     status: "all",
@@ -179,7 +188,7 @@ const Goals: React.FC = () => {
     setSelectedGoal(null);
   };
 
-  // Memoized filtered goals with pagination
+  // Memoized filtered and sorted goals with pagination
   const filteredGoals = useMemo(() => {
     let filtered = [...goals];
     
@@ -216,8 +225,46 @@ const Goals: React.FC = () => {
       });
     }
     
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let valueA: number | string | Date;
+      let valueB: number | string | Date;
+      
+      switch (sortConfig.key) {
+        case "name":
+          valueA = a.name.toLowerCase();
+          valueB = b.name.toLowerCase();
+          break;
+        case "targetAmount":
+          valueA = a.targetAmount;
+          valueB = b.targetAmount;
+          break;
+        case "savedAmount":
+          valueA = a.savedAmount;
+          valueB = b.savedAmount;
+          break;
+        case "targetDate":
+          valueA = new Date(a.targetDate);
+          valueB = new Date(b.targetDate);
+          break;
+        case "progress":
+          const progressA = Math.min(100, Math.round((a.savedAmount / a.targetAmount) * 100));
+          const progressB = Math.min(100, Math.round((b.savedAmount / b.targetAmount) * 100));
+          valueA = progressA;
+          valueB = progressB;
+          break;
+        default:
+          valueA = 0;
+          valueB = 0;
+      }
+      
+      if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
+      if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+    
     return filtered;
-  }, [goals, filters]);
+  }, [goals, filters, sortConfig]);
 
   // Paginated goals
   const paginatedGoals = useMemo(() => {
@@ -363,6 +410,30 @@ const Goals: React.FC = () => {
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
+            </select>
+          </div>
+
+          {/* Sort Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+              Sort by:
+            </label>
+            <select
+              value={sortConfig.key}
+              onChange={(e) => {
+                setSortConfig((prev) => ({
+                  ...prev,
+                  key: e.target.value as SortConfig["key"],
+                }));
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-40 px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm transition duration-150 ease-in-out"
+            >
+              <option value="name">Name</option>
+              <option value="targetAmount">Target Amount</option>
+              <option value="savedAmount">Saved Amount</option>
+              <option value="targetDate">Target Date</option>
+              <option value="progress">Progress</option>
             </select>
           </div>
 
