@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Plus, Target, TrendingUp, Calendar, Edit, Trash2, PlusCircle, Trophy } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Plus, Target, TrendingUp, Calendar, Edit, Trash2, PlusCircle, Trophy, Search, Filter, ArrowDownAZ, ArrowUpZA, RefreshCw, X } from "lucide-react";
 import { useAuth } from "../contexts/auth-exports";
 import toast from "react-hot-toast";
 import GoalInterface, { GoalFormData } from "../types/GoalInterface";
@@ -9,6 +9,16 @@ import AddContributionModal from "../components/AddContributionModal";
 import { motion } from "framer-motion";
 import ConfirmModal from "../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
+
+interface SortConfig {
+  key: "name" | "targetAmount" | "savedAmount" | "targetDate" | "progress";
+  direction: "asc" | "desc";
+}
+
+interface FilterConfig {
+  searchTerm: string;
+  status: "all" | "active" | "completed";
+}
 
 const Goals: React.FC = () => {
   const { user } = useAuth();
@@ -27,23 +37,37 @@ const Goals: React.FC = () => {
     open: false,
     goalId: null,
   });
+  
+  // Filtering and sorting states
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    key: "targetDate",
+    direction: "asc",
+  });
+  const [filters, setFilters] = useState<FilterConfig>({
+    searchTerm: "",
+    status: "all",
+  });
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 12;
 
   // Fetch goals
-  useEffect(() => {
-    const fetchGoals = async () => {
-      try {
-        setLoading(true);
-        const fetchedGoals = await getGoals();
-        setGoals(fetchedGoals);
-      } catch (err) {
-        console.error("Error fetching goals:", err);
-        setError("Failed to fetch goals. Please try again.");
-        toast.error("Failed to fetch goals. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchGoals = async () => {
+    try {
+      setLoading(true);
+      const fetchedGoals = await getGoals();
+      setGoals(fetchedGoals);
+    } catch (err) {
+      console.error("Error fetching goals:", err);
+      setError("Failed to fetch goals. Please try again.");
+      toast.error("Failed to fetch goals. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (user) {
       fetchGoals();
     }
@@ -162,6 +186,91 @@ const Goals: React.FC = () => {
     setSelectedGoal(null);
   };
 
+  // Memoized filtered and sorted goals with pagination
+  const filteredAndSortedGoals = useMemo(() => {
+    let filtered = [...goals];
+    
+    // Apply search filter
+    if (filters.searchTerm) {
+      const searchLower = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(goal => 
+        goal.name.toLowerCase().includes(searchLower) ||
+        (goal.description && goal.description.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply status filter
+    if (filters.status !== "all") {
+      filtered = filtered.filter(goal => {
+        const progress = Math.min(100, Math.round((goal.savedAmount / goal.targetAmount) * 100));
+        const isCompleted = progress >= 100;
+        
+        if (filters.status === "active") return !isCompleted;
+        if (filters.status === "completed") return isCompleted;
+        return true;
+      });
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let valueA: number | string | Date;
+      let valueB: number | string | Date;
+      
+      switch (sortConfig.key) {
+        case "name":
+          valueA = a.name.toLowerCase();
+          valueB = b.name.toLowerCase();
+          break;
+        case "targetAmount":
+          valueA = a.targetAmount;
+          valueB = b.targetAmount;
+          break;
+        case "savedAmount":
+          valueA = a.savedAmount;
+          valueB = b.savedAmount;
+          break;
+        case "targetDate":
+          valueA = new Date(a.targetDate);
+          valueB = new Date(b.targetDate);
+          break;
+        case "progress":
+          const progressA = Math.min(100, Math.round((a.savedAmount / a.targetAmount) * 100));
+          const progressB = Math.min(100, Math.round((b.savedAmount / b.targetAmount) * 100));
+          valueA = progressA;
+          valueB = progressB;
+          break;
+        default:
+          valueA = 0;
+          valueB = 0;
+      }
+      
+      if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
+      if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+    
+    return filtered;
+  }, [goals, filters, sortConfig]);
+
+  // Paginated goals
+  const paginatedGoals = useMemo(() => {
+    const indexOfLastRecord = currentPage * recordsPerPage;
+    const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+    return filteredAndSortedGoals.slice(indexOfFirstRecord, indexOfLastRecord);
+  }, [filteredAndSortedGoals, currentPage, recordsPerPage]);
+
+  // Total pages
+  const totalPages = Math.ceil(filteredAndSortedGoals.length / recordsPerPage);
+
+  // Adjust current page if it becomes invalid after filtering or deletion
+  useEffect(() => {
+    if (totalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    } else if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -211,7 +320,128 @@ const Goals: React.FC = () => {
         </div>
       </div>
 
-      {goals.length === 0 ? (
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg border dark:border-gray-700 shadow-sm space-y-3 sm:space-y-4 mb-6">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-500 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search goals..."
+            value={filters.searchTerm}
+            onChange={(e) => {
+              setFilters((prev) => ({
+                ...prev,
+                searchTerm: e.target.value,
+              }));
+              setCurrentPage(1);
+            }}
+            className="w-full pl-12 pr-10 py-3 bg-slate-100 dark:bg-gray-700 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white dark:focus:bg-gray-800 transition-all duration-300 shadow-sm dark:text-white"
+          />
+          {filters.searchTerm && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilters((prev) => ({ ...prev, searchTerm: "" }));
+              }}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-gray-400 hover:text-slate-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-full p-1"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Filters and Sort */}
+        <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
+          {/* Status Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+              Status:
+            </label>
+            <select
+              value={filters.status}
+              onChange={(e) => {
+                setFilters((prev) => ({
+                  ...prev,
+                  status: e.target.value as FilterConfig["status"],
+                }));
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-40 px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm transition duration-150 ease-in-out"
+            >
+              <option value="all">All Goals</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          {/* Sort Controls */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 sm:ml-auto">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                Sort by:
+              </label>
+              <select
+                value={sortConfig.key}
+                onChange={(e) => {
+                  setSortConfig((prev) => ({
+                    ...prev,
+                    key: e.target.value as SortConfig["key"],
+                  }));
+                  setCurrentPage(1);
+                }}
+                className="w-full sm:w-40 px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm transition duration-150 ease-in-out"
+              >
+                <option value="name">Name</option>
+                <option value="targetAmount">Target Amount</option>
+                <option value="savedAmount">Saved Amount</option>
+                <option value="targetDate">Target Date</option>
+                <option value="progress">Progress</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setSortConfig((prev) => ({
+                    ...prev,
+                    direction: prev.direction === "asc" ? "desc" : "asc",
+                  }));
+                }}
+                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex-1 sm:flex-none"
+                title="Toggle sort order"
+              >
+                {sortConfig.direction === "asc" ? (
+                  <ArrowDownAZ className="w-4 h-4 sm:mr-1" />
+                ) : (
+                  <ArrowUpZA className="w-4 h-4 sm:mr-1" />
+                )}
+                <span className="hidden sm:inline">
+                  {sortConfig.direction === "asc" ? "Asc" : "Desc"}
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  fetchGoals();
+                  setCurrentPage(1);
+                }}
+                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                title="Refresh goals"
+                disabled={loading}
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {filteredAndSortedGoals.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-slate-200 dark:border-gray-700 p-8 text-center">
           <div className="mx-auto h-24 w-24 rounded-full bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center mb-6">
             <Target className="h-12 w-12 text-purple-600 dark:text-purple-400" />
@@ -232,7 +462,7 @@ const Goals: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {goals.map((goal) => {
+          {paginatedGoals.map((goal) => {
             const progress = calculateProgress(goal);
             const monthlySaving = calculateMonthlySaving(goal);
             const daysRemaining = calculateDaysRemaining(goal);
@@ -338,6 +568,103 @@ const Goals: React.FC = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <nav className="flex justify-center mt-6 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+          <ul className="flex items-center space-x-1 h-10 text-base">
+            <li>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-800 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                Previous
+              </button>
+            </li>
+            {/* Page numbers */}
+            {(() => {
+              const pageNumbers = [];
+              const maxPagesToShow = 5;
+              const ellipsis = <li key="ellipsis" className="px-2 text-gray-500 dark:text-gray-400">...</li>;
+
+              let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+              const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+              if (endPage - startPage + 1 < maxPagesToShow) {
+                startPage = Math.max(1, endPage - maxPagesToShow + 1);
+              }
+
+              if (startPage > 1) {
+                pageNumbers.push(
+                  <li key={1}>
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
+                        currentPage === 1
+                          ? "text-white bg-purple-500 hover:bg-purple-600"
+                          : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      1
+                    </button>
+                  </li>
+                );
+                if (startPage > 2) {
+                  pageNumbers.push(ellipsis);
+                }
+              }
+
+              for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(
+                  <li key={i}>
+                    <button
+                      onClick={() => setCurrentPage(i)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
+                        currentPage === i
+                          ? "text-white bg-purple-500 hover:bg-purple-600"
+                          : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  </li>
+                );
+              }
+
+              if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                  pageNumbers.push(ellipsis);
+                }
+                pageNumbers.push(
+                  <li key={totalPages}>
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      className={`flex items-center justify-center px-4 h-10 font-semibold border dark:border-gray-600 transition-colors duration-150 ${
+                        currentPage === totalPages
+                          ? "text-white bg-purple-500 hover:bg-purple-600"
+                          : "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {totalPages}
+                    </button>
+                  </li>
+                );
+              }
+              return pageNumbers;
+            })()}
+            <li>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="flex items-center justify-center px-4 h-10 font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-800 dark:hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                Next
+              </button>
+            </li>
+          </ul>
+        </nav>
       )}
 
       {/* Goal Modal */}

@@ -50,6 +50,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
         targetDate: new Date(initialData.targetDate).toISOString().split("T")[0],
         description: initialData.description,
         monthlyContribution: initialData.monthlyContribution || "",
+        contributionFrequency: initialData.contributionFrequency || "monthly",
       });
     } else {
       setFormData({
@@ -60,6 +61,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
           .split("T")[0], // Default to 30 days from now
         description: "",
         monthlyContribution: "",
+        contributionFrequency: "monthly",
       });
     }
     setErrors({});
@@ -133,6 +135,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
         ...formData,
         targetAmount: parseFloat(formData.targetAmount as string),
         monthlyContribution: formData.monthlyContribution ? parseFloat(formData.monthlyContribution as string) : undefined,
+        contributionFrequency: formData.contributionFrequency || "monthly",
       });
       onClose();
     } catch (err) {
@@ -454,9 +457,7 @@ const GoalModal: React.FC<GoalModalProps> = ({
                   {formData.contributionFrequency && formData.monthlyContribution && parseFloat(formData.monthlyContribution as string) > 0 && (
                     <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800">
                       <p className="text-xs text-blue-800 dark:text-blue-200">
-                        <span className="font-semibold">Note:</span> This amount will be processed as a monthly contribution regardless of frequency selection. 
-                        For {formData.contributionFrequency === "daily" ? "daily" : formData.contributionFrequency === "weekly" ? "weekly" : "monthly"} contributions, 
-                        you'll need to manually add them in the recurring section.
+                        <span className="font-semibold">Note:</span> This fixed amount will be contributed {formData.contributionFrequency === "daily" ? "daily" : formData.contributionFrequency === "weekly" ? "weekly" : "monthly"} toward this goal.
                       </p>
                     </div>
                   )}
