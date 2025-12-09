@@ -3,17 +3,21 @@ import { AlertCircle, Plus, X } from "lucide-react";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import GoalInterface from "../types/GoalInterface";
+import CustomSelect from "./CustomSelect";
+import { getBankAccounts } from "../api/bankAccounts";
+import BankAccountInterface from "../types/BankAccountInterface";
 
 interface AddContributionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (amount: number, description: string) => void;
+  onSubmit: (amount: number, description: string, bankAccountId?: string) => void;
   goal?: GoalInterface;
 }
 
 interface FormErrors {
   amount?: string;
   description?: string;
+  bankAccount?: string;
 }
 
 const AddContributionModal: React.FC<AddContributionModalProps> = ({
@@ -24,17 +28,40 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
 }) => {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [bankAccount, setBankAccount] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [bankAccounts, setBankAccounts] = useState<BankAccountInterface[]>([]);
+  const [bankAccountsLoading, setBankAccountsLoading] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
+
+  // Load bank accounts
+  useEffect(() => {
+    const loadBankAccounts = async () => {
+      if (!isOpen) return;
+      
+      try {
+        setBankAccountsLoading(true);
+        const accounts = await getBankAccounts();
+        setBankAccounts(accounts);
+      } catch (err) {
+        console.error("Error loading bank accounts:", err);
+      } finally {
+        setBankAccountsLoading(false);
+      }
+    };
+
+    loadBankAccounts();
+  }, [isOpen]);
 
   // Reset form when modal opens or goal changes
   useEffect(() => {
     if (isOpen) {
       setAmount("");
       setDescription("");
+      setBankAccount("");
       setErrors({});
     }
   }, [isOpen, goal]);
@@ -61,7 +88,7 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
 
     try {
       setLoading(true);
-      await onSubmit(parseFloat(amount), description);
+      await onSubmit(parseFloat(amount), description, bankAccount || undefined);
       onClose();
     } catch (err) {
       console.error("Error adding contribution:", err);
@@ -249,6 +276,45 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                       <span className="text-sm">{errors.amount}</span>
                     </div>
                   )}
+                </div>
+
+                {/* Bank Account */}
+                <div>
+                  <label
+                    htmlFor="bankAccount"
+                    className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+                  >
+                    Bank Account (Optional)
+                  </label>
+                  <CustomSelect
+                    options={bankAccounts.map((account) => ({
+                      value: account._id,
+                      label: `${account.accountName} (${account.bankName}) - Balance: Rs ${account.currentBalance}`,
+                    }))}
+                    value={bankAccount}
+                    onChange={(value) => setBankAccount(value)}
+                    className={`${
+                      errors.bankAccount
+                        ? "border-red-300 focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-green-500"
+                    }`}
+                    openDirection="top"
+                    isSearchable={true}
+                    disabled={bankAccountsLoading}
+                    placeholder="Select a bank account"
+                  />
+                  {errors.bankAccount && (
+                    <div
+                      id="bankAccount-error"
+                      className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{errors.bankAccount}</span>
+                    </div>
+                  )}
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    Select a bank account to deduct the contribution amount from.
+                  </p>
                 </div>
 
                 {/* Description */}

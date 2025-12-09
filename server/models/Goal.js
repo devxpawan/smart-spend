@@ -52,6 +52,11 @@ const goalSchema = new mongoose.Schema({
         type: String,
         default: "",
       },
+      bankAccount: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "BankAccount",
+        default: null,
+      },
     },
   ],
   createdAt: {

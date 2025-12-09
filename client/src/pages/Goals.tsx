@@ -90,13 +90,16 @@ const Goals: React.FC = () => {
   };
 
   // Handle add contribution
-  const handleAddContribution = async (amount: number, description: string) => {
+  const handleAddContribution = async (amount: number, description: string, bankAccountId?: string) => {
     if (!selectedGoal) return;
 
     try {
-      const updatedGoal = await addContribution(selectedGoal._id, amount, description);
+      const updatedGoal = await addContribution(selectedGoal._id, amount, description, bankAccountId);
       setGoals(goals.map((goal) => (goal._id === selectedGoal._id ? updatedGoal : goal)));
       toast.success("Contribution added successfully!");
+      
+      // Dispatch a custom event to notify other components that bank accounts may have changed
+      window.dispatchEvent(new CustomEvent('bankAccountsUpdated'));
     } catch (err) {
       console.error("Error adding contribution:", err);
       toast.error("Failed to add contribution. Please try again.");

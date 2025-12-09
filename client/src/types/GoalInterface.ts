@@ -12,6 +12,7 @@ export default interface GoalInterface {
     amount: number;
     date: string;
     description: string;
+    bankAccount?: string | null;
   }[];
   createdAt: string;
   updatedAt: string;

@@ -309,6 +309,20 @@ const Dashboard = () => {
     fetchBankAccountsData();
   }, []);
 
+  // Listen for bank account updates
+  useEffect(() => {
+    const handleBankAccountsUpdated = () => {
+      fetchBankAccountsData();
+    };
+    
+    window.addEventListener('bankAccountsUpdated', handleBankAccountsUpdated);
+    
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('bankAccountsUpdated', handleBankAccountsUpdated);
+    };
+  }, []);
+
   const formatCurrency = useCallback(
     (amount: number) => {
       return `${
