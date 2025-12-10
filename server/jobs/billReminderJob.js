@@ -4,6 +4,7 @@ import { sendBillReminderNotification } from "../utils/billNotifications.js";
 
 // Daily at 9 AM by default; override with BILL_REMINDER_SCHEDULE
 const schedule = process.env.BILL_REMINDER_SCHEDULE || "0 9 * * *";
+//const schedule = process.env.BILL_REMINDER_SCHEDULE || "*/1 * * * *";
 
 console.log(`Scheduling bill reminder job with cron: ${schedule}`);
 
