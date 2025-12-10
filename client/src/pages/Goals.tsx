@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Plus, Target, TrendingUp, Calendar, Edit, Trash2, PlusCircle, Trophy, Search, Filter, ArrowDownAZ, ArrowUpZA, RefreshCw, X } from "lucide-react";
+import { Plus, Target, TrendingUp, Calendar, Edit, Trash2, PlusCircle, Trophy, Search, Filter, RefreshCw, X } from "lucide-react";
 import { useAuth } from "../contexts/auth-exports";
 import toast from "react-hot-toast";
 import GoalInterface, { GoalFormData } from "../types/GoalInterface";
@@ -10,14 +10,10 @@ import { motion } from "framer-motion";
 import ConfirmModal from "../components/ConfirmModal";
 import { useNavigate } from "react-router-dom";
 
-interface SortConfig {
-  key: "name" | "targetAmount" | "savedAmount" | "targetDate" | "progress";
-  direction: "asc" | "desc";
-}
-
 interface FilterConfig {
   searchTerm: string;
   status: "all" | "active" | "completed";
+  contributionFrequency: "all" | "daily" | "weekly" | "monthly";
 }
 
 const Goals: React.FC = () => {
@@ -38,14 +34,11 @@ const Goals: React.FC = () => {
     goalId: null,
   });
   
-  // Filtering and sorting states
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    key: "targetDate",
-    direction: "asc",
-  });
+  // Filtering states
   const [filters, setFilters] = useState<FilterConfig>({
     searchTerm: "",
     status: "all",
+    contributionFrequency: "all",
   });
 
   // Pagination states
@@ -186,8 +179,8 @@ const Goals: React.FC = () => {
     setSelectedGoal(null);
   };
 
-  // Memoized filtered and sorted goals with pagination
-  const filteredAndSortedGoals = useMemo(() => {
+  // Memoized filtered goals with pagination
+  const filteredGoals = useMemo(() => {
     let filtered = [...goals];
     
     // Apply search filter
@@ -211,56 +204,30 @@ const Goals: React.FC = () => {
       });
     }
     
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let valueA: number | string | Date;
-      let valueB: number | string | Date;
-      
-      switch (sortConfig.key) {
-        case "name":
-          valueA = a.name.toLowerCase();
-          valueB = b.name.toLowerCase();
-          break;
-        case "targetAmount":
-          valueA = a.targetAmount;
-          valueB = b.targetAmount;
-          break;
-        case "savedAmount":
-          valueA = a.savedAmount;
-          valueB = b.savedAmount;
-          break;
-        case "targetDate":
-          valueA = new Date(a.targetDate);
-          valueB = new Date(b.targetDate);
-          break;
-        case "progress":
-          const progressA = Math.min(100, Math.round((a.savedAmount / a.targetAmount) * 100));
-          const progressB = Math.min(100, Math.round((b.savedAmount / b.targetAmount) * 100));
-          valueA = progressA;
-          valueB = progressB;
-          break;
-        default:
-          valueA = 0;
-          valueB = 0;
-      }
-      
-      if (valueA < valueB) return sortConfig.direction === "asc" ? -1 : 1;
-      if (valueA > valueB) return sortConfig.direction === "asc" ? 1 : -1;
-      return 0;
-    });
+    // Apply contribution frequency filter
+    if (filters.contributionFrequency !== "all") {
+      filtered = filtered.filter(goal => {
+        // If goal has a contribution frequency, check if it matches the filter
+        if (goal.contributionFrequency) {
+          return goal.contributionFrequency === filters.contributionFrequency;
+        }
+        // If goal doesn't have a contribution frequency, it defaults to monthly
+        return filters.contributionFrequency === "monthly";
+      });
+    }
     
     return filtered;
-  }, [goals, filters, sortConfig]);
+  }, [goals, filters]);
 
   // Paginated goals
   const paginatedGoals = useMemo(() => {
     const indexOfLastRecord = currentPage * recordsPerPage;
     const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-    return filteredAndSortedGoals.slice(indexOfFirstRecord, indexOfLastRecord);
-  }, [filteredAndSortedGoals, currentPage, recordsPerPage]);
+    return filteredGoals.slice(indexOfFirstRecord, indexOfLastRecord);
+  }, [filteredGoals, currentPage, recordsPerPage]);
 
   // Total pages
-  const totalPages = Math.ceil(filteredAndSortedGoals.length / recordsPerPage);
+  const totalPages = Math.ceil(filteredGoals.length / recordsPerPage);
 
   // Adjust current page if it becomes invalid after filtering or deletion
   useEffect(() => {
@@ -352,7 +319,7 @@ const Goals: React.FC = () => {
           )}
         </div>
 
-        {/* Filters and Sort */}
+        {/* Filters */}
         <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:items-center sm:gap-4">
           {/* Status Filter */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
@@ -376,72 +343,50 @@ const Goals: React.FC = () => {
             </select>
           </div>
 
-          {/* Sort Controls */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 sm:ml-auto">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
-                Sort by:
-              </label>
-              <select
-                value={sortConfig.key}
-                onChange={(e) => {
-                  setSortConfig((prev) => ({
-                    ...prev,
-                    key: e.target.value as SortConfig["key"],
-                  }));
-                  setCurrentPage(1);
-                }}
-                className="w-full sm:w-40 px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm transition duration-150 ease-in-out"
-              >
-                <option value="name">Name</option>
-                <option value="targetAmount">Target Amount</option>
-                <option value="savedAmount">Saved Amount</option>
-                <option value="targetDate">Target Date</option>
-                <option value="progress">Progress</option>
-              </select>
-            </div>
+          {/* Contribution Frequency Filter */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+            <label className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+              Frequency:
+            </label>
+            <select
+              value={filters.contributionFrequency}
+              onChange={(e) => {
+                setFilters((prev) => ({
+                  ...prev,
+                  contributionFrequency: e.target.value as FilterConfig["contributionFrequency"],
+                }));
+                setCurrentPage(1);
+              }}
+              className="w-full sm:w-40 px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white text-sm transition duration-150 ease-in-out"
+            >
+              <option value="all">All Frequencies</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setSortConfig((prev) => ({
-                    ...prev,
-                    direction: prev.direction === "asc" ? "desc" : "asc",
-                  }));
-                }}
-                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 flex-1 sm:flex-none"
-                title="Toggle sort order"
-              >
-                {sortConfig.direction === "asc" ? (
-                  <ArrowDownAZ className="w-4 h-4 sm:mr-1" />
-                ) : (
-                  <ArrowUpZA className="w-4 h-4 sm:mr-1" />
-                )}
-                <span className="hidden sm:inline">
-                  {sortConfig.direction === "asc" ? "Asc" : "Desc"}
-                </span>
-              </button>
-
-              <button
-                onClick={() => {
-                  fetchGoals();
-                  setCurrentPage(1);
-                }}
-                className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-                title="Refresh goals"
-                disabled={loading}
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-                />
-              </button>
-            </div>
+          {/* Refresh Button */}
+          <div className="flex sm:ml-auto">
+            <button
+              onClick={() => {
+                fetchGoals();
+                setCurrentPage(1);
+              }}
+              className="flex items-center justify-center px-3 py-2 border dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+              title="Refresh goals"
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+              <span className="ml-2 hidden sm:inline">Refresh</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {filteredAndSortedGoals.length === 0 ? (
+      {filteredGoals.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-slate-200 dark:border-gray-700 p-8 text-center">
           <div className="mx-auto h-24 w-24 rounded-full bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center mb-6">
             <Target className="h-12 w-12 text-purple-600 dark:text-purple-400" />
