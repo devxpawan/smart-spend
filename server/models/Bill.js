@@ -50,6 +50,9 @@ const billSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  reminderSentAt: {
+    type: Date,
+  },
   reminderDate: {
     type: Date,
   },

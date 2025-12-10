@@ -30,6 +30,7 @@ import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
 import expenseWarningJob from "./jobs/expenseWarningJob.js"; // Import the expense warning job
 import goalExpirationJob from "./jobs/goalExpirationJob.js"; // Add this line
 import { dailyContributionJob, weeklyContributionJob, monthlyContributionJob } from "./jobs/contributionJobs.js"; // Add contribution jobs
+import billReminderJob from "./jobs/billReminderJob.js"; // Bill reminder job
 
 // Load environment variables
 dotenv.config();
@@ -164,6 +165,7 @@ if (!process.env.VERCEL) {
     recurringJob.start();
     expenseWarningJob.start();
     goalExpirationJob.start(); // Start goal expiration job
+    billReminderJob.start();
     
     // Start contribution jobs
     dailyContributionJob.start();
