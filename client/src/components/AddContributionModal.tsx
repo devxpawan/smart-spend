@@ -74,9 +74,14 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
       newErrors.amount = "Please enter a valid amount";
     }
 
+    // Bank account is now required
+    if (!bankAccount) {
+      newErrors.bankAccount = "Please select a bank account";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [amount]);
+  }, [amount, bankAccount]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -284,7 +289,7 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                     htmlFor="bankAccount"
                     className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
                   >
-                    Bank Account (Optional)
+                    Bank Account *
                   </label>
                   <CustomSelect
                     options={bankAccounts.map((account) => ({
