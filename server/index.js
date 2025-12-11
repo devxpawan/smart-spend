@@ -129,7 +129,7 @@ app.use("/api/warranties", authenticateToken, warrantyRoutes);
 app.use("/api/incomes", authenticateToken, incomeRoutes);
 app.use("/api/financial-health", authenticateToken, financialHealthRoutes);
 console.log("Registering user routes at /api/user");
-app.use("/api/users", authenticateToken, userRoutes);
+app.use("/api/user", authenticateToken, userRoutes);
 app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
 app.use("/api/recurring", authenticateToken, recurringRoutes);
 app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
