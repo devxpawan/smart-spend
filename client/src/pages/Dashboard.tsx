@@ -28,7 +28,6 @@ import { Doughnut, Line } from "react-chartjs-2";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 import FinancialHealthScore from "../components/FinancialHealthScore";
-import InsightsDashboard from "../components/InsightsDashboard";
 import NotificationBell from "../components/NotificationBell"; // Import NotificationBell
 import {
   SkeletonCard,
@@ -1100,8 +1099,8 @@ const Dashboard = () => {
           )}
         </motion.section>
 
-        {/* Smart Insights Section */}
-        <InsightsDashboard />
+  
+       
 
         {/* Financial Health Score Section */}
         <FinancialHealthScore />
