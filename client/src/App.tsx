@@ -13,13 +13,13 @@ import { useAuth } from "./contexts/auth-exports";
 import About from "./pages/About";
 import BankAccounts from "./pages/BankAccounts";
 import CustomCategories from "./pages/CustomCategories";
-import GoalsAndAchievements from "./pages/GoalsAndAchievements";
 import LoginRegister from "./pages/LoginRegister";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import PublicWarrantyDetails from "./pages/PublicWarrantyDetails";
 import Recurring from "./pages/Recurring";
 import Warranties from "./pages/Warranties";
+import Achievements from "./pages/Achievements";
 
 function App() {
   const { loading } = useAuth();
@@ -41,7 +41,7 @@ function App() {
 
         {/* Auth Routes */}
         <Route path="/auth" element={<LoginRegister />} />
-        
+
         {/* Dashboard Routes */}
         <Route
           path="/"
@@ -65,8 +65,8 @@ function App() {
           {/* Recurring Transactions */}
           <Route path="recurring" element={<Recurring />} />
 
-          {/* Goal Planning & Achievements */}
-          <Route path="goals" element={<GoalsAndAchievements />} />
+          {/* Achievements */}
+          <Route path="achievements" element={<Achievements />} />
 
           {/* Warranty Routes */}
           <Route path="warranties" element={<Warranties />} />
@@ -74,7 +74,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="about" element={<About />} />
           <Route path="bank-accounts" element={<BankAccounts />} />
-          <Route path="customcategories" element={<CustomCategories/>}/>
+          <Route path="customcategories" element={<CustomCategories />} />
         </Route>
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
