@@ -19,6 +19,7 @@ import recurringRoutes from "./routes/recurring.js";
 import notificationRoutes from "./routes/notifications.js"; // Add notifications route
 import goalRoutes from "./routes/goals.js"; // Add goals route
 import achievementRoutes from "./routes/achievements.js"; // Add achievements route
+import insightsRoutes from "./routes/insights.js"; // Add insights route
 import GPTRouter from "./AI-Service/Gemini-Route.js"; //gemini route
 
 // Middleware
@@ -31,6 +32,7 @@ import expenseWarningJob from "./jobs/expenseWarningJob.js"; // Import the expen
 import goalExpirationJob from "./jobs/goalExpirationJob.js"; // Add this line
 import { dailyContributionJob, weeklyContributionJob, monthlyContributionJob } from "./jobs/contributionJobs.js"; // Add contribution jobs
 import billReminderJob from "./jobs/billReminderJob.js"; // Bill reminder job
+import insightsNotificationJob from "./jobs/insightsNotificationJob.js"; // Insights notification job
 
 // Load environment variables
 dotenv.config();
@@ -135,6 +137,7 @@ app.use("/api/recurring", authenticateToken, recurringRoutes);
 app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
 app.use("/api/goals", authenticateToken, goalRoutes); // Add goals route
 app.use("/api/achievements", authenticateToken, achievementRoutes); // Add achievements route
+app.use("/api/insights", authenticateToken, insightsRoutes); // Add insights route
 app.use("/api/gemini", authenticateToken, GPTRouter); //gemini route
 
 // Default route
@@ -165,7 +168,8 @@ if (!process.env.VERCEL) {
     recurringJob.start();
     expenseWarningJob.start();
     goalExpirationJob.start(); // Start goal expiration job
-    billReminderJob.start();
+billReminderJob.start();
+    insightsNotificationJob.start(); // Start insights notification job
     
     // Start contribution jobs
     dailyContributionJob.start();
