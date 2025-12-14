@@ -1,35 +1,40 @@
-import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import express from "express";
+import http from "http";
 import mongoose from "mongoose";
 import morgan from "morgan";
-import http from "http";
 import { Server } from "socket.io";
 
 // Routes
-import authRoutes from "./routes/auth.js";
-import expenseRoutes from "./routes/expenses.js";
-import billRoutes from "./routes/bills.js";
-import warrantyRoutes from "./routes/warranties.js";
-import incomeRoutes from "./routes/incomes.js";
-import financialHealthRoutes from "./routes/financialHealth.js";
-import userRoutes from "./routes/user.js";
-import bankAccountRoutes from "./routes/bankAccounts.js";
-import recurringRoutes from "./routes/recurring.js";
-import notificationRoutes from "./routes/notifications.js"; // Add notifications route
-import goalRoutes from "./routes/goals.js"; // Add goals route
-import achievementRoutes from "./routes/achievements.js"; // Add achievements route
 import GPTRouter from "./AI-Service/Gemini-Route.js"; //gemini route
+import achievementRoutes from "./routes/achievements.js"; // Add achievements route
+import authRoutes from "./routes/auth.js";
+import bankAccountRoutes from "./routes/bankAccounts.js";
+import billRoutes from "./routes/bills.js";
+import expenseRoutes from "./routes/expenses.js";
+import financialHealthRoutes from "./routes/financialHealth.js";
+import goalRoutes from "./routes/goals.js"; // Add goals route
+import incomeRoutes from "./routes/incomes.js";
+import notificationRoutes from "./routes/notifications.js"; // Add notifications route
+import recurringRoutes from "./routes/recurring.js";
+import userRoutes from "./routes/user.js";
+import warrantyRoutes from "./routes/warranties.js";
 
 // Middleware
 import { authenticateToken } from "./middleware/auth.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 // Jobs
-import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
+import billReminderJob from "./jobs/billReminderJob.js"; // Bill reminder job
+import {
+  dailyContributionJob,
+  monthlyContributionJob,
+  weeklyContributionJob,
+} from "./jobs/contributionJobs.js"; // Add contribution jobs
 import expenseWarningJob from "./jobs/expenseWarningJob.js"; // Import the expense warning job
 import goalExpirationJob from "./jobs/goalExpirationJob.js"; // Add this line
-import { dailyContributionJob, weeklyContributionJob, monthlyContributionJob } from "./jobs/contributionJobs.js"; // Add contribution jobs
+import recurringJob from "./jobs/recurringJob.js"; // Import the recurring job
 
 // Load environment variables
 dotenv.config();
@@ -43,7 +48,7 @@ const io = new Server(server, {
 });
 
 // Basic configuration
-const PORT = process.env.PORT || 50503; // Changed from 50502 to 50503 to avoid port conflict
+const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 // CORS configuration
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -164,7 +169,8 @@ if (!process.env.VERCEL) {
     recurringJob.start();
     expenseWarningJob.start();
     goalExpirationJob.start(); // Start goal expiration job
-    
+    billReminderJob.start();
+
     // Start contribution jobs
     dailyContributionJob.start();
     weeklyContributionJob.start();

@@ -17,8 +17,7 @@ import {
   Target,
   TrendingUp,
   User,
-  X as XIcon,
-  Trophy,
+  X as XIcon
 } from "lucide-react";
 import React, {
   Fragment,
@@ -111,7 +110,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     gradient: "from-indigo-500 to-purple-600",
   },
   {
-    name: "Goals",
+    name: "Goals & Achievements",
     path: "/goals",
     icon: <Target className="w-4 h-4" />,
     gradient: "from-emerald-500 to-teal-600",

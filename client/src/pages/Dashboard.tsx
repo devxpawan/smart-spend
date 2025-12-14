@@ -1099,6 +1099,9 @@ const Dashboard = () => {
           )}
         </motion.section>
 
+  
+       
+
         {/* Financial Health Score Section */}
         <FinancialHealthScore />
       </div>
