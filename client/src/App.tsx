@@ -6,7 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Expenses from "./pages/Expenses";
 import Incomes from "./pages/Incomes";
 import MonthlyBreakdown from "./pages/MonthlyBreakdown";
-
+import GoalsAndAchievements from "./pages/GoalsAndAchievements";
 import OnlineStatusIndicator from "./components/OnlineStatusIndicator";
 import PrivateRoute from "./components/PrivateRoute";
 import { useAuth } from "./contexts/auth-exports";
@@ -65,8 +65,8 @@ function App() {
           {/* Recurring Transactions */}
           <Route path="recurring" element={<Recurring />} />
 
-          {/* Achievements */}
-          <Route path="achievements" element={<Achievements />} />
+          {/* Goal Planning & Achievements */}
+          <Route path="goals" element={<GoalsAndAchievements />} />
 
           {/* Warranty Routes */}
           <Route path="warranties" element={<Warranties />} />
