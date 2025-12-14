@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Award, Star, Target } from "lucide-react";
+import { Trophy, Award, Star } from "lucide-react";
 import { useAuth } from "../contexts/auth-exports";
 import AchievementCard from "../components/AchievementCard";
 import { getAchievements, markAchievementAsSeen } from "../api/achievements";
 import { AchievementInterface } from "../api/achievements";
 import toast from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
 
 const Achievements: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [achievements, setAchievements] = useState<AchievementInterface[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,13 +72,6 @@ const Achievements: React.FC = () => {
             Celebrate your financial milestones and accomplishments
           </p>
         </div>
-        <button
-          onClick={() => navigate('/goals')}
-          className="mt-4 md:mt-0 inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-150 ease-in-out shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
-        >
-          <Target className="w-5 h-5 mr-2" />
-          View Goals
-        </button>
       </div>
 
       {achievements.length === 0 ? (
@@ -100,7 +91,7 @@ const Achievements: React.FC = () => {
           {goalCompletedAchievements.length > 0 && (
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <Target className="w-5 h-5 text-green-500" />
+                <Trophy className="w-5 h-5 text-green-500" />
                 <h2 className="text-xl font-bold text-slate-800 dark:text-white">
                   Goals Achieved
                 </h2>
