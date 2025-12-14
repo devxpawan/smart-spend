@@ -15,6 +15,7 @@ import bankAccountRoutes from "./routes/bankAccounts.js";
 import billRoutes from "./routes/bills.js";
 import expenseRoutes from "./routes/expenses.js";
 import financialHealthRoutes from "./routes/financialHealth.js";
+import goalRoutes from "./routes/goals.js";
 
 import incomeRoutes from "./routes/incomes.js";
 import notificationRoutes from "./routes/notifications.js"; // Add notifications route
@@ -214,6 +215,7 @@ app.use("/api/bills", authenticateToken, billRoutes);
 app.use("/api/warranties", authenticateToken, warrantyRoutes);
 app.use("/api/incomes", authenticateToken, incomeRoutes);
 app.use("/api/financial-health", authenticateToken, financialHealthRoutes);
+app.use("/api/goals", authenticateToken, goalRoutes);
 console.log("Registering user routes at /api/user");
 app.use("/api/user", authenticateToken, userRoutes);
 app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);

@@ -515,7 +515,7 @@ router.patch("/bulk-update", async (req, res) => {
 
 
 // get count of custom reminders (unpaid bills that are NOT overdue and HAVE a reminderDate)
-router.get("/custom/reminders/count", async (req, res) => {
+router.get("/custom-reminders-count", async (req, res) => {
   try {
     const today = new Date();
     // Set time to 00:00:00.000 for accurate comparison only on the date
