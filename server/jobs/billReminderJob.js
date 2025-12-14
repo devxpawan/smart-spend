@@ -23,9 +23,14 @@ const billReminderJob = cron.schedule(schedule, async () => {
 
     for (const bill of bills) {
       try {
+        // Extra safety: skip if paid or user not verified
+        if (bill.isPaid === true) continue;
         if (!bill.user || bill.user.isVerified === false) continue;
         await sendBillReminderNotification(bill, bill.user);
         bill.reminderSentAt = new Date();
+        // Auto-clear the reminder date once the reminder is sent
+        bill.reminderDate = null;
+        console.log(`Reminder sent and cleared for bill ${bill._id}`);
         await bill.save();
       } catch (error) {
         console.error(`Error processing reminder for bill ${bill._id}:`, error);

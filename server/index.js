@@ -5,6 +5,7 @@ import http from "http";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import { Server } from "socket.io";
+import helmet from "helmet";
 
 // Routes
 import GPTRouter from "./AI-Service/Gemini-Route.js"; //gemini route
@@ -43,7 +44,17 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for now
+    // Align Socket.IO CORS with API CORS policy
+    origin: process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
+      : [
+          "https://smart-spend-frontend-rosy.vercel.app",
+          "http://localhost:5173",
+          "http://localhost:3000",
+        ],
+    credentials: true,
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   },
 });
 
@@ -91,6 +102,13 @@ if (missingEnvVars.length > 0) {
 
 // Middleware
 app.use(morgan("combined"));
+// Security headers via Helmet
+app.use(
+  helmet({
+    // Disable default CSP, we will configure a tailored one next
+    contentSecurityPolicy: false,
+  })
+);
 app.use(
   cors({
     origin: allowedOrigins,
@@ -101,14 +119,78 @@ app.use(
 );
 app.use(express.json());
 
-// CSP middleware
+// Strict-Transport-Security (HSTS) for HTTPS deployments
+// Note: enable only when behind HTTPS (recommended in production)
+if (process.env.ENABLE_HSTS === "true") {
+  app.use(
+    helmet.hsts({
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    })
+  );
+}
+
+// X-Frame-Options / clickjacking protection
+app.use(
+  helmet.frameguard({
+    action: "deny",
+  })
+);
+
+// X-Content-Type-Options: nosniff
+app.use(helmet.noSniff());
+
+// Refined CSP (adjust sources to what the app actually needs)
+// Avoid 'unsafe-inline' where possible. If inline styles/scripts are required,
+// prefer nonces or hashes; keep minimal allowances for now.
+app.use((req, res, next) => {
+  const csp = [
+    "default-src 'self'",
+    "script-src 'self' https://apis.google.com",
+    "style-src 'self' https://fonts.googleapis.com",
+    "img-src 'self' data: https://res.cloudinary.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    // API and auth endpoints used by the app
+    "connect-src 'self' https://accounts.google.com",
+    // Disallow framing by other origins
+    "frame-ancestors 'none'",
+    // Block mixed content
+    "upgrade-insecure-requests",
+  ].join("; ");
+  res.setHeader("Content-Security-Policy", csp);
+  next();
+});
+
+// Additional hardening
+app.disable("etag"); // avoid ETag-based cache/disclosure where not needed
+app.disable("x-powered-by"); // remove Express signature (helmet also handles this)
+
+// Referrer-Policy
+app.use(
+  helmet.referrerPolicy({
+    policy: "no-referrer",
+  })
+);
+
+// Permissions-Policy (adjust to actual usage)
 app.use((req, res, next) => {
   res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://res.cloudinary.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://accounts.google.com;"
+    "Permissions-Policy",
+    "geolocation=(), microphone=(), camera=(), interest-cohort=()"
   );
   next();
 });
+
+// Cache-control: prevent sensitive API responses from being cached
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
+// Removed duplicate CSP middleware to avoid conflicts and 'unsafe-inline'
 
 // Database Connection
 const connectDB = async () => {
