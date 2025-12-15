@@ -58,6 +58,32 @@ const io = new Server(server, {
   },
 });
 
+// Attach security headers (including CSP) to Socket.IO handshake/upgrade responses
+io.engine.on("headers", (headers, req) => {
+  const csp = [
+    "default-src 'self'",
+    "base-uri 'none'",
+    "object-src 'none'",
+    "form-action 'self'",
+    "script-src 'self' https://apis.google.com",
+    "style-src 'self' https://fonts.googleapis.com",
+    "img-src 'self' data: https://res.cloudinary.com https://i.postimg.cc",
+    "font-src 'self' https://fonts.gstatic.com",
+    // Allow XHR/WS connections as needed by Socket.IO
+    // Note: browsers do not enforce CSP on non-document responses,
+    // but some scanners expect the header to be present.
+    "connect-src 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+
+  headers["Content-Security-Policy"] = csp;
+  headers["Referrer-Policy"] = "no-referrer";
+  headers["Permissions-Policy"] =
+    "geolocation=(), microphone=(), camera=(), interest-cohort=()";
+  headers["X-Content-Type-Options"] = "nosniff";
+});
+
 // Basic configuration
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -147,9 +173,12 @@ app.use(helmet.noSniff());
 app.use((req, res, next) => {
   const csp = [
     "default-src 'self'",
+    "base-uri 'none'",
+    "object-src 'none'",
+    "form-action 'self'",
     "script-src 'self' https://apis.google.com",
     "style-src 'self' https://fonts.googleapis.com",
-    "img-src 'self' data: https://res.cloudinary.com",
+    "img-src 'self' data: https://res.cloudinary.com https://i.postimg.cc",
     "font-src 'self' https://fonts.gstatic.com",
     // API and auth endpoints used by the app
     "connect-src 'self' https://accounts.google.com",
