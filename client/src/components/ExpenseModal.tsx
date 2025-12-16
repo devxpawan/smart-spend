@@ -726,7 +726,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                     Category *
                   </label>
                   <CustomSelect
-                    options={categoriesToUse.map((cat) => ({
+                    options={categoriesToUse.map((cat: any) => ({
                       value: cat,
                       label: cat,
                     }))}
