@@ -70,8 +70,15 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!amount || parseFloat(amount) <= 0) {
-      newErrors.amount = "Please enter a valid amount";
+    if (!amount) {
+      newErrors.amount = "Contribution amount is required";
+    } else {
+      const amt = parseFloat(amount);
+      if (isNaN(amt)) {
+        newErrors.amount = "Please enter a valid contribution amount";
+      } else if (amt < 1) {
+        newErrors.amount = "Contribution amount must be at least 1";
+      }
     }
 
     // Bank account is now required
@@ -258,9 +265,38 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                       id="amount"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
+                      placeholder="1.00"
                       step="0.01"
-                      min="0"
+                      min="1"
+                      inputMode="decimal"
+                      pattern="^\\d+(\\.\\d+)?$"
+                      onKeyDown={(e) => {
+                        if (["e", "E", "+", "-"].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const text = e.clipboardData.getData("text");
+                        if (!/^\d+(\.\d+)?$/.test(text)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onInvalid={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        if (target.validity.valueMissing) {
+                          target.setCustomValidity("Contribution amount is required");
+                        } else if (
+                          target.validity.rangeUnderflow ||
+                          target.validity.stepMismatch
+                        ) {
+                          target.setCustomValidity("Contribution amount must be at least 1");
+                        } else {
+                          target.setCustomValidity("");
+                        }
+                      }}
+                      onInput={(e) => {
+                        (e.target as HTMLInputElement).setCustomValidity("");
+                      }}
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.amount
                           ? "border-red-300 focus:ring-red-500"
