@@ -78,6 +78,13 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
         newErrors.amount = "Please enter a valid contribution amount";
       } else if (amt < 1) {
         newErrors.amount = "Contribution amount must be at least 1";
+      } else if (goal) {
+        const remaining = Math.max(0, goal.targetAmount - goal.savedAmount);
+        if (remaining <= 0) {
+          newErrors.amount = "Goal is already fully funded";
+        } else if (amt > remaining) {
+          newErrors.amount = `Contribution amount cannot exceed remaining amount (Rs ${remaining.toLocaleString()})`;
+        }
       }
     }
 
@@ -268,6 +275,7 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                       placeholder="1.00"
                       step="0.01"
                       min="1"
+                      max={goal ? Math.max(0, goal.targetAmount - goal.savedAmount) : undefined}
                       inputMode="decimal"
                       pattern="^\\d+(\\.\\d+)?$"
                       onKeyDown={(e) => {
@@ -283,6 +291,7 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                       }}
                       onInvalid={(e) => {
                         const target = e.target as HTMLInputElement;
+                        const remaining = goal ? Math.max(0, goal.targetAmount - goal.savedAmount) : undefined;
                         if (target.validity.valueMissing) {
                           target.setCustomValidity("Contribution amount is required");
                         } else if (
@@ -290,6 +299,8 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                           target.validity.stepMismatch
                         ) {
                           target.setCustomValidity("Contribution amount must be at least 1");
+                        } else if (target.validity.rangeOverflow && remaining !== undefined) {
+                          target.setCustomValidity(`Contribution amount cannot exceed remaining amount (Rs ${remaining.toLocaleString()})`);
                         } else {
                           target.setCustomValidity("");
                         }
@@ -307,6 +318,11 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                       aria-invalid={errors.amount ? "true" : "false"}
                       aria-describedby={errors.amount ? "amount-error" : undefined}
                     />
+                    {goal && (
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Max allowed: Rs {Math.max(0, goal.targetAmount - goal.savedAmount).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   {errors.amount && (
                     <div
