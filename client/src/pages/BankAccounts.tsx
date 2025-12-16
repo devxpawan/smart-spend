@@ -53,7 +53,7 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
     bankName: "",
     accountName: "",
     accountType: "Checking",
-    initialBalance: 0,
+    initialBalance: NaN,
   });
   
   // Error states
@@ -81,7 +81,7 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
         bankName: "",
         accountName: "",
         accountType: "Checking",
-        initialBalance: 0,
+        initialBalance: NaN,
       });
     }
     setErrors({});
@@ -139,7 +139,9 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const newValue = name === "initialBalance" ? parseFloat(value) || 0 : value;
+    const newValue = name === "initialBalance"
+      ? (value === "" ? NaN : parseFloat(value))
+      : value;
     
     setFormData((prev) => ({
       ...prev,
@@ -153,7 +155,7 @@ const BankAccountModal: React.FC<BankAccountModalProps> = ({
       } else if (name === "initialBalance") {
         setErrors(prev => ({ 
           ...prev, 
-          initialBalance: validateInitialBalance(parseFloat(value) || 0, formData.accountType) 
+          initialBalance: validateInitialBalance(value === "" ? NaN : parseFloat(value), formData.accountType) 
         }));
       }
     }
