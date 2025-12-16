@@ -713,7 +713,11 @@ const Warranties: React.FC = () => {
 
             {/* Refresh Button */}
             <button
-              onClick={() => fetchWarranties()}
+              onClick={() => {
+                setFilters({ category: "", status: "", searchTerm: "" });
+                setCurrentPage(1);
+                fetchWarranties();
+              }}
               className="flex items-center justify-center px-3 py-1.5 sm:py-2 border dark:border-gray-600 border-slate-300 rounded-lg text-xs sm:text-sm text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
               title="Refresh warranties"
               disabled={loading}
