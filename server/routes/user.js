@@ -5,6 +5,7 @@ import Bill from "../models/Bill.js";
 import Expense from "../models/Expense.js";
 import Income from "../models/Income.js";
 import Warranty from "../models/Warranty.js";
+import Goal from "../models/Goal.js";
 
 const router = express.Router();
 
@@ -98,7 +99,7 @@ router.delete('/records', async (req, res) => {
     }
 
     // Normalize allowed keys
-    const allowed = new Set(['bills', 'expenses', 'incomes', 'warranties']);
+    const allowed = new Set(['bills', 'expenses', 'incomes', 'warranties', 'goals']);
     const selected = records.filter(r => typeof r === 'string').map(r => r.toLowerCase());
     const invalid = selected.filter(r => !allowed.has(r));
     if (invalid.length > 0) {
@@ -151,6 +152,15 @@ router.delete('/records', async (req, res) => {
             }
           }
           results.warranties = count;
+        })()
+      );
+    }
+
+    if (selected.includes('goals')) {
+      tasks.push(
+        (async () => {
+          const { deletedCount } = await Goal.deleteMany({ user: userId });
+          results.goals = deletedCount || 0;
         })()
       );
     }
