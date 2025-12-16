@@ -168,7 +168,7 @@ const ClearRecordsModal: React.FC<ClearRecordsModalProps> = ({
 
                   <div>
                     <p className="text-xs sm:text-sm text-slate-700 dark:text-gray-300 mb-1.5">
-                      To confirm, please type '''clear my records''' in the box below.
+                      To confirm, please type: clear my records
                     </p>
                     <input
                       type="text"
