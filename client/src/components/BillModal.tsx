@@ -155,6 +155,17 @@ const BillModal: React.FC<BillModalProps> = ({
     setErrors({});
   }, [initialData, isOpen]);
 
+  // Derived date boundaries for reminder input
+  const todayISO = new Date().toISOString().split("T")[0];
+  const maxReminderISO = formData.dueDate
+    ? (() => {
+        const d = new Date(formData.dueDate);
+        // enforce strictly before due date by setting max to (dueDate - 1 day)
+        d.setDate(d.getDate() - 1);
+        return isNaN(d.getTime()) ? undefined : d.toISOString().split("T")[0];
+      })()
+    : undefined;
+
   // Form validation
   const validateForm = useCallback(async (): Promise<boolean> => {
     const newErrors: FormErrors = {};
@@ -179,19 +190,35 @@ const BillModal: React.FC<BillModalProps> = ({
       newErrors.amount = "Amount must be greater than 0";
     }
 
+    let dueDateObj: Date | null = null;
     if (!formData.dueDate) {
       newErrors.dueDate = "Due date is required";
     } else {
       const dueDate = new Date(formData.dueDate);
       if (isNaN(dueDate.getTime())) {
         newErrors.dueDate = "Please enter a valid date";
+      } else {
+        dueDateObj = new Date(dueDate);
+        dueDateObj.setHours(0, 0, 0, 0);
       }
     }
 
-    if (formData.reminderDate) { // 👈 Check if it has a value
+    if (formData.reminderDate) {
       const reminderDate = new Date(formData.reminderDate);
       if (isNaN(reminderDate.getTime())) {
         newErrors.reminderDate = "Please enter a valid date";
+      } else {
+        // normalize times to start of day for logical comparison
+        const reminderStart = new Date(reminderDate);
+        reminderStart.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (reminderStart < today) {
+          newErrors.reminderDate = "Reminder date cannot be in the past";
+        } else if (dueDateObj && (reminderStart >= dueDateObj)) {
+          newErrors.reminderDate = "Reminder must be set before the due date";
+        }
       }
     }
 
@@ -290,7 +317,6 @@ const BillModal: React.FC<BillModalProps> = ({
       } else {
         setErrors({ name: "Failed to submit bill. Please try again." });
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -603,6 +629,8 @@ const BillModal: React.FC<BillModalProps> = ({
                         ? "border-red-300 focus:ring-red-500"
                         : "border-slate-300 dark:border-gray-600 focus:ring-amber-500"
                         }`}
+                      min={todayISO}
+                      max={maxReminderISO}
                       aria-invalid={errors.reminderDate ? "true" : "false"}
                       aria-describedby={
                         errors.reminderDate ? "reminderDate-error" : undefined
@@ -612,7 +640,7 @@ const BillModal: React.FC<BillModalProps> = ({
                   </div>
                   {errors.reminderDate && (
                     <div
-                      id="dueDate-error"
+                      id="reminderDate-error"
                       className="mt-1 flex items-center space-x-1 text-red-600 dark:text-red-400"
                     >
                       <AlertCircle className="w-4 h-4" />
