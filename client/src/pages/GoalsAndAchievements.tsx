@@ -323,7 +323,11 @@ const GoalsSection: React.FC = () => {
                       </div>
                       {goal.monthlyContribution && goal.monthlyContribution > 0 && (
                         <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          Fixed amount
+                          {goal.contributionFrequency === "daily"
+                            ? "Daily fixed"
+                            : goal.contributionFrequency === "weekly"
+                            ? "Weekly fixed"
+                            : "Monthly fixed"}
                         </div>
                       )}
                     </div>
