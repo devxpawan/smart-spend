@@ -70,8 +70,22 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!amount || parseFloat(amount) <= 0) {
-      newErrors.amount = "Please enter a valid amount";
+    if (!amount) {
+      newErrors.amount = "Contribution amount is required";
+    } else {
+      const amt = parseFloat(amount);
+      if (isNaN(amt)) {
+        newErrors.amount = "Please enter a valid contribution amount";
+      } else if (amt < 1) {
+        newErrors.amount = "Contribution amount must be at least 1";
+      } else if (goal) {
+        const remaining = Math.max(0, goal.targetAmount - goal.savedAmount);
+        if (remaining <= 0) {
+          newErrors.amount = "Goal is already fully funded";
+        } else if (amt > remaining) {
+          newErrors.amount = `Contribution amount cannot exceed remaining amount (Rs ${remaining.toLocaleString()})`;
+        }
+      }
     }
 
     // Bank account is now required
@@ -79,9 +93,18 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
       newErrors.bankAccount = "Please select a bank account";
     }
 
+    // Validate against selected bank account balance
+    if (amount && bankAccount) {
+      const amt = parseFloat(amount);
+      const selected = bankAccounts.find(b => b._id === bankAccount);
+      if (selected && !isNaN(amt) && amt > selected.currentBalance) {
+        newErrors.amount = "Sorry can't make the contribution because no enough bank balance";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [amount, bankAccount]);
+  }, [amount, bankAccount, bankAccounts, goal]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,9 +120,10 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
       onClose();
     } catch (err) {
       console.error("Error adding contribution:", err);
-      setErrors({
-        amount: "Failed to add contribution. Please try again.",
-      });
+      const message = (err instanceof Error && err.message)
+        ? err.message
+        : "Failed to add contribution. Please try again.";
+      setErrors({ amount: message });
     } finally {
       setLoading(false);
     }
@@ -258,9 +282,42 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                       id="amount"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
+                      placeholder="1.00"
                       step="0.01"
-                      min="0"
+                      min="1"
+                      max={goal ? Math.max(0, goal.targetAmount - goal.savedAmount) : undefined}
+                      inputMode="decimal"
+                      pattern="^\\d+(\\.\\d+)?$"
+                      onKeyDown={(e) => {
+                        if (["e", "E", "+", "-"].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const text = e.clipboardData.getData("text");
+                        if (!/^\d+(\.\d+)?$/.test(text)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onInvalid={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        const remaining = goal ? Math.max(0, goal.targetAmount - goal.savedAmount) : undefined;
+                        if (target.validity.valueMissing) {
+                          target.setCustomValidity("Contribution amount is required");
+                        } else if (
+                          target.validity.rangeUnderflow ||
+                          target.validity.stepMismatch
+                        ) {
+                          target.setCustomValidity("Contribution amount must be at least 1");
+                        } else if (target.validity.rangeOverflow && remaining !== undefined) {
+                          target.setCustomValidity(`Contribution amount cannot exceed remaining amount (Rs ${remaining.toLocaleString()})`);
+                        } else {
+                          target.setCustomValidity("");
+                        }
+                      }}
+                      onInput={(e) => {
+                        (e.target as HTMLInputElement).setCustomValidity("");
+                      }}
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.amount
                           ? "border-red-300 focus:ring-red-500"
@@ -271,6 +328,11 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
                       aria-invalid={errors.amount ? "true" : "false"}
                       aria-describedby={errors.amount ? "amount-error" : undefined}
                     />
+                    {goal && (
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Max allowed: Rs {Math.max(0, goal.targetAmount - goal.savedAmount).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   {errors.amount && (
                     <div

@@ -38,6 +38,7 @@ interface ProfileStatsData {
   expenses: number;
   warranties: number;
   incomes: number;
+  goals?: number;
   total: number;
 }
 
@@ -182,6 +183,7 @@ const Profile: React.FC = () => {
           expenses: data.activity.expenses || 0,
           warranties: data.activity.warranties || 0,
           incomes: data.activity.incomes || 0,
+          goals: data.activity.goals || 0,
           total: data.activity.total || 0,
         });
       }

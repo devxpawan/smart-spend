@@ -397,7 +397,11 @@ const Recurring: React.FC = () => {
           </div>
           <div className="flex justify-end sm:justify-start sm:ml-auto">
             <button
-              onClick={fetchRecurringTransactions}
+              onClick={() => {
+                setFilters({ type: "all", interval: "all", searchTerm: "" });
+                setCurrentPage(1);
+                fetchRecurringTransactions();
+              }}
               disabled={loading}
               className="flex items-center px-3 py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
               title="Refresh recurring transactions"

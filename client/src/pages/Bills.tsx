@@ -770,7 +770,19 @@ const Bills: React.FC = () => {
               </button>
 
               <button
-                onClick={fetchBills}
+                onClick={() => {
+                  // Reset dropdown filters to their default options
+                  setFilters({
+                    category: "",
+                    status: "all",
+                    searchTerm: "",
+                    dateRange: "all",
+                    customMonth: new Date().getMonth() + 1,
+                    customYear: new Date().getFullYear(),
+                  });
+                  setCurrentPage(1);
+                  fetchBills();
+                }}
                 className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border border-slate-300 dark:border-gray-600 rounded-lg text-xs sm:text-sm text-slate-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-slate-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
                 title="Refresh bills"
                 disabled={loading}

@@ -75,8 +75,15 @@ const GoalModal: React.FC<GoalModalProps> = ({
       newErrors.name = "Goal name is required";
     }
 
-    if (!formData.targetAmount || parseFloat(formData.targetAmount as string) <= 0) {
-      newErrors.targetAmount = "Please enter a valid target amount";
+    if (!formData.targetAmount) {
+      newErrors.targetAmount = "Target amount is required";
+    } else {
+      const amt = parseFloat(formData.targetAmount as string);
+      if (isNaN(amt)) {
+        newErrors.targetAmount = "Please enter a valid target amount";
+      } else if (amt < 1) {
+        newErrors.targetAmount = "Target amount must be at least 1";
+      }
     }
 
     if (!formData.targetDate) {
@@ -93,8 +100,13 @@ const GoalModal: React.FC<GoalModalProps> = ({
     }
 
     // Validate monthly contribution if provided
-    if (formData.monthlyContribution && parseFloat(formData.monthlyContribution as string) <= 0) {
-      newErrors.monthlyContribution = "Please enter a valid monthly contribution amount";
+    if (formData.monthlyContribution) {
+      const contrib = parseFloat(formData.monthlyContribution as string);
+      if (isNaN(contrib)) {
+        newErrors.monthlyContribution = "Please enter a valid contribution amount";
+      } else if (contrib < 1) {
+        newErrors.monthlyContribution = "Contribution amount must be at least 1";
+      }
     }
 
     setErrors(newErrors);
@@ -316,9 +328,38 @@ const GoalModal: React.FC<GoalModalProps> = ({
                       id="targetAmount"
                       value={formData.targetAmount}
                       onChange={handleChange}
-                      placeholder="0.00"
+                      placeholder="1.00"
                       step="0.01"
-                      min="0"
+                      min="1"
+                      inputMode="decimal"
+                      pattern="^\\d+(\\.\\d+)?$"
+                      onKeyDown={(e) => {
+                        if (["e", "E", "+", "-"].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const text = e.clipboardData.getData("text");
+                        if (!/^\d+(\.\d+)?$/.test(text)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onInvalid={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        if (target.validity.valueMissing) {
+                          target.setCustomValidity("Target amount is required");
+                        } else if (
+                          target.validity.rangeUnderflow ||
+                          target.validity.stepMismatch
+                        ) {
+                          target.setCustomValidity("Target amount must be at least 1");
+                        } else {
+                          target.setCustomValidity("");
+                        }
+                      }}
+                      onInput={(e) => {
+                        (e.target as HTMLInputElement).setCustomValidity("");
+                      }}
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.targetAmount
                           ? "border-red-300 focus:ring-red-500"
@@ -428,9 +469,34 @@ const GoalModal: React.FC<GoalModalProps> = ({
                       id="monthlyContribution"
                       value={formData.monthlyContribution}
                       onChange={handleChange}
-                      placeholder="0.00"
+                      placeholder="1.00"
                       step="0.01"
-                      min="0"
+                      min="1"
+                      inputMode="decimal"
+                      pattern="^\\d+(\\.\\d+)?$"
+                      onKeyDown={(e) => {
+                        if (["e", "E", "+", "-"].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const text = e.clipboardData.getData("text");
+                        if (!/^\d+(\.\d+)?$/.test(text)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onInvalid={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        // Optional field: show min message only when present and invalid
+                        if (target.validity.rangeUnderflow || target.validity.stepMismatch) {
+                          target.setCustomValidity("Contribution amount must be at least 1");
+                        } else {
+                          target.setCustomValidity("");
+                        }
+                      }}
+                      onInput={(e) => {
+                        (e.target as HTMLInputElement).setCustomValidity("");
+                      }}
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.monthlyContribution
                           ? "border-red-300 focus:ring-red-500"

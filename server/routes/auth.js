@@ -12,6 +12,7 @@ import Expense from "../models/Expense.js";
 import Income from "../models/Income.js";
 import User from "../models/User.js";
 import Warranty from "../models/Warranty.js";
+import Goal from "../models/Goal.js";
 import {
     DEFAULT_EXPENSE_CATEGORIES,
     DEFAULT_INCOME_CATEGORIES,
@@ -833,12 +834,13 @@ router.get("/profile/stats", authenticateToken, async (req, res) => {
     const userId = new mongoose.Types.ObjectId(req.user.id);
 
     // Basic counts - only what the client uses
-    const [billsCount, expensesCount, warrantiesCount, incomesCount] =
+    const [billsCount, expensesCount, warrantiesCount, incomesCount, goalsCount] =
       await Promise.all([
         Bill.countDocuments({ user: userId }),
         Expense.countDocuments({ user: userId }),
         Warranty.countDocuments({ user: userId }),
         Income.countDocuments({ user: userId }),
+        Goal.countDocuments({ user: userId }),
       ]);
 
     res.json({
@@ -847,7 +849,8 @@ router.get("/profile/stats", authenticateToken, async (req, res) => {
         expenses: expensesCount,
         warranties: warrantiesCount,
         incomes: incomesCount,
-        total: billsCount + expensesCount + warrantiesCount + incomesCount,
+        goals: goalsCount,
+        total: billsCount + expensesCount + warrantiesCount + incomesCount + goalsCount,
       },
     });
   } catch (error) {

@@ -119,7 +119,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
     }
 
     if (!formData.amount || parseFloat(formData.amount as string) <= 0) {
-      newErrors.amount = "Please enter a valid amount";
+      newErrors.amount = "Amount must be greater than 0";
     }
 
     if (!formData.date) {
@@ -393,7 +393,40 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                       onChange={handleChange}
                       placeholder="0.00"
                       step="0.01"
-                      min="0"
+                      min="0.01"
+                      inputMode="decimal"
+                      pattern="^\\d*(\\.\\d+)?$"
+                      onKeyDown={(e) => {
+                        // Prevent exponent and sign characters commonly allowed in number inputs
+                        if (["e", "E", "+", "-"].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        const text = e.clipboardData.getData("text");
+                        // Allow only digits and a single dot
+                        if (!/^\d*(\.\d+)?$/.test(text)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onInvalid={(e) => {
+                        const target = e.target as HTMLInputElement;
+                        if (target.validity.valueMissing) {
+                          target.setCustomValidity("Amount is required");
+                        } else if (
+                          target.validity.rangeUnderflow ||
+                          target.validity.stepMismatch
+                        ) {
+                          target.setCustomValidity(
+                            "Amount must be greater than 0"
+                          );
+                        } else {
+                          target.setCustomValidity("");
+                        }
+                      }}
+                      onInput={(e) => {
+                        (e.target as HTMLInputElement).setCustomValidity("");
+                      }}
                       className={`form-input block w-full pl-8 pr-2 py-2 sm:pl-10 sm:pr-3 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.amount
                           ? "border-red-300 focus:ring-red-500"
@@ -469,7 +502,7 @@ const IncomeModal: React.FC<IncomeModalProps> = ({
                     Category *
                   </label>
                   <CustomSelect
-                    options={categoriesToUse.map((cat) => ({
+                    options={categoriesToUse.map((cat: any) => ({
                       value: cat,
                       label: cat,
                     }))}

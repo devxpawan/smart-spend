@@ -1,6 +1,11 @@
 import express from "express";
 import { authenticateToken } from "../middleware/auth.js";
 import User from "../models/User.js";
+import Bill from "../models/Bill.js";
+import Expense from "../models/Expense.js";
+import Income from "../models/Income.js";
+import Warranty from "../models/Warranty.js";
+import Goal from "../models/Goal.js";
 
 const router = express.Router();
 
@@ -80,3 +85,92 @@ router.put('/categories/expense', async (req, res) => {
 });
 
 export default router;
+
+// @route   DELETE api/user/records
+// @desc    Clear selected user records (bills, expenses, incomes, warranties)
+// @access  Private
+router.delete('/records', async (req, res) => {
+  try {
+    const { records } = req.body;
+    const userId = req.user.id;
+
+    if (!Array.isArray(records) || records.length === 0) {
+      return res.status(400).json({ message: 'Please provide records array with at least one item.' });
+    }
+
+    // Normalize allowed keys
+    const allowed = new Set(['bills', 'expenses', 'incomes', 'warranties', 'goals']);
+    const selected = records.filter(r => typeof r === 'string').map(r => r.toLowerCase());
+    const invalid = selected.filter(r => !allowed.has(r));
+    if (invalid.length > 0) {
+      return res.status(400).json({ message: `Invalid record types: ${invalid.join(', ')}` });
+    }
+
+    const results = {};
+
+    const tasks = [];
+
+    if (selected.includes('bills')) {
+      tasks.push(
+        (async () => {
+          const { deletedCount } = await Bill.deleteMany({ user: userId });
+          results.bills = deletedCount || 0;
+        })()
+      );
+    }
+
+    if (selected.includes('expenses')) {
+      tasks.push(
+        (async () => {
+          const { deletedCount } = await Expense.deleteMany({ user: userId });
+          results.expenses = deletedCount || 0;
+        })()
+      );
+    }
+
+    if (selected.includes('incomes')) {
+      tasks.push(
+        (async () => {
+          const { deletedCount } = await Income.deleteMany({ user: userId });
+          results.incomes = deletedCount || 0;
+        })()
+      );
+    }
+
+    if (selected.includes('warranties')) {
+      // Use per-document delete to trigger Cloudinary cleanup hooks
+      tasks.push(
+        (async () => {
+          const warranties = await Warranty.find({ user: userId }).select('_id');
+          let count = 0;
+          for (const w of warranties) {
+            try {
+              await Warranty.findByIdAndDelete(w._id);
+              count += 1;
+            } catch (e) {
+              // continue on individual failures
+            }
+          }
+          results.warranties = count;
+        })()
+      );
+    }
+
+    if (selected.includes('goals')) {
+      tasks.push(
+        (async () => {
+          const { deletedCount } = await Goal.deleteMany({ user: userId });
+          results.goals = deletedCount || 0;
+        })()
+      );
+    }
+
+    await Promise.all(tasks);
+
+    const total = Object.values(results).reduce((acc, n) => acc + (n || 0), 0);
+    return res.json({ message: 'Records cleared successfully', results, total });
+  } catch (err) {
+    console.error('Error clearing user records:', err);
+    return res.status(500).json({ message: 'Server error while clearing records.' });
+  }
+});

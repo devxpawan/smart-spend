@@ -668,7 +668,17 @@ const Expenses: React.FC = () => {
               </button>
 
               <button
-                onClick={fetchExpenses}
+                onClick={() => {
+                  setFilters({
+                    category: "",
+                    searchTerm: "",
+                    dateRange: "all",
+                    customMonth: new Date().getMonth() + 1,
+                    customYear: new Date().getFullYear(),
+                  });
+                  setCurrentPage(1);
+                  fetchExpenses();
+                }}
                 className="flex items-center justify-center px-2 sm:px-3 py-1.5 sm:py-2 border dark:border-gray-600 rounded-md text-xs sm:text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                 title="Refresh expenses"
                 disabled={loading}
