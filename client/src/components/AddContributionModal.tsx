@@ -93,9 +93,18 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
       newErrors.bankAccount = "Please select a bank account";
     }
 
+    // Validate against selected bank account balance
+    if (amount && bankAccount) {
+      const amt = parseFloat(amount);
+      const selected = bankAccounts.find(b => b._id === bankAccount);
+      if (selected && !isNaN(amt) && amt > selected.currentBalance) {
+        newErrors.amount = "Sorry can't make the contribution because no enough bank balance";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [amount, bankAccount]);
+  }, [amount, bankAccount, bankAccounts, goal]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,9 +120,10 @@ const AddContributionModal: React.FC<AddContributionModalProps> = ({
       onClose();
     } catch (err) {
       console.error("Error adding contribution:", err);
-      setErrors({
-        amount: "Failed to add contribution. Please try again.",
-      });
+      const message = (err instanceof Error && err.message)
+        ? err.message
+        : "Failed to add contribution. Please try again.";
+      setErrors({ amount: message });
     } finally {
       setLoading(false);
     }

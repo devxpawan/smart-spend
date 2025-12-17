@@ -103,17 +103,36 @@ const GoalsSection: React.FC = () => {
     }
   };
 
-  // Handle add contribution
-  const handleAddContribution = async (amount: number, description: string) => {
+  // Handle add contribution (includes bank account ID to allow balance updates server-side)
+  const handleAddContribution = async (
+    amount: number,
+    description: string,
+    bankAccountId?: string
+  ) => {
     if (!selectedGoal) return;
 
     try {
-      const updatedGoal = await addContribution(selectedGoal._id, amount, description);
+      const updatedGoal = await addContribution(
+        selectedGoal._id,
+        amount,
+        description,
+        bankAccountId
+      );
       setGoals(goals.map((goal) => (goal._id === selectedGoal._id ? updatedGoal : goal)));
       toast.success("Contribution added successfully!");
     } catch (err) {
       console.error("Error adding contribution:", err);
-      toast.error("Failed to add contribution. Please try again.");
+      // Surface server-provided message when available and rethrow so modal can show inline error
+      let message = "Failed to add contribution. Please try again.";
+      if (err instanceof Error && err.message) {
+        message = err.message;
+      }
+      toast.error(message);
+      throw new Error(
+        message.includes("insufficient") || message.toLowerCase().includes("balance")
+          ? "Sorry can't make the contribution because no enough bank balance"
+          : message
+      );
     }
   };
 
