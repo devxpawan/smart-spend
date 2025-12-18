@@ -544,10 +544,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                         target: { name: "category", value },
                       } as React.ChangeEvent<HTMLSelectElement>)
                     }
-                    className={`${
+                    className={`bg-white dark:bg-gray-700 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-gray-500 ${
                       errors.category
-                        ? "border-red-300 focus:ring-red-500"
-                        : "border-slate-300 focus:ring-purple-500"
+                        ? "border-red-300 dark:border-red-500 focus:ring-red-500 dark:focus:ring-red-500"
+                        : "border-slate-300 dark:border-gray-600 focus:ring-purple-500 dark:focus:ring-purple-500"
                     }`}
                     isSearchable={true}
                     placeholder="Select a category"
@@ -704,7 +704,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Store className="h-5 w-5 text-slate-400" />
+                      <Store className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="text"
@@ -713,10 +713,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       value={formData.retailer}
                       onChange={handleInputChange}
                       placeholder="e.g., Amazon, Best Buy, Apple Store"
-                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.retailer
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-purple-500"
+                          ? "border-red-300 dark:border-red-500 focus:ring-red-500 dark:focus:ring-red-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-purple-500 dark:focus:ring-purple-500"
                       }`}
                       aria-invalid={errors.retailer ? "true" : "false"}
                       aria-describedby={
@@ -745,7 +745,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-slate-400" />
+                      <DollarSign className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <input
                       type="number"
@@ -756,10 +756,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
+                      className={`form-input block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out ${
                         errors.purchasePrice
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-purple-500"
+                          ? "border-red-300 dark:border-red-500 focus:ring-red-500 dark:focus:ring-red-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-purple-500 dark:focus:ring-purple-500"
                       }`}
                       aria-invalid={
                         errors.purchasePrice ? "true" : "false"
@@ -800,7 +800,7 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                   </label>
                   <div className="relative">
                     <div className="absolute top-3 left-3 pointer-events-none">
-                      <FileText className="h-5 w-5 text-slate-400" />
+                      <FileText className="h-5 w-5 text-slate-400 dark:text-gray-500" />
                     </div>
                     <textarea
                       name="notes"
@@ -809,10 +809,10 @@ const WarrantyModal: React.FC<WarrantyModalProps> = ({
                       onChange={handleInputChange}
                       rows={3}
                       maxLength={1000}
-                      className={`form-textarea block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out resize-none ${
+                      className={`form-textarea block w-full pl-10 pr-3 py-2 sm:py-3 border rounded-lg shadow-sm placeholder-slate-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent text-sm transition duration-150 ease-in-out resize-none ${
                         errors.notes
-                          ? "border-red-300 focus:ring-red-500"
-                          : "border-slate-300 focus:ring-purple-500"
+                          ? "border-red-300 dark:border-red-500 focus:ring-red-500 dark:focus:ring-red-500"
+                          : "border-slate-300 dark:border-gray-600 focus:ring-purple-500 dark:focus:ring-purple-500"
                       }`}
                       placeholder="Additional warranty details, serial numbers, or important notes..."
                       aria-invalid={errors.notes ? "true" : "false"}
