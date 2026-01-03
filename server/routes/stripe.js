@@ -79,7 +79,7 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 // @route   POST /api/stripe/create-payment-intent
-// @desc    Create a Stripe payment intent for embedded payment form
+// @desc    Create a Stripe setup intent for trial subscription (validates card without charging)
 // @access  Private
 router.post('/create-payment-intent', async (req, res) => {
   try {
@@ -111,21 +111,35 @@ router.post('/create-payment-intent', async (req, res) => {
 
     const selectedPlan = PRICING_PLANS[plan];
 
-    // Create a PaymentIntent for the trial (initial charge of $0 for trial)
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: 0, // $0 for trial period
-      currency: selectedPlan.currency,
+    // Create or get customer
+    let customerId = user.subscription?.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          userId: userId.toString(),
+        },
+      });
+      customerId = customer.id;
+    }
+
+    // Create a SetupIntent to save payment method for future use (no charge)
+    // This validates the card without charging anything
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      payment_method_types: ['card'],
       metadata: {
         userId: userId.toString(),
         plan: plan,
         country: country || 'US',
       },
-      description: `SmartSpend Pro ${plan} subscription - 7-day trial`,
+      description: `SmartSpend Pro ${plan} subscription - Card validation for 7-day trial`,
     });
 
     res.json({ 
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id 
+      clientSecret: setupIntent.client_secret,
+      setupIntentId: setupIntent.id,
+      customerId: customerId
     });
   } catch (error) {
     console.error('Error creating payment intent:', error);
@@ -134,26 +148,32 @@ router.post('/create-payment-intent', async (req, res) => {
 });
 
 // @route   POST /api/stripe/confirm-payment
-// @desc    Confirm payment and upgrade user to Pro
+// @desc    Confirm setup intent and upgrade user to Pro with trial subscription
 // @access  Private
 router.post('/confirm-payment', async (req, res) => {
   try {
-    const { paymentIntentId } = req.body;
+    const { setupIntentId, paymentMethodId } = req.body;
     const userId = req.user.id;
 
-    if (!paymentIntentId) {
-      return res.status(400).json({ message: 'Payment intent ID is required' });
+    console.log('Confirm payment request:', { setupIntentId, paymentMethodId, userId });
+
+    if (!setupIntentId) {
+      return res.status(400).json({ message: 'Setup intent ID is required' });
     }
 
-    // Retrieve payment intent to verify it succeeded
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    // Retrieve setup intent to verify it succeeded
+    const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+    console.log('SetupIntent status:', setupIntent.status);
 
-    if (paymentIntent.status !== 'succeeded') {
-      return res.status(400).json({ message: 'Payment not completed' });
+    if (setupIntent.status !== 'succeeded') {
+      return res.status(400).json({ 
+        message: 'Card validation not completed', 
+        status: setupIntent.status 
+      });
     }
 
     // Verify userId matches
-    if (paymentIntent.metadata.userId !== userId.toString()) {
+    if (setupIntent.metadata.userId !== userId.toString()) {
       return res.status(403).json({ message: 'Unauthorized payment confirmation' });
     }
 
@@ -163,49 +183,78 @@ router.post('/confirm-payment', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Get the payment method from the setup intent
+    const paymentMethod = setupIntent.payment_method || paymentMethodId;
+    if (!paymentMethod) {
+      return res.status(400).json({ message: 'Payment method not found' });
+    }
+
+    console.log('Payment method:', paymentMethod);
+
+    // Get customer ID
+    const customerId = setupIntent.customer;
+    if (!customerId) {
+      return res.status(400).json({ message: 'Customer ID not found in setup intent' });
+    }
+
+    console.log('Customer ID:', customerId);
+
     // Create subscription for future billing (after trial)
-    const selectedPlan = PRICING_PLANS[paymentIntent.metadata.plan];
-    const customer = await stripe.customers.create({
-      email: user.email,
+    const selectedPlan = PRICING_PLANS[setupIntent.metadata.plan];
+    if (!selectedPlan) {
+      return res.status(400).json({ message: 'Invalid plan in setup intent metadata' });
+    }
+
+    console.log('Creating subscription with plan:', selectedPlan);
+
+    // For subscription creation, we need to use a predefined price ID
+    // Create a product and price for this plan
+    const product = await stripe.products.create({
+      name: selectedPlan.name,
+      description: selectedPlan.description,
       metadata: {
-        userId: userId.toString(),
+        plan_id: selectedPlan.id,
       },
+    });
+    
+    const price = await stripe.prices.create({
+      unit_amount: Math.round(selectedPlan.price * 100),
+      currency: selectedPlan.currency,
+      recurring: {
+        interval: selectedPlan.interval,
+      },
+      product: product.id,
     });
 
     const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
+      customer: customerId,
       items: [
         {
-          price_data: {
-            currency: selectedPlan.currency,
-            product_data: {
-              name: selectedPlan.name,
-              description: selectedPlan.description,
-            },
-            unit_amount: Math.round(selectedPlan.price * 100),
-            recurring: {
-              interval: selectedPlan.interval,
-            },
-          },
+          price: price.id,
         },
       ],
+      default_payment_method: paymentMethod,
       trial_period_days: 7, // 7-day trial
       metadata: {
         userId: userId.toString(),
-        plan: paymentIntent.metadata.plan,
+        plan: setupIntent.metadata.plan,
       },
     });
 
+    console.log('Subscription created:', subscription.id);
+
     user.isPro = true;
     user.subscription = {
-      plan: paymentIntent.metadata.plan,
-      stripeCustomerId: customer.id,
+      plan: setupIntent.metadata.plan,
+      stripeCustomerId: customerId,
       stripeSubscriptionId: subscription.id,
       status: 'trialing',
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
     };
 
     await user.save();
+
+    console.log('User upgraded to Pro:', user._id);
 
     res.json({ 
       message: 'Successfully upgraded to Pro!',
@@ -218,7 +267,13 @@ router.post('/confirm-payment', async (req, res) => {
     });
   } catch (error) {
     console.error('Error confirming payment:', error);
-    res.status(500).json({ message: 'Failed to confirm payment', error: error.message });
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Failed to confirm payment', 
+      error: error.message,
+      details: error.raw?.message || 'No additional details available'
+    });
   }
 });
 

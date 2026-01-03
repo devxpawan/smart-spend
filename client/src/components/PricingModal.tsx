@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Crown, Loader2, X, Zap, CreditCard, Lock } from "lucide-react";
+import { Check, Crown, Loader2, X, Zap, CreditCard, Lock, AlertCircle } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
@@ -124,7 +124,7 @@ const PaymentForm: React.FC<{
     setLoading(true);
 
     try {
-      // Create payment intent on backend
+      // Create setup intent on backend (validates card without charging)
       const { data } = await axios.post("/api/stripe/create-payment-intent", {
         plan: selectedPlan,
         country,
@@ -132,13 +132,13 @@ const PaymentForm: React.FC<{
 
       const { clientSecret } = data;
 
-      // Confirm payment with Stripe
+      // Confirm card setup with Stripe (validates card, no charge)
       const cardElement = elements.getElement(CardNumberElement);
       if (!cardElement) {
         throw new Error("Card element not found");
       }
 
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+      const { error: stripeError, setupIntent } = await stripe.confirmCardSetup(
         clientSecret,
         {
           payment_method: {
@@ -148,15 +148,17 @@ const PaymentForm: React.FC<{
       );
 
       if (stripeError) {
-        setError(stripeError.message || "Payment failed");
-        toast.error(stripeError.message || "Payment failed");
-      } else if (paymentIntent.status === "succeeded") {
-        // Notify backend about successful payment
+        const errorMessage = stripeError.message || "Payment failed";
+        setError(errorMessage);
+        toast.error(errorMessage, { duration: 5000 });
+      } else if (setupIntent.status === "succeeded") {
+        // Notify backend about successful card validation and create trial subscription
         await axios.post("/api/stripe/confirm-payment", {
-          paymentIntentId: paymentIntent.id,
+          setupIntentId: setupIntent.id,
+          paymentMethodId: setupIntent.payment_method,
         });
 
-        toast.success("Welcome to Pro! Your account has been upgraded.");
+        toast.success("Welcome to Pro! Your 7-day trial has started.");
         onSuccess();
         
         // Reload to update user state
@@ -166,9 +168,23 @@ const PaymentForm: React.FC<{
       }
     } catch (err: any) {
       console.error("Payment error:", err);
-      const errorMessage = err.response?.data?.message || "Payment failed. Please try again.";
+      console.error("Error response:", err.response?.data);
+      
+      let errorMessage = "Payment failed. Please try again.";
+      
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+        
+        // Add additional details if available
+        if (err.response.data.details) {
+          errorMessage += ` (${err.response.data.details})`;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
-      toast.error(errorMessage);
+      toast.error(errorMessage, { duration: 6000 });
     } finally {
       setLoading(false);
     }
@@ -343,8 +359,19 @@ const PaymentForm: React.FC<{
 
           {/* Error Message */}
           {error && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-1">
+                    Payment Failed
+                  </p>
+                  <p className="text-sm text-red-600 dark:text-red-400 mb-2">{error}</p>
+                  <p className="text-xs text-red-500 dark:text-red-400">
+                    💡 <strong>Using test mode?</strong> Try card: 4242 4242 4242 4242 with any future date and CVV 123
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
