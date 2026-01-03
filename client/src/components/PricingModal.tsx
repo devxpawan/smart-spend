@@ -13,6 +13,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import { useTheme } from "../contexts/theme-exports";
 
 // Load Stripe outside of component to avoid recreating on each render
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
@@ -64,15 +65,15 @@ const PLANS = {
   },
 };
 
-// Stripe Elements styling
-const CARD_ELEMENT_OPTIONS = {
+// Stripe Elements styling - now a function to support theme switching
+const getCardElementOptions = (isDark: boolean) => ({
   style: {
     base: {
-      color: '#1f2937',
+      color: isDark ? '#f9fafb' : '#1f2937',
       fontFamily: 'system-ui, -apple-system, sans-serif',
       fontSize: '16px',
       '::placeholder': {
-        color: '#9ca3af',
+        color: isDark ? '#6b7280' : '#9ca3af',
       },
     },
     invalid: {
@@ -80,24 +81,7 @@ const CARD_ELEMENT_OPTIONS = {
       iconColor: '#ef4444',
     },
   },
-};
-
-const CARD_ELEMENT_OPTIONS_DARK = {
-  style: {
-    base: {
-      color: '#f9fafb',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      fontSize: '16px',
-      '::placeholder': {
-        color: '#6b7280',
-      },
-    },
-    invalid: {
-      color: '#ef4444',
-      iconColor: '#ef4444',
-    },
-  },
-};
+});
 
 // Payment Form Component (uses Stripe Elements hooks)
 const PaymentForm: React.FC<{
@@ -107,9 +91,27 @@ const PaymentForm: React.FC<{
 }> = ({ selectedPlan, onSuccess, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [country, setCountry] = useState("US");
   const [error, setError] = useState<string | null>(null);
+
+  const isDarkMode = theme === 'dark';
+  const cardElementOptions = getCardElementOptions(isDarkMode);
+
+  // Update Stripe Elements when theme changes
+  useEffect(() => {
+    if (elements) {
+      const cardNumber = elements.getElement(CardNumberElement);
+      const cardExpiry = elements.getElement(CardExpiryElement);
+      const cardCvc = elements.getElement(CardCvcElement);
+      
+      // Update styling for all elements
+      if (cardNumber) cardNumber.update(cardElementOptions);
+      if (cardExpiry) cardExpiry.update(cardElementOptions);
+      if (cardCvc) cardCvc.update(cardElementOptions);
+    }
+  }, [theme, elements, cardElementOptions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -293,7 +295,7 @@ const PaymentForm: React.FC<{
               Credit or debit card number
             </label>
             <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
-              <CardNumberElement options={CARD_ELEMENT_OPTIONS} />
+              <CardNumberElement options={cardElementOptions} />
             </div>
           </div>
 
@@ -304,7 +306,7 @@ const PaymentForm: React.FC<{
                 Expiration date
               </label>
               <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
-                <CardExpiryElement options={CARD_ELEMENT_OPTIONS} />
+                <CardExpiryElement options={cardElementOptions} />
               </div>
             </div>
             <div>
@@ -312,7 +314,7 @@ const PaymentForm: React.FC<{
                 Security code (CVV)
               </label>
               <div className="border-2 border-gray-300 dark:border-gray-600 rounded-lg p-3 bg-white dark:bg-gray-800">
-                <CardCvcElement options={CARD_ELEMENT_OPTIONS} />
+                <CardCvcElement options={cardElementOptions} />
               </div>
             </div>
           </div>
