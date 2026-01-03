@@ -84,6 +84,33 @@ router.put('/categories/expense', async (req, res) => {
   }
 });
 
+// @route   POST api/user/toggle-pro
+// @desc    Toggle user's Pro status (for development/testing)
+// @access  Private
+router.post('/toggle-pro', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const user = await User.findById(userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Toggle the isPro status
+    user.isPro = !user.isPro;
+    await user.save();
+
+    res.json({ 
+      message: user.isPro ? 'Upgraded to Pro successfully!' : 'Downgraded from Pro',
+      user 
+    });
+  } catch (err) {
+    console.error('Error toggling Pro status:', err.message);
+    res.status(500).json({ message: 'Server error while toggling Pro status' });
+  }
+});
+
 export default router;
 
 // @route   DELETE api/user/records

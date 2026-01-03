@@ -6,6 +6,7 @@ import {
     Check,
     CheckCircle,
     CreditCard,
+    Crown,
     FileText,
     Info,
     Mail,
@@ -23,6 +24,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import ClearRecordsModal from "../components/ClearRecordsModal";
 import CurrencySelect from "../components/CurrencySelect";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import PricingModal from "../components/PricingModal";
 
 import { useAuth } from "../contexts/auth-exports";
 import { useTheme } from "../contexts/theme-exports";
@@ -166,6 +168,8 @@ const Profile: React.FC = () => {
     total: 0,
   });
   const [statsLoading, setStatsLoading] = useState(false);
+  const [togglingPro, setTogglingPro] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -471,6 +475,29 @@ const Profile: React.FC = () => {
     setShowDeleteModal(false);
     setDeleteInput("");
     setMessage({ type: "", text: "" });
+  }, []);
+
+  const handleTogglePro = useCallback(async () => {
+    try {
+      setTogglingPro(true);
+      const response = await axios.post("/api/user/toggle-pro");
+      
+      setMessage({
+        type: "success",
+        text: response.data.message || "Pro status updated successfully!",
+      });
+      
+      // Refresh user data (assuming the auth context updates)
+      window.location.reload();
+    } catch (error) {
+      console.error("Error toggling Pro status:", error);
+      setMessage({
+        type: "error",
+        text: "Failed to toggle Pro status. Please try again.",
+      });
+    } finally {
+      setTogglingPro(false);
+    }
   }, []);
 
   return (
@@ -868,6 +895,72 @@ const Profile: React.FC = () => {
             {/* separator */}
             <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
 
+            {/* Pro Status Section */}
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Account Type
+              </label>
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    user?.isPro 
+                      ? "bg-gradient-to-r from-yellow-400 to-yellow-600" 
+                      : "bg-slate-300 dark:bg-slate-600"
+                  }`}>
+                    <Crown className={`w-5 h-5 ${
+                      user?.isPro ? "text-white" : "text-slate-500"
+                    }`} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        {user?.isPro ? "Pro Account" : "Free Account"}
+                      </span>
+                      {user?.isPro && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-yellow-400 to-yellow-600 text-white">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {user?.isPro 
+                        ? "Enjoy all premium features including Smart Receipt Scanner" 
+                        : "Upgrade to unlock Smart Receipt Scanner and more"}
+                    </p>
+                  </div>
+                </div>
+                <motion.button
+                  type="button"
+                  onClick={() => !user?.isPro && setShowPricingModal(true)}
+                  disabled={togglingPro}
+                  whileHover={{ scale: togglingPro ? 1 : 1.05 }}
+                  whileTap={{ scale: togglingPro ? 1 : 0.95 }}
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 ${
+                    user?.isPro
+                      ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white cursor-default"
+                      : "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white hover:from-yellow-500 hover:to-yellow-700 shadow-md hover:shadow-lg"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {user?.isPro ? (
+                    <>
+                      <Crown className="w-4 h-4" />
+                      Pro Active
+                    </>
+                  ) : (
+                    <>
+                      Upgrade to Pro
+                    </>
+                  )}
+                </motion.button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                💡 This is a development feature. In production, this would integrate with a payment system.
+              </p>
+            </div>
+
+            {/* separator */}
+            <div className="h-px bg-slate-200 dark:bg-slate-700"></div>
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
               {hasChanges && (
@@ -1043,6 +1136,12 @@ const Profile: React.FC = () => {
         onConfirm={handleClearRecords}
         clearing={isClearingRecords}
         recordStats={stats}
+      />
+
+      {/* Pricing Modal */}
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
       />
     </div>
   );

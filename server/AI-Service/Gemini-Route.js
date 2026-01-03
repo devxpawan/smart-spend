@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import multer from "multer";
 import fs from "fs";
 import InvoiceReceiptAnalysisPrompt from "../AI-Service/aiPrompts.js";
+import { authenticateToken } from "../middleware/auth.js";
+import User from "../models/User.js";
 
 
 dotenv.config();
@@ -64,8 +66,35 @@ function bufferToGenerativePart(buffer, mimeType) {
 // ======================================================
 // 🧾 Receipt Analysis Endpoint (SmartSpend)
 // ======================================================
-GPTRouter.post("/analyze-receipt", upload.single("receiptImage"), async (req, res) => {
-    // 1. Check for file
+GPTRouter.post("/analyze-receipt", authenticateToken, upload.single("receiptImage"), async (req, res) => {
+    // 1. Check if user is pro
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) {
+            return res.status(404).json({ 
+                error: true,
+                type: 'user_not_found',
+                message: "User not found."
+            });
+        }
+
+        if (!user.isPro) {
+            return res.status(403).json({ 
+                error: true,
+                type: 'pro_required',
+                message: "Smart Receipt Scanner is a Pro feature. Please upgrade to Pro to access this feature."
+            });
+        }
+    } catch (error) {
+        console.error("Error checking user Pro status:", error);
+        return res.status(500).json({ 
+            error: true,
+            type: 'server_error',
+            message: "Failed to verify user status."
+        });
+    }
+
+    // 2. Check for file
     if (!req.file) {
         return res.status(400).json({ error: "No receipt image uploaded." });
     }
@@ -73,10 +102,10 @@ GPTRouter.post("/analyze-receipt", upload.single("receiptImage"), async (req, re
     const mimeType = req.file.mimetype;
 
     try {
-        // 2. Prepare the image part and the text prompt
+        // 3. Prepare the image part and the text prompt
         const imagePart = bufferToGenerativePart(req.file.buffer, mimeType);
         
-        // 3. Call the vision model with retry for transient overload/ratelimit
+        // 4. Call the vision model with retry for transient overload/ratelimit
         const result = await withRetry(() => visionModel.generateContent({
           contents: [
             {
@@ -92,12 +121,12 @@ GPTRouter.post("/analyze-receipt", upload.single("receiptImage"), async (req, re
           }
         }));
 
-        // 4. Parse the JSON response
+        // 5. Parse the JSON response
         const response = await result.response;
         const jsonText = response.text();
         const expenseData = JSON.parse(jsonText);
 
-        // 5. Respond with the structured data
+        // 6. Respond with the structured data
         res.status(200).json(expenseData);
 
     } catch (error) {

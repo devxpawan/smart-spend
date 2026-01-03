@@ -244,6 +244,7 @@ const formatUserResponse = (user) => ({
   isGoogleUser: !!user.googleId, // Add this field
   incomeCategories: user.incomeCategories,
   expenseCategories: user.expenseCategories,
+  isPro: user.isPro || false,
 });
 
 // Helper to extract Cloudinary public ID from URL

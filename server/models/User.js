@@ -63,6 +63,34 @@ const userSchema = new mongoose.Schema({
       default: "USD",
     },
   },
+  isPro: {
+    type: Boolean,
+    default: false,
+  },
+  subscription: {
+    plan: {
+      type: String,
+      enum: ['monthly', 'yearly', null],
+      default: null,
+    },
+    stripeCustomerId: {
+      type: String,
+      default: null,
+    },
+    stripeSubscriptionId: {
+      type: String,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ['active', 'canceled', 'expired', null],
+      default: null,
+    },
+    currentPeriodEnd: {
+      type: Date,
+      default: null,
+    },
+  },
 });
 
 const User = mongoose.model("User", userSchema);

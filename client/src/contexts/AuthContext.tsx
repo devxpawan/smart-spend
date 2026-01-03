@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./auth-exports";
 
-interface User {
+export interface User {
   id: string;
   name: string;
   email: string;
@@ -13,6 +13,12 @@ interface User {
     currency: string;
   };
   createdAt: string;
+  isPro?: boolean;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;

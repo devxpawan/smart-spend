@@ -19,8 +19,10 @@ import goalRoutes from "./routes/goals.js";
 import incomeRoutes from "./routes/incomes.js";
 import notificationRoutes from "./routes/notifications.js"; // Add notifications route
 import recurringRoutes from "./routes/recurring.js";
+import stripeRoutes from "./routes/stripe.js";
 import userRoutes from "./routes/user.js";
 import warrantyRoutes from "./routes/warranties.js";
+import webhookRoutes from "./routes/webhooks.js";
 
 // Middleware
 import { authenticateToken } from "./middleware/auth.js";
@@ -157,6 +159,9 @@ if (process.env.ENABLE_HSTS === "true") {
   );
 }
 
+// Webhook routes (MUST be before express.json() middleware)
+app.use("/api/webhooks", webhookRoutes);
+
 // X-Frame-Options / clickjacking protection
 app.use(
   helmet.frameguard({
@@ -250,6 +255,7 @@ app.use("/api/user", authenticateToken, userRoutes);
 app.use("/api/bank-accounts", authenticateToken, bankAccountRoutes);
 app.use("/api/recurring", authenticateToken, recurringRoutes);
 app.use("/api/notifications", authenticateToken, notificationRoutes); // Add notifications route
+app.use("/api/stripe", stripeRoutes);
 
 app.use("/api/gemini", authenticateToken, GPTRouter); //gemini route
 

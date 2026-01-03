@@ -3,6 +3,7 @@ import {
   AlertCircle,
   Calendar,
   Camera,
+  Crown,
   Loader2,
   Receipt,
   Repeat,
@@ -292,6 +293,15 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
   // Trigger file input click
   const handleScanReceiptClick = () => {
+    // Check if user is pro
+    if (!user?.isPro) {
+      setScanError({
+        show: true,
+        message: 'Smart Receipt Scanner is a Pro feature. Please upgrade to Pro to access this feature.',
+        type: 'pro_required'
+      });
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -473,6 +483,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                     <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100">
                       Smart Receipt Scanner
                     </h3>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-yellow-400 to-yellow-600 text-white shadow-sm">
+                      <Crown className="w-3 h-3 mr-1" />
+                      PRO
+                    </span>
                   </div>
                   <p className="text-xs text-blue-700 dark:text-blue-300 mb-3">
                     Upload a photo of your receipt and we'll automatically extract the details for you
@@ -514,8 +528,13 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                   <button
                     type="button"
                     onClick={handleScanReceiptClick}
-                    disabled={scanningReceipt}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium rounded-lg transition-colors duration-150 shadow-sm"
+                    disabled={scanningReceipt || !user?.isPro}
+                    className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors duration-150 shadow-sm ${
+                      !user?.isPro
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400"
+                    }`}
+                    title={!user?.isPro ? "Upgrade to Pro to use Smart Receipt Scanner" : ""}
                   >
                     {scanningReceipt ? (
                       <>
@@ -525,7 +544,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Scan Receipt
+                        {user?.isPro ? "Scan Receipt" : "Pro Feature"}
                       </>
                     )}
                   </button>

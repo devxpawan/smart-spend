@@ -18,7 +18,7 @@ interface SuccessResponse extends BaseResponse {
 
 interface ErrorResponse extends BaseResponse {
     error: true;
-    type: 'invalid_document' | 'unreadable' | 'incomplete_data' | 'network_error' | 'unknown';
+    type: 'invalid_document' | 'unreadable' | 'incomplete_data' | 'network_error' | 'pro_required' | 'user_not_found' | 'server_error' | 'unknown';
     message: string;
     detectedContent?: string;
     partialData?: Partial<{
@@ -136,6 +136,15 @@ export const analyzeReceipt = async (receiptImage: File): Promise<ReceiptAnalysi
                 // Server responded with error
                 const status = error.response.status;
                 const serverMessage = error.response.data?.message || error.response.data?.error;
+                const errorType = error.response.data?.type;
+    
+                if (status === 403 && errorType === 'pro_required') {
+                    return {
+                        error: true,
+                        type: 'pro_required',
+                        message: serverMessage || 'Smart Receipt Scanner is a Pro feature. Please upgrade to access this feature.',
+                    };
+                }
     
                 if (status === 400) {
                     return {

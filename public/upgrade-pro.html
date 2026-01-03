@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upgrade to Pro</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: #f4faf8; }
+    .page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); display: flex; max-width: 960px; width: 100%; overflow: hidden; }
+    .summary { flex: 0 0 40%; padding: 24px 28px; border-right: 1px solid #e5e7eb; background: #f9fafb; }
+    .summary h2 { margin: 0 0 16px; font-size: 20px; }
+    .summary-row { margin-bottom: 12px; font-size: 14px; }
+    .summary-label { color: #6b7280; display: block; }
+    .summary-value { font-weight: 600; }
+    .price { margin-top: 24px; font-size: 22px; font-weight: 700; color: #059669; }
+    .help-text { margin-top: 12px; font-size: 12px; color: #6b7280; }
+
+    .trial-steps { margin-top: 24px; font-size: 13px; }
+    .trial-step { display: flex; align-items: baseline; margin-bottom: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 9999px; background: #10b981; margin-right: 8px; flex-shrink: 0; }
+
+    .form { flex: 0 0 60%; padding: 24px 28px; }
+    .form h1 { margin: 0 0 16px; font-size: 22px; }
+    .tabs { display: inline-flex; border: 1px solid #e5e7eb; border-radius: 9999px; overflow: hidden; margin-bottom: 20px; }
+    .tab { padding: 8px 18px; font-size: 13px; border: none; background: transparent; cursor: pointer; }
+    .tab.active { background: #047857; color: #fff; }
+
+    label { display: block; font-size: 13px; margin-bottom: 4px; color: #374151; }
+    input, select { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #d1d5db; font-size: 14px; }
+    .row { display: flex; gap: 12px; }
+    .field { margin-bottom: 14px; flex: 1 1 0; }
+    .submit-btn { width: 100%; margin-top: 8px; padding: 12px; border-radius: 9999px; border: none; background: #047857; color: #fff; font-weight: 600; cursor: pointer; }
+    .submit-btn:disabled { opacity: 0.6; cursor: default; }
+    .note { margin-top: 10px; font-size: 12px; color: #6b7280; text-align: center; }
+    .message { margin-top: 10px; font-size: 13px; text-align: center; }
+    .message.success { color: #059669; }
+    .message.error { color: #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <aside class="summary">
+        <h2>Order summary</h2>
+        <div class="summary-row">
+          <span class="summary-label">Plan</span>
+          <span class="summary-value">SmartSpend Pro</span>
+        </div>
+        <div class="summary-row">
+          <span class="summary-label">Billing</span>
+          <span class="summary-value">Quarterly</span>
+        </div>
+        <div class="price">$0.00 USD today</div>
+        <div class="help-text">
+          Then $60.00 per quarter (billed every 3 months).
+        </div>
+
+        <div class="trial-steps">
+          <div class="trial-step">
+            <span class="dot"></span>
+            <div><strong>Day 0:</strong> Full Pro access is unlocked.</div>
+          </div>
+          <div class="trial-step">
+            <span class="dot"></span>
+            <div><strong>Day 5:</strong> You receive a reminder before the trial ends.</div>
+          </div>
+          <div class="trial-step">
+            <span class="dot"></span>
+            <div><strong>Day 7:</strong> Your paid subscription starts unless you cancel.</div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="form">
+        <h1>Payment details</h1>
+
+        <div class="tabs">
+          <button type="button" class="tab active">Credit or debit card</button>
+          <button type="button" class="tab">PayPal</button>
+        </div>
+
+        <form id="upgradeForm">
+          <div class="field">
+            <label for="cardNumber">Card number</label>
+            <input id="cardNumber" name="cardNumber" autocomplete="cc-number" required />
+          </div>
+
+          <div class="row">
+            <div class="field">
+              <label for="expiry">Expiration (MM/YY)</label>
+              <input id="expiry" name="expiry" autocomplete="cc-exp" required />
+            </div>
+            <div class="field">
+              <label for="cvc">Security code</label>
+              <input id="cvc" name="cvc" autocomplete="cc-csc" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="country">Country / region</label>
+            <select id="country" name="country" required>
+              <option value="">Select country</option>
+              <option>Sri Lanka</option>
+              <option>United States</option>
+              <option>United Kingdom</option>
+              <option>Canada</option>
+              <!-- ...add as needed... -->
+            </select>
+          </div>
+
+          <button id="submitBtn" class="submit-btn" type="submit">
+            Start free trial
+          </button>
+
+          <p class="note">
+            By continuing you agree to be charged after your trial unless you cancel.
+          </p>
+          <p id="formMessage" class="message" aria-live="polite"></p>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("upgradeForm");
+    const btn = document.getElementById("submitBtn");
+    const msg = document.getElementById("formMessage");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "";
+      msg.className = "message";
+      btn.disabled = true;
+
+      try {
+        // Replace URL with your actual backend endpoint that upgrades the account
+        const res = await fetch("/api/account/upgrade-pro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan: "pro-quarterly",
+            country: form.country.value
+            // Do NOT send raw card data to your server in production.
+            // Integrate with Stripe or your PSP's JS SDK instead.
+          }),
+        });
+
+        if (!res.ok) throw new Error("Upgrade failed");
+
+        msg.textContent = "Your account has been upgraded to Pro (trial started).";
+        msg.classList.add("success");
+      } catch (err) {
+        msg.textContent = "Could not process the upgrade. Please contact support.";
+        msg.classList.add("error");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
