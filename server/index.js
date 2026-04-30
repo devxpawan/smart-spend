@@ -48,7 +48,7 @@ const io = new Server(server, {
     origin: process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
       : [
-          "https://smart-spend-frontend-rosy.vercel.app",
+          "https://smartspend.vercel.app",
           "http://localhost:5173",
           "http://localhost:3000",
         ],
@@ -65,15 +65,13 @@ io.engine.on("headers", (headers, req) => {
     "base-uri 'none'",
     "object-src 'none'",
     "form-action 'self'",
-    "script-src 'self' https://apis.google.com",
+    "script-src 'self' https://apis.google.com https://accounts.google.com",
     "style-src 'self' https://fonts.googleapis.com",
     "img-src 'self' data: https://res.cloudinary.com https://i.postimg.cc",
     "font-src 'self' https://fonts.gstatic.com",
-    // Allow XHR/WS connections as needed by Socket.IO
-    // Note: browsers do not enforce CSP on non-document responses,
-    // but some scanners expect the header to be present.
-    "connect-src 'self'",
-    "frame-ancestors 'none'",
+    "connect-src 'self' https://accounts.google.com https://www.googleapis.com",
+    "frame-src 'self' https://accounts.google.com",
+    "frame-ancestors 'self'",
     "upgrade-insecure-requests",
   ].join("; ");
 
@@ -91,7 +89,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
   : [
-      "https://smart-spend-frontend-rosy.vercel.app",
+      "https://smartspend.vercel.app",
       "http://localhost:5173",
       "http://localhost:3000",
     ];
@@ -176,15 +174,13 @@ app.use((req, res, next) => {
     "base-uri 'none'",
     "object-src 'none'",
     "form-action 'self'",
-    "script-src 'self' https://apis.google.com",
+    "script-src 'self' https://apis.google.com https://accounts.google.com",
     "style-src 'self' https://fonts.googleapis.com",
     "img-src 'self' data: https://res.cloudinary.com https://i.postimg.cc",
     "font-src 'self' https://fonts.gstatic.com",
-    // API and auth endpoints used by the app
-    "connect-src 'self' https://accounts.google.com",
-    // Disallow framing by other origins
-    "frame-ancestors 'none'",
-    // Block mixed content
+    "connect-src 'self' https://accounts.google.com https://www.googleapis.com",
+    "frame-src 'self' https://accounts.google.com",
+    "frame-ancestors 'self'",
     "upgrade-insecure-requests",
   ].join("; ");
   res.setHeader("Content-Security-Policy", csp);
