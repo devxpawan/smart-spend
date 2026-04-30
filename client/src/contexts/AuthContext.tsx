@@ -1,3 +1,4 @@
+import api from "../api/api";
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -49,9 +50,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Setup axios defaults
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
-      delete axios.defaults.headers.common["Authorization"];
+      delete api.defaults.headers.common["Authorization"];
     }
   }, [token]);
 
@@ -64,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       try {
-        const res = await axios.get("/api/auth/me");
+        const res = await api.get("/auth/me");
         setUser(res.data);
         setLoading(false);
       } catch {
@@ -83,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      const res = await axios.post("/api/auth/login", { email, password });
+      const res = await api.post("/auth/login", { email, password });
 
       localStorage.setItem("token", res.data.token);
       setToken(res.data.token);
@@ -118,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      await axios.post("/api/auth/register", {
+      await api.post("/auth/register", {
         name,
         email,
         password,
@@ -151,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      const res = await axios.post("/api/auth/google", {
+      const res = await api.post("/auth/google", {
         token: credential,
       });
 
@@ -192,7 +193,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      const res = await axios.put("/api/auth/profile", data, {
+      const res = await api.put("/auth/profile", data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -225,7 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      const res = await axios.delete("/api/auth/profile/avatar");
+      const res = await api.delete("/auth/profile/avatar");
       setUser(res.data.user);
       toast.success("Profile image removed successfully");
     } catch (err: unknown) {
@@ -251,7 +252,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      const res = await axios.put("/api/auth/currency", { currency });
+      const res = await api.put("/auth/currency", { currency });
       if (user) {
         setUser({ ...user, preferences: res.data.user.preferences });
       }
@@ -282,7 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      await axios.delete("/api/auth/profile");
+      await api.delete("/auth/profile");
 
       // Clear user state and token immediately
       localStorage.removeItem("token");
@@ -318,7 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      const res = await axios.put("/api/user/categories/income", { categories });
+      const res = await api.put("/user/categories/income", { categories });
       setUser(res.data.user);
       toast.success("Income categories updated successfully");
     } catch (err: unknown) {
@@ -351,7 +352,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
-      const res = await axios.put("/api/user/categories/expense", { categories });
+      const res = await api.put("/user/categories/expense", { categories });
       setUser(res.data.user);
       toast.success("Expense categories updated successfully");
     } catch (err: unknown) {
@@ -390,7 +391,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     setError(null);
     try {
-      await axios.post("/api/auth/forgot-password", { email });
+      await api.post("/auth/forgot-password", { email });
       toast.success("Password reset OTP sent to your email.");
     } catch (err: unknown) {
       let errorMessage = "Failed to send OTP";
@@ -413,7 +414,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     setError(null);
     try {
-      await axios.post("/api/auth/reset-password", { email, otp, password });
+      await api.post("/auth/reset-password", { email, otp, password });
       toast.success("Password has been reset successfully.");
     } catch (err: unknown) {
       let errorMessage = "Failed to reset password";

@@ -1,5 +1,5 @@
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
-import axios from "axios";
+import api from "../api/api";
 import { AnimatePresence, motion } from "framer-motion";
 import { Eye, EyeOff, Lock, Mail, Sparkles, User } from "lucide-react";
 import React, { useState } from "react";
@@ -496,15 +496,15 @@ const LoginRegister: React.FC = () => {
               onClose={() => setIsForgotPasswordModalOpen(false)}
               onEmailSubmitted={async (email) => {
                 try {
-                  const { data } = await axios.post(
-                    "/api/auth/check-google-user",
+                  const { data } = await api.post(
+                    "/auth/check-google-user",
                     { email }
                   );
 
                   if (data.isGoogleUser) {
                     return true;
                   } else {
-                    await axios.post("/api/auth/forgot-password", { email });
+                    await api.post("/auth/forgot-password", { email });
                     toast.success("Password reset OTP sent to your email.");
                     setResetEmail(email);
                     setIsForgotPasswordModalOpen(false);
