@@ -1,8 +1,8 @@
-import User from "../models/User.js";
+import { io } from "../index.js";
 import BankAccount from "../models/BankAccount.js";
 import Expense from "../models/Expense.js";
 import Notification from "../models/Notification.js";
-import { io } from "../index.js";
+import User from "../models/User.js";
 import sendEmail from "./sendEmail.js";
 
 /**
@@ -19,11 +19,14 @@ export const calculateExpenseBankAccountRatio = async (userId) => {
   const bankAccounts = await BankAccount.find({ user: userId });
   const totalBankAccountBalance = bankAccounts.reduce(
     (acc, account) => acc + account.currentBalance,
-    0
+    0,
   );
 
   const expenses = await Expense.find({ user: userId });
-  const totalExpenses = expenses.reduce((acc, expense) => acc + expense.amount, 0);
+  const totalExpenses = expenses.reduce(
+    (acc, expense) => acc + expense.amount,
+    0,
+  );
 
   return { totalExpenses, totalBankAccountBalance };
 };
@@ -39,27 +42,29 @@ export const checkAndSendExpenseWarning = async (userId) => {
     throw new Error("User not found");
   }
 
-  const { totalExpenses, totalBankAccountBalance } = await calculateExpenseBankAccountRatio(userId);
+  const { totalExpenses, totalBankAccountBalance } =
+    await calculateExpenseBankAccountRatio(userId);
 
-    // Check if expenses are 90% or more of the bank balance
-  if (totalBankAccountBalance > 0 && totalExpenses >= totalBankAccountBalance * 0.9) {
-  
-
+  // Check if expenses are 90% or more of the bank balance
+  if (
+    totalBankAccountBalance > 0 &&
+    totalExpenses >= totalBankAccountBalance * 0.9
+  ) {
     const notification = await Notification.create({
-        user: userId,
-        title: "⚠ Expense Warning",
-        message: `You have used ${totalExpenses} of your total bank balance.`,
-        type: "warning",
+      user: userId,
+      title: "⚠ Expense Warning",
+      message: `You have used ${totalExpenses} of your total bank balance.`,
+      type: "warning",
     });
 
     io.emit("new-notification", notification);
 
     // Send email to user
-await sendEmail(
-  user.email,
-  "⚠ Expense Warning",
-  null,
-  `
+    await sendEmail(
+      user.email,
+      "⚠ Expense Warning",
+      null,
+      `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="text-align: center; margin-bottom: 30px;">
       <h1 style="color: #333; margin: 0;">SmartSpend</h1>
@@ -69,7 +74,7 @@ await sendEmail(
       <h2 style="color: #d9534f; margin-top: 0;">⚠ Expense Warning</h2>
       
       <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
-        Dear ${user.name || 'User'},
+        Dear ${user.name || "User"},
       </p>
       
       <p style="color: #666; line-height: 1.6; margin-bottom: 20px;">
@@ -88,7 +93,7 @@ await sendEmail(
       </p>
       
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'https://smartspend.vercel.app.dashboard'}" 
+        <a href="${process.env.FRONTEND_URL || "https://smartspendslt.vercel.app.dashboard"}" 
            style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; display: inline-block;">
           View Your Dashboard
         </a>
@@ -113,8 +118,8 @@ await sendEmail(
       </p>
     </div>
   </div>
-  `
-);
+  `,
+    );
 
     return true;
   }

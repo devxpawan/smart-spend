@@ -1,11 +1,11 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
+import helmet from "helmet";
 import http from "http";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import { Server } from "socket.io";
-import helmet from "helmet";
 
 // Routes
 import GPTRouter from "./AI-Service/Gemini-Route.js"; //gemini route
@@ -48,7 +48,7 @@ const io = new Server(server, {
     origin: process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
       : [
-          "https://smartspend.vercel.app",
+          "https://smartspendslt.vercel.app",
           "http://localhost:5173",
           "http://localhost:3000",
         ],
@@ -89,7 +89,7 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
   : [
-      "https://smartspend.vercel.app",
+      "https://smartspendslt.vercel.app",
       "http://localhost:5173",
       "http://localhost:3000",
     ];
@@ -119,7 +119,7 @@ if (missingEnvVars.length > 0) {
     console.error(`- ${envVar.name}`);
   });
   console.error(
-    "Please check your .env file and ensure all required variables are set."
+    "Please check your .env file and ensure all required variables are set.",
   );
   process.exit(1);
 }
@@ -131,7 +131,7 @@ app.use(
   helmet({
     // Disable default CSP, we will configure a tailored one next
     contentSecurityPolicy: false,
-  })
+  }),
 );
 app.use(
   cors({
@@ -139,7 +139,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
 );
 app.use(express.json());
 
@@ -151,7 +151,7 @@ if (process.env.ENABLE_HSTS === "true") {
       maxAge: 31536000, // 1 year
       includeSubDomains: true,
       preload: true,
-    })
+    }),
   );
 }
 
@@ -159,7 +159,7 @@ if (process.env.ENABLE_HSTS === "true") {
 app.use(
   helmet.frameguard({
     action: "deny",
-  })
+  }),
 );
 
 // X-Content-Type-Options: nosniff
@@ -194,15 +194,15 @@ app.disable("x-powered-by"); // remove Express signature (helmet also handles th
 // Referrer-Policy
 app.use(
   helmet.referrerPolicy({
-    policy: "no-referrer",
-  })
+    policy: "strict-origin-when-cross-origin",
+  }),
 );
 
 // Permissions-Policy (adjust to actual usage)
 app.use((req, res, next) => {
   res.setHeader(
     "Permissions-Policy",
-    "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+    "geolocation=(), microphone=(), camera=(), interest-cohort=()",
   );
   next();
 });
