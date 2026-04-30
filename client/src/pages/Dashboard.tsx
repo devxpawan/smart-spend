@@ -531,7 +531,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+      <div className="w-full mx-auto space-y-6 sm:space-y-8">
         {/* Mobile-optimized Welcome Header */}
         <motion.header
           initial={{ opacity: 0, y: 20 }}
@@ -651,7 +651,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6"
         >
           {loadingStats
             ? Array.from({ length: 5 }).map((_, idx) => (
@@ -665,9 +665,7 @@ const Dashboard = () => {
                     item.borderColor
                   } dark:${
                     item.darkBorderColor
-                  } hover:scale-[1.02] overflow-hidden backdrop-blur-lg ${
-                    item.urgent ? "ring-2 ring-red-400 ring-opacity-50" : ""
-                  } min-h-[120px] sm:min-h-[140px]`}
+                  } hover:scale-[1.02] overflow-hidden backdrop-blur-lg`}
                 >
                   {/* Background Gradient */}
                   <div
@@ -752,11 +750,11 @@ const Dashboard = () => {
               ))}
             </div>
           ) : bankAccounts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {bankAccounts.map((account) => (
                 <div
                   key={account._id}
-                  className="group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border border-indigo-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden backdrop-blur-lg min-h-[120px] sm:min-h-[140px]"
+                  className="group relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-white/50 dark:bg-gray-800/50 border border-indigo-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden backdrop-blur-lg"
                 >
                   {/* Background Gradient */}
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-500 opacity-20 dark:opacity-10 group-hover:opacity-30 dark:group-hover:opacity-20 transition-opacity duration-300"></div>
@@ -804,7 +802,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6"
+          className="grid grid-cols-1 xl:grid-cols-5 gap-4 sm:gap-6"
         >
           {loadingCharts ? (
             <>
@@ -814,7 +812,7 @@ const Dashboard = () => {
           ) : (
             <>
               {/* Monthly Expenses Chart */}
-              <div className="lg:col-span-3 bg-white dark:bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="lg:col-span-3 xl:col-span-3 bg-white dark:bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600">
@@ -838,7 +836,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                 </div>
-                <div className="h-64 sm:h-72 lg:h-80">
+                <div className="h-80 sm:h-96 lg:h-[500px]">
                   {dashboardData.monthlyExpenseData.length > 0 ||
                   dashboardData.monthlyIncomeData.length > 0 ? (
                     <Line
@@ -1006,7 +1004,7 @@ const Dashboard = () => {
               </div>
 
               {/* Category Charts */}
-              <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="lg:col-span-2 xl:col-span-2 bg-white dark:bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 lg:mb-8 space-y-2 sm:space-y-0">
                   <div className="flex items-center space-x-2 sm:space-x-3">
                     <div className="p-2 sm:p-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600">
@@ -1027,7 +1025,7 @@ const Dashboard = () => {
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Expenses
                     </h4>
-                    <div className="w-full h-48 relative">
+                    <div className="w-full h-56 relative">
                       {dashboardData.categoryData.length > 0 ? (
                         <>
                           <Doughnut
@@ -1062,7 +1060,7 @@ const Dashboard = () => {
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Incomes
                     </h4>
-                    <div className="w-full h-48 relative">
+                    <div className="w-full h-56 relative">
                       {dashboardData.incomeCategoryData.length > 0 ? (
                         <>
                           <Doughnut

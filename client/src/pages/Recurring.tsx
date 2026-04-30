@@ -240,7 +240,7 @@ const Recurring: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen max-w-7xl mx-auto space-y-6 sm:space-y-8 p-4 sm:p-0">
+    <div className="min-h-screen w-full space-y-6 sm:space-y-8 p-4 sm:p-0">
       {/* Header with improved design */}
       <header className="flex flex-col gap-4 sm:gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -270,7 +270,7 @@ const Recurring: React.FC = () => {
 
         {/* Enhanced Stats Cards with better design */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          <div className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-700 border border-green-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden min-h-[120px] sm:min-h-[140px]">
+          <div className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-700 border border-green-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden flex flex-col backdrop-blur-lg">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-5">
               <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600"></div>
@@ -295,7 +295,7 @@ const Recurring: React.FC = () => {
             </div>
           </div>
 
-          <div className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-rose-50 to-red-50 dark:from-gray-800 dark:to-gray-700 border border-rose-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden min-h-[120px] sm:min-h-[140px]">
+          <div className="relative p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-out bg-gradient-to-br from-rose-50 to-red-50 dark:from-gray-800 dark:to-gray-700 border border-rose-200 dark:border-gray-700 hover:scale-[1.02] overflow-hidden flex flex-col backdrop-blur-lg">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-5">
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500 to-red-600"></div>

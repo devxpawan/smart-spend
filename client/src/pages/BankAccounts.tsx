@@ -517,7 +517,7 @@ const BankAccounts: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 p-4">
+      <div className="w-full space-y-6 sm:space-y-8 p-4">
         {/* Header */}
         <header className="mb-6 sm:mb-8">
           <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-5 border border-gray-200 dark:border-gray-700 shadow-lg shadow-gray-200/20 dark:shadow-gray-900/20 backdrop-blur-lg">

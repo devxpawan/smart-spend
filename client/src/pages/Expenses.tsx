@@ -758,7 +758,7 @@ const Expenses: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <div className="relative min-h-[600px]">
+      <div className="relative min-h-[500px]">
         {/* Expenses Table or Empty State */}
         {filteredExpenses.length === 0 && !loading && !error ? (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">

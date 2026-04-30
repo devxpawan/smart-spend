@@ -180,13 +180,12 @@ const FinancialHealthScore: React.FC = () => {
 
       {/* Main Score Display */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Score Circle */}
         <div className="lg:col-span-1 flex flex-col items-center justify-center">
           <div className="relative mb-4">
-            <div className="w-44 h-44 rounded-full bg-gradient-to-br from-white/80 to-white/60 dark:from-slate-800/80 dark:to-slate-800/60 shadow-2xl flex items-center justify-center backdrop-blur-sm">
+            <div className="w-56 h-56 rounded-full bg-gradient-to-br from-white/80 to-white/60 dark:from-slate-800/80 dark:to-slate-800/60 shadow-2xl flex items-center justify-center backdrop-blur-sm">
               <div className="text-center">
                 <div
-                  className={`text-4xl font-bold ${getScoreColor(
+                  className={`text-5xl font-bold ${getScoreColor(
                     healthData.healthScore
                   )}`}
                 >
@@ -205,7 +204,7 @@ const FinancialHealthScore: React.FC = () => {
           </div>
           <div className="text-center">
             <div
-              className={`text-lg font-bold ${getScoreColor(
+              className={`text-xl font-bold ${getScoreColor(
                 healthData.healthScore
               )}`}
             >
@@ -225,12 +224,11 @@ const FinancialHealthScore: React.FC = () => {
           </div>
         </div>
 
-        {/* Monthly Comparison */}
         <div className="lg:col-span-2">
-          <h4 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-4">
+          <h4 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-4">
             This Month vs Last Month
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
             <div className="bg-white/60 dark:bg-slate-800/60 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800 backdrop-blur-lg">
               <div className="flex items-center justify-between mb-2">
@@ -239,12 +237,12 @@ const FinancialHealthScore: React.FC = () => {
                 </span>
                 {healthData.monthlyComparison.incomes.changeType ===
                 "increase" ? (
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-red-500" />
+                  <TrendingDown className="w-5 h-5 text-red-500" />
                 )}
               </div>
-              <div className="text-xl font-bold text-slate-800 dark:text-slate-200">
+              <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
                 {formatCurrency(
                   healthData.monthlyComparison.incomes.current
                 )}
@@ -270,12 +268,12 @@ const FinancialHealthScore: React.FC = () => {
                 </span>
                 {healthData.monthlyComparison.expenses.changeType ===
                 "increase" ? (
-                  <TrendingUp className="w-4 h-4 text-red-500" />
+                  <TrendingUp className="w-5 h-5 text-red-500" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-emerald-500" />
+                  <TrendingDown className="w-5 h-5 text-emerald-500" />
                 )}
               </div>
-              <div className="text-xl font-bold text-slate-800 dark:text-slate-200">
+              <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
                 {formatCurrency(
                   healthData.monthlyComparison.expenses.current
                 )}
@@ -303,12 +301,12 @@ const FinancialHealthScore: React.FC = () => {
                 </span>
                 {healthData.monthlyComparison.bills.changeType ===
                 "increase" ? (
-                  <TrendingUp className="w-4 h-4 text-red-500" />
+                  <TrendingUp className="w-5 h-5 text-red-500" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-emerald-500" />
+                  <TrendingDown className="w-5 h-5 text-emerald-500" />
                 )}
               </div>
-              <div className="text-xl font-bold text-slate-800 dark:text-slate-200">
+              <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
                 {formatCurrency(
                   healthData.monthlyComparison.bills.current
                 )}
@@ -333,12 +331,12 @@ const FinancialHealthScore: React.FC = () => {
                   Payment Rate
                 </span>
                 {healthData.monthlyComparison.paymentRate.change >= 0 ? (
-                  <TrendingUp className="w-4 h-4 text-emerald-500" />
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-red-500" />
+                  <TrendingDown className="w-5 h-5 text-red-500" />
                 )}
               </div>
-              <div className="text-xl font-bold text-slate-800 dark:text-slate-200">
+              <div className="text-2xl font-bold text-slate-800 dark:text-slate-200">
                 {Math.round(
                   healthData.monthlyComparison.paymentRate.current
                 )}
